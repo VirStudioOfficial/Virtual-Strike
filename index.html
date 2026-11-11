@@ -1270,6 +1270,13 @@ document.addEventListener('click',e=>{if(!inLobby)return;const t=e.target,b=t.cl
    - هاست روم می‌سازه (کد ۵ کاراکتری) و مرجع اصلیه: بات‌ها، دمیج و امتیاز روی دستگاه هاست شبیه‌سازی می‌شن.
    - کلاینت‌ها حرکت خودشون رو محلی اجرا می‌کنن و ۲۰ بار در ثانیه می‌فرستن؛ اسنپ‌شات ۱۵ هرتزی هاست همه‌چیز رو می‌ره.
    - درخواست دوستی واقعی: هر بازیکن یه «حضوری» ثابت با اسم خودش داره؛ ادد کردن با اسم، مستقیم P2P می‌ره. */
+const PEER_OPTS={debug:0,config:{iceServers:[
+ {urls:'stun:stun.l.google.com:19302'},
+ {urls:'stun:stun.relay.metered.ca:80'},
+ {urls:'turn:global.relay.metered.ca:80',username:'ad5fe4ec0d769aece6e043a5',credential:'VZ11YYJ22myyc+lw'},
+ {urls:'turn:global.relay.metered.ca:80?transport=tcp',username:'ad5fe4ec0d769aece6e043a5',credential:'VZ11YYJ22myyc+lw'},
+ {urls:'turn:global.relay.metered.ca:443',username:'ad5fe4ec0d769aece6e043a5',credential:'VZ11YYJ22myyc+lw'},
+ {urls:'turns:global.relay.metered.ca:443?transport=tcp',username:'ad5fe4ec0d769aece6e043a5',credential:'VZ11YYJ22myyc+lw'}]}};
 const NET={on:false,mode:null,peer:null,pres:null,presOK:false,room:'',conns:new Map(),members:[],hostConn:null,
  myName:'',pconns:new Map(),pendReq:{},pendMeta:{},snapT:0,stT:0,
  real:(()=>{try{return JSON.parse(localStorage.getItem('ms_rfriends')||'[]').filter(x=>typeof x==='string')}catch(e){return[]}})()};
@@ -1280,7 +1287,7 @@ const rid=n=>'ms25u-'+((String(n).toLowerCase().replace(/[^a-z0-9]/g,''))||('h'+
 NET.send=m=>{if(NET.mode==='host')netBroadcast(m);else if(NET.hostConn&&NET.hostConn.open)try{NET.hostConn.send(m)}catch(e){}};
 function netBroadcast(m){for(const c of NET.conns.values())if(c.open)try{c.send(m)}catch(e){}}
 /* ---- حضور (Presence): هر بازیکن یه Peer با id ثابت از روی اسمش ---- */
-function netStartPresence(id,attempt){const p=new Peer(id,{debug:0});NET.pres=p;
+function netStartPresence(id,attempt){const p=new Peer(id,PEER_OPTS);NET.pres=p;
  p.on('open',()=>{NET.presOK=true;netUpdateChip();
   if(!p._cb){p._cb=1;p.on('connection',c=>{c.on('data',m=>netPresenceMsg(c,m))})}});
  p.on('disconnected',()=>{setTimeout(()=>{if(NET.pres===p&&!p.destroyed)try{p.reconnect()}catch(x){}},1500)});   // قطع شدن از سرور سیگنالینگ → خودکار وصل شو
@@ -1340,7 +1347,7 @@ function netHostRoom(cb){if(NET.on){cb&&cb();return}
  if(NET.hostT&&Date.now()-NET.hostT<5000)return;NET.hostT=Date.now();
  netEnsurePresence(ok=>{if(!ok)return;
   const tryMk=()=>{const code=Array.from({length:5},()=>'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(R()*31)]).join(''),
-   p=new Peer('ms25r-'+code,{debug:0});NET.peer=p;
+   p=new Peer('ms25r-'+code,PEER_OPTS);NET.peer=p;
    p.on('open',()=>{if(NET.on&&NET.mode==='host'&&NET.room===code)return;NET.on=true;NET.mode='host';NET.room=code;NET.conns=new Map();NET.members=[NET.myName];LB.squad=[NET.myName];
     netUpdateChip();lbRenderUI();lbMsg('روم ساخته شد — کد رو برای دوستات بفرست: '+code,'check');cb&&cb()});
    p.on('error',e=>{if(e.type==='unavailable-id'){try{p.destroy()}catch(x){}tryMk()}else console.warn('[net]',e.type)});
@@ -1351,7 +1358,7 @@ function netJoinRoom(codeIn){const code=String(codeIn||'').trim().toUpperCase();
  if(NET.joinT&&Date.now()-NET.joinT<9000)return;NET.joinT=Date.now();   // جلوگیری از دابل‌کلیک: فقط یک اتصال همزمان
  if(NET.on)netLeaveRoom(true);   // اگه توی روم دیگه‌ای هستی (حتی هاست)، خودکار خارج شو
  netEnsurePresence(ok=>{if(!ok)return;
-  const p=new Peer({debug:0});NET.peer=p;NET.room=code;
+  const p=new Peer(PEER_OPTS);NET.peer=p;NET.room=code;
   p.on('open',()=>{const conn=p.connect('ms25r-'+code,{reliable:true});NET.hostConn=conn;
    const to=setTimeout(()=>{if(!NET.on){NET.joinT=0;lbMsg('رومی با این کد پیدا نشد','alert');try{p.destroy()}catch(e){}NET.hostConn=null}},9000);
    conn.on('open',()=>{try{conn.send({t:'join',name:NET.myName})}catch(e){}});
