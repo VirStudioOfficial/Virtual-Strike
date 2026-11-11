@@ -1359,16 +1359,17 @@ function netJoinRoom(codeIn){const code=String(codeIn||'').trim().toUpperCase();
  if(NET.joinT&&Date.now()-NET.joinT<9000)return;NET.joinT=Date.now();   // جلوگیری از دابل‌کلیک: فقط یک اتصال همزمان
  if(NET.on)netLeaveRoom(true);   // اگه توی روم دیگه‌ای هستی (حتی هاست)، خودکار خارج شو
  netEnsurePresence(ok=>{if(!ok)return;
-  const p=new Peer(PEER_OPTS);NET.peer=p;NET.room=code;
+  const p=new Peer(PEER_OPTS);NET.peer=p;NET.room=code;let jto=null;
   p.on('open',()=>{const conn=p.connect('ms25r-'+code,{reliable:true});NET.hostConn=conn;
-   const to=setTimeout(()=>{if(!NET.on){NET.joinT=0;lbMsg('رومی با این کد پیدا نشد','alert');try{p.destroy()}catch(e){}NET.hostConn=null}},9000);
+   const to=jto=setTimeout(()=>{if(!NET.on){NET.joinT=0;lbMsg('اتصال به هاست برقرار نشد (احتمالاً مشکل شبکه/NAT یا هاست جواب نمی‌ده)','alert');try{p.destroy()}catch(e){}NET.hostConn=null}},20000);
    conn.on('open',()=>{try{conn.send({t:'join',name:NET.myName})}catch(e){}});
    conn.on('data',m=>netClientMsg(conn,m));
    conn.on('close',()=>{clearTimeout(to);NET.hostConn=null;
     if(NET.on){NET.on=false;NET.mode=null;NET.room='';NET.members=[];LB.squad=[];lbMsg('اتصال با هاست قطع شد','alert');
      if(inMatch)leaveMatchMP();else{lbRenderUI();netUpdateChip()}}
     else{try{p.destroy()}catch(e){}}})});
-  p.on('error',e=>console.warn('[net]',e.type))})}
+  p.on('error',e=>{console.warn('[net]',e.type);if(NET.on)return;clearTimeout(jto);NET.joinT=0;
+   lbMsg(e.type==='peer-unavailable'?'رومی با این کد پیدا نشد (کد اشتباهه یا هاست آنلاین نیست)':'خطای اتصال: '+e.type,'alert');try{p.destroy()}catch(x){}NET.hostConn=null})})}
 function netDropConn(conn){if(!NET.on)return;const n=conn._name;if(!n)return;
  NET.conns.delete(n);NET.members=NET.members.filter(x=>x!==n);LB.squad=NET.members.slice();
  const e=ents.find(x=>x.name===n);if(e){if(e.mesh)scene.remove(e.mesh);const i=ents.indexOf(e);if(i>=0)ents.splice(i,1)}
