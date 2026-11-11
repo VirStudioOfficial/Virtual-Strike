@@ -1287,13 +1287,14 @@ function sdMarkSites(){const pts=[];
  for(const m of SD.markMeshes||[]){const b=new THREE.Box3().setFromObject(m),sz=b.getSize(new THREE.Vector3());if(!isFinite(sz.x)||Math.max(sz.x,sz.z)>16)continue;const c=b.getCenter(new THREE.Vector3());pts.push({x:c.x,y:b.max.y,z:c.z})}
  const cl=[];for(const p of pts){const g=cl.find(g=>Math.hypot(g.x-p.x,g.z-p.z)<14);if(g){g.x=(g.x*g.n+p.x)/(g.n+1);g.z=(g.z*g.n+p.z)/(g.n+1);g.y=Math.max(g.y,p.y);g.n++}else cl.push({x:p.x,y:p.y,z:p.z,n:1})}
  if(cl.length<2)return null;cl.sort((a,b)=>b.n-a.n);const two=cl.slice(0,2).map(g=>({x:g.x,y:g.y,z:g.z}));two.sort((a,b)=>a.x-b.x);return two}
+const SITE_DEFAULT=[{x:29.46,y:5.76,z:-25.94},{x:-25.90,y:3.84,z:-30.58}];   // جای واقعی سایت A و B (مختصات ثبت‌شده توی مپ)
 function pickSites(){let s=null,src='خودکار';
  try{const j=JSON.parse(localStorage.getItem('ms_sd_sites')||'null');if(Array.isArray(j)&&j.length===2&&j.every(a=>Array.isArray(a)&&a.length===3&&a.every(Number.isFinite))){s=j.map(a=>({x:a[0],y:a[1],z:a[2]}));src='دستی'}}catch(e){}
- if(!s){s=sdMarkSites();if(s)src='از روی ضربدر مپ'}
+ if(!s){s=SITE_DEFAULT.map(q=>({x:q.x,y:q.y,z:q.z}));src='پیش‌فرض'}
  SD.sites=s||sdAutoSites();console.log('[sd] سایت‌ها (A,B):',SD.sites.map(q=>[q.x,q.y,q.z].map(v=>+v.toFixed(1))),'('+src+')')}
 function sdSaveSites(){try{localStorage.setItem('ms_sd_sites',JSON.stringify(SD.sites.map(q=>[+q.x.toFixed(2),+q.y.toFixed(2),+q.z.toFixed(2)])))}catch(e){}}
 function sdSetSite(i){SD.sites[i]={x:P.p.x,y:P.p.y,z:P.p.z};sdSaveSites();sdBuildMarkers();sdMsg(SITE_NAME[i]+' ✓',1.5);console.log('[sd] سایت',SITE_NAME[i],'=',[P.p.x,P.p.y,P.p.z].map(v=>+v.toFixed(2)))}
-function sdResetSites(){try{localStorage.removeItem('ms_sd_sites')}catch(e){}SD.sites=sdAutoSites();sdBuildMarkers();sdMsg('↺',1.5)}
+function sdResetSites(){try{localStorage.removeItem('ms_sd_sites')}catch(e){}SD.sites=SITE_DEFAULT.map(q=>({x:q.x,y:q.y,z:q.z}));sdBuildMarkers();sdMsg('↺',1.5)}
 function sdBuildMarkers(){}
 function sdClearMarkers(){if(SD.mk){scene.remove(SD.mk);SD.mk=null}}
 /* ---- شروع/پایان راند ---- */
