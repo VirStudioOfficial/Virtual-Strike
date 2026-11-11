@@ -1742,7 +1742,7 @@ function lbPose(m){const u=m.userData,g=n=>u.body.getObjectByName(n),kl=g('kneeL
 /* ================= لابی با مدل FBX (Stop_Walking_With_Rifle.fbx): کاراکترها راه می‌یان تو، می‌ایستن، و گان توی دستشونه ================= */
 const LBF={ok:false,src:null,clip:null,sc:1,he:{x:0,z:0},off:0,gP:null,gQ:null,gS:null};
 const LBF_TEX=true;   // true = تکسچر کاراکتر اصلی (ally) روی مدل FBX؛ false = رنگ‌آمیزی ساده
-const LBF_GUN={scale:1.1,anchor:[0,.10,-.10]};   // اندازه‌ی گان (۱ = ۸۸ سانت) | نقطه‌ای از مدل گان که وسط دو دست می‌شینه (x,y,z؛ z منفی = سمت لوله)
+const LBF_GUN={scale:1.0,anchor:[0,.07,-.10],pitch:.07};   // اندازه‌ی گان (۱ = ۸۸ سانت) | نقطه‌ای از مدل گان که وسط دو دست می‌شینه (x,y,z؛ z منفی = سمت لوله)
 const LBF_FACE=.10;                                // سر آخر کاراکتر چقدر (رادیان) از دوربین کج باشه
 const lbfKey=b=>b.name.replace(/^mixamorig:?/,'');
 function lbfBones(o){const r={};o.traverse(b=>{if(b.isBone)r[lbfKey(b)]=b});return r}
@@ -1779,7 +1779,7 @@ function lbfPrep(o){
  const bn=lbfBones(to),V=THREE.Vector3,wp=n=>bn[n].getWorldPosition(new V());
  const hips=wp('Hips'),q=new THREE.Quaternion();bn.Head.getWorldQuaternion(q);
  const hf=new V(0,0,1).applyQuaternion(q),headYaw=Math.atan2(hf.x,hf.z);
- const Pr=wp('RightHandIndex1'),Pl=wp('LeftHandIndex1'),dh=Pl.clone().sub(Pr).normalize();
+ const Pr=wp('RightHandIndex1'),Pl=wp('LeftHandIndex1'),dh=Pl.clone().sub(Pr).normalize();dh.y-=LBF_GUN.pitch;dh.normalize();   // pitch: مثبت = لوله بیشتر رو به پایین (عقب گان بالاتر)
  const za=dh.clone().negate(),xa=new V(0,1,0).cross(za).normalize(),ya=za.clone().cross(xa),S=LBF_GUN.scale,A=LBF_GUN.anchor;
  const mid=Pr.clone().add(Pl).multiplyScalar(.5),pos=mid.clone().sub(xa.clone().multiplyScalar(A[0]*S)).sub(ya.clone().multiplyScalar(A[1]*S)).sub(za.clone().multiplyScalar(A[2]*S));
  const Mg=new THREE.Matrix4().makeBasis(xa.clone().multiplyScalar(S),ya.clone().multiplyScalar(S),za.clone().multiplyScalar(S)).setPosition(pos);
