@@ -1335,6 +1335,7 @@ function netJoinFriend(nIn){const n=String(nIn||'').trim().slice(0,14);
    else if(m.t==='jno'){fin=true;clearTimeout(to);lbMsg(n+' آنلاینه ولی توی رومی نیست','alert');try{c.close()}catch(e){}}});
   c.on('error',()=>{if(!fin){fin=true;clearTimeout(to);lbMsg(n+' آنلاین نیست','alert')}})})}
 function netHostRoom(cb){if(NET.on){cb&&cb();return}
+ if(NET.hostT&&Date.now()-NET.hostT<5000)return;NET.hostT=Date.now();
  netEnsurePresence(ok=>{if(!ok)return;
   const tryMk=()=>{const code=Array.from({length:5},()=>'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(R()*31)]).join(''),
    p=new Peer('ms25r-'+code,{debug:0});NET.peer=p;
@@ -1344,11 +1345,12 @@ function netHostRoom(cb){if(NET.on){cb&&cb();return}
    p.on('connection',conn=>{conn.on('data',m=>netRoomMsg(conn,m));conn.on('close',()=>netDropConn(conn))})};
   tryMk()})}
 function netJoinRoom(codeIn){const code=String(codeIn||'').trim().toUpperCase();if(code.length<4){lbMsg('کد روم رو درست بنویس','alert');return}
+ if(NET.joinT&&Date.now()-NET.joinT<9000)return;NET.joinT=Date.now();   // جلوگیری از دابل‌کلیک: فقط یک اتصال همزمان
  if(NET.on)netLeaveRoom(true);   // اگه توی روم دیگه‌ای هستی (حتی هاست)، خودکار خارج شو
  netEnsurePresence(ok=>{if(!ok)return;
   const p=new Peer({debug:0});NET.peer=p;NET.room=code;
   p.on('open',()=>{const conn=p.connect('ms25r-'+code,{reliable:true});NET.hostConn=conn;
-   const to=setTimeout(()=>{if(!NET.on){lbMsg('رومی با این کد پیدا نشد','alert');try{p.destroy()}catch(e){}NET.hostConn=null}},9000);
+   const to=setTimeout(()=>{if(!NET.on){NET.joinT=0;lbMsg('رومی با این کد پیدا نشد','alert');try{p.destroy()}catch(e){}NET.hostConn=null}},9000);
    conn.on('open',()=>{try{conn.send({t:'join',name:NET.myName})}catch(e){}});
    conn.on('data',m=>netClientMsg(conn,m));
    conn.on('close',()=>{clearTimeout(to);NET.hostConn=null;
@@ -1377,9 +1379,9 @@ function netRoomMsg(conn,m){
  else if(m.t==='clleave'){const e=ents.find(x=>x.name===conn._name);
   if(e){if(e.mesh)scene.remove(e.mesh);const i=ents.indexOf(e);if(i>=0)ents.splice(i,1)}lbMsg((conn._name||'')+' از بازی خارج شد','info')}}
 function netClientMsg(conn,m){
- if(m.t==='full'){lbMsg('روم پر است یا بازی در جریان است','alert');try{NET.peer.destroy()}catch(e){}NET.hostConn=null;return}
+ if(m.t==='full'){NET.joinT=0;lbMsg('روم پر است یا بازی در جریان است','alert');try{NET.peer.destroy()}catch(e){}NET.hostConn=null;return}
  if(m.t==='roomend'){NET.on=false;NET.mode=null;NET.room='';NET.members=[];LB.squad=[];if(inMatch)leaveMatchMP();netUpdateChip();lbRenderUI();lbMsg('هاست روم رو بست','alert');return}
- if(m.t==='lobby'){NET.on=true;NET.mode='client';NET.members=m.squad.slice();LB.squad=m.squad.slice();netUpdateChip();lbRenderUI();return}
+ if(m.t==='lobby'){NET.joinT=0;NET.on=true;NET.mode='client';NET.members=m.squad.slice();LB.squad=m.squad.slice();netUpdateChip();lbRenderUI();return}
  if(m.t==='start'){if(inMatch)leaveMatchMP();startMatchMP(m.roster);return}
  if(m.t==='tolobby'){if(inMatch)leaveMatchMP();return}
  if(m.t==='rsp'){const e=ents.find(x=>x.name===m.n);if(!e)return;
