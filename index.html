@@ -1741,7 +1741,7 @@ function lbPose(m){const u=m.userData,g=n=>u.body.getObjectByName(n),kl=g('kneeL
  u.ring.visible=false;u.botGun.visible=true}
 /* ================= لابی با مدل FBX (Stop_Walking_With_Rifle.fbx): کاراکترها راه می‌یان تو، می‌ایستن، و گان توی دستشونه ================= */
 const LBF={ok:false,src:null,clip:null,sc:1,he:{x:0,z:0},off:0,gP:null,gQ:null,gS:null};
-const LBF_GUN={scale:1.2,anchor:[0,-.01,-.10]};   // اندازه‌ی گان (۱ = ۸۸ سانت) | نقطه‌ای از مدل گان که وسط دو دست می‌شینه (x,y,z؛ z منفی = سمت لوله)
+const LBF_GUN={scale:1.2,anchor:[0,.04,-.10]};   // اندازه‌ی گان (۱ = ۸۸ سانت) | نقطه‌ای از مدل گان که وسط دو دست می‌شینه (x,y,z؛ z منفی = سمت لوله)
 const LBF_FACE=.10;                                // سر آخر کاراکتر چقدر (رادیان) از دوربین کج باشه
 const lbfKey=b=>b.name.replace(/^mixamorig:?/,'');
 function lbfBones(o){const r={};o.traverse(b=>{if(b.isBone)r[lbfKey(b)]=b});return r}
@@ -1762,7 +1762,7 @@ function lbfPrep(o){
  /* رنگ‌آمیزی بدون تکسچر: بر اساس استخونی که هر رأس بهش وصله (دست‌کش/بوت/کلاه/جلیقه/لباس) */
  {const geo=mesh.geometry,si=geo.attributes.skinIndex,sw=geo.attributes.skinWeight,bones=mesh.skeleton.bones;
   if(si&&sw){const grp=bones.map(b=>{const k=lbfKey(b);return /Hand/.test(k)?1:/Foot|Toe/.test(k)?2:/Head|Neck/.test(k)?3:/Spine|Hips|Shoulder/.test(k)?4:0});
-   const COL=[[.33,.37,.26],[.11,.11,.11],[.10,.10,.10],[.20,.23,.17],[.25,.29,.20]],col=new Float32Array(si.array.length/4*3);
+   const COL=[[.13,.15,.19],[.06,.06,.06],[.07,.07,.07],[.12,.13,.14],[.17,.20,.14]],col=new Float32Array(si.array.length/4*3);
    for(let i=0;i<si.array.length/4;i++){let r=0,g=0,b=0,ws=0;for(let k=0;k<4;k++){const w=sw.array[i*4+k];if(!w)continue;const c=COL[grp[si.array[i*4+k]]||0];r+=c[0]*w;g+=c[1]*w;b+=c[2]*w;ws+=w}
     ws=ws||1;col[i*3]=r/ws;col[i*3+1]=g/ws;col[i*3+2]=b/ws}
    geo.setAttribute('color',new THREE.BufferAttribute(col,3))}
