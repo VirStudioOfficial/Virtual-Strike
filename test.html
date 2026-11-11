@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تست اتصال</title>
+<style>
+body{font-family:system-ui,Tahoma,sans-serif;background:#12151c;color:#e8eaf0;margin:0;padding:16px;max-width:640px;margin:auto}
+h1{font-size:20px}
+button{background:#2b6cff;color:#fff;border:0;border-radius:8px;padding:10px 14px;margin:4px 0;font-size:15px;width:100%;cursor:pointer}
+button.g{background:#2a2f3a}
+input[type=text]{width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #3a4150;background:#1b202a;color:#fff;font-size:16px;margin:4px 0;direction:ltr;text-align:center}
+.box{background:#1b202a;border-radius:10px;padding:12px;margin:12px 0}
+#log{white-space:pre-wrap;direction:ltr;text-align:left;font-family:ui-monospace,Consolas,monospace;font-size:13px;min-height:140px}
+.code{font-size:28px;letter-spacing:4px;text-align:center;color:#4ade80;direction:ltr}
+label{display:block;margin:6px 0}
+</style>
+</head>
+<body>
+<h1>تست اتصال بازی</h1>
+<div class="box">
+<label><input type="checkbox" id="relay"> اجبار استفاده از TURN (فقط برای تست ۳)</label>
+</div>
+
+<div class="box">
+<button id="t1">تست ۱: اتصال به سرور PeerJS</button>
+<button id="t2">تست ۲: سرور TURN (relay)</button>
+</div>
+
+<div class="box">
+<b>تست ۳: اتصال بین دو نفر</b>
+<button id="ta">نفر اول: ساخت کد و منتظر ماندن</button>
+<div class="code" id="mycode"></div>
+<input type="text" id="peerid" placeholder="کد نفر اول رو اینجا بنویس">
+<button id="tb">نفر دوم: وصل شو</button>
+</div>
+
+<div class="box">
+<div id="log">نتیجه‌ها اینجا نشون داده می‌شن…</div>
+<button class="g" id="copy">کپی نتیجه‌ها</button>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+const ICE=[
+ {urls:'stun:stun.l.google.com:19302'},
+ {urls:'stun:stun.relay.metered.ca:80'},
+ {urls:'turn:global.relay.metered.ca:80',username:'ad5fe4ec0d769aece6e043a5',credential:'VZ11YYJ22myyc+lw'},
+ {urls:'turn:global.relay.metered.ca:80?transport=tcp',username:'ad5fe4ec0d769aece6e043a5',credential:'VZ11YYJ22myyc+lw'},
+ {urls:'turn:global.relay.metered.ca:443',username:'ad5fe4ec0d769aece6e043a5',credential:'VZ11YYJ22myyc+lw'},
+ {urls:'turns:global.relay.metered.ca:443?transport=tcp',username:'ad5fe4ec0d769aece6e043a5',credential:'VZ11YYJ22myyc+lw'}];
+const $=id=>document.getElementById(id);
+let first=true;
+function log(m){const l=$('log');if(first){l.textContent='';first=false}l.textContent+=new Date().toLocaleTimeString()+'  '+m+'\n'}
+function opts(){const c={iceServers:ICE};if($('relay').checked)c.iceTransportPolicy='relay';return{debug:0,config:c}}
+log('صفحه لود شد. PeerJS: '+(typeof Peer));
+
+$('t1').onclick=()=>{
+ log('تست ۱: در حال اتصال به سرور PeerJS…');
+ let done=false;
+ const p=new Peer('mstest'+Math.random().toString(36).slice(2,8),{debug:0});
+ const to=setTimeout(()=>{if(!done){done=true;log('تست ۱ ناموفق: بعد از ۱۰ ثانیه جواب نیومد');try{p.destroy()}catch(e){}}},10000);
+ p.on('open',id=>{if(done)return;done=true;clearTimeout(to);log('تست ۱ موفق ✔  (ID: '+id+')');p.destroy()});
+ p.on('error',e=>{if(done)return;done=true;clearTimeout(to);log('تست ۱ خطا ✖  '+e.type)});
+};
+
+$('t2').onclick=()=>{
+ log('تست ۲: در حال تست TURN (تا ۱۵ ثانیه صبر کن)…');
+ const types={};let n=0;
+ const pc=new RTCPeerConnection({iceServers:ICE,iceTransportPolicy:'all'});
+ pc.createDataChannel('x');
+ pc.onicecandidate=e=>{if(!e.candidate)return;const t=e.candidate.type||(/typ (\w+)/.exec(e.candidate.candidate)||[])[1];types[t]=(types[t]||0)+1;n++;log('  candidate: '+t)};
+ pc.createOffer().then(o=>pc.setLocalDescription(o));
+ setTimeout(()=>{
+  log('خلاصه: '+JSON.stringify(types));
+  if(types.relay)log('تست ۲ موفق ✔  TURN کار می‌کنه');
+  else log('تست ۲ ناموفق ✖  هیچ relay ای نیومد (TURN از این شبکه در دسترس نیست)');
+  if(!types.srflx)log('هشدار: srflx نیومد (STUN هم کار نمی‌کنه)');
+  pc.close();
+ },15000);
+};
+
+let pa=null;
+$('ta').onclick=()=>{
+ const id='ms'+Math.random().toString(36).slice(2,6).toUpperCase();
+ try{pa&&pa.destroy()}catch(e){}
+ pa=new Peer(id,opts());
+ log('نفر اول: در حال ثبت کد '+id+' …'+($('relay').checked?' (TURN اجباری)':''));
+ pa.on('open',i=>{$('mycode').textContent=i;log('نفر اول آماده ✔  کد: '+i+' — این کد رو به نفر دوم بده')});
+ pa.on('connection',c=>{
+  log('یه اتصال ورودی اومد، منتظر باز شدن…');
+  c.on('open',()=>log('اتصال باز شد ✔'));
+  c.on('data',d=>{log('پیام رسید: '+d);try{c.send('pong')}catch(e){}});
+  c.on('close',()=>log('اتصال بسته شد'));
+ });
+ pa.on('error',e=>log('نفر اول خطا ✖  '+e.type));
+};
+
+$('tb').onclick=()=>{
+ const target=$('peerid').value.trim();
+ if(!target){log('اول کد نفر اول رو بنویس');return}
+ const pb=new Peer(opts());
+ log('نفر دوم: در حال وصل شدن به '+target+' …'+($('relay').checked?' (TURN اجباری)':''));
+ let ok=false;
+ const to=setTimeout(()=>{if(!ok)log('ناموفق ✖  بعد از ۲۰ ثانیه اتصال برقرار نشد')},20000);
+ pb.on('open',()=>{
+  const c=pb.connect(target,{reliable:true});
+  c.on('open',()=>{ok=true;clearTimeout(to);log('وصل شد ✔  در حال ارسال ping…');c.send('ping')});
+  c.on('data',d=>log('جواب رسید ✔  '+d));
+  c.on('close',()=>log('اتصال بسته شد'));
+  c.on('error',e=>log('خطای اتصال ✖  '+e));
+  try{const w=setInterval(()=>{const s=c.peerConnection&&c.peerConnection.iceConnectionState;if(s){log('  ICE state: '+s);if(s==='connected'||s==='failed'||s==='closed')clearInterval(w)}},2000)}catch(e){}
+ });
+ pb.on('error',e=>log('نفر دوم خطا ✖  '+e.type));
+};
+
+$('copy').onclick=()=>{
+ const t=$('log').textContent;
+ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>log('کپی شد'),()=>{const r=document.createRange();r.selectNodeContents($('log'));const s=getSelection();s.removeAllRanges();s.addRange(r);log('متن انتخاب شد، دستی کپی کن')});
+};
+</script>
+</body>
+</html>
