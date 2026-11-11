@@ -11,6 +11,7 @@ canvas{display:block}
 .t{position:absolute;font-size:28px;font-weight:bold;text-shadow:0 0 5px #000;direction:ltr}
 #hp{left:20px;bottom:16px}#ammo{right:20px;bottom:16px}
 #score{top:10px;left:0;right:0;text-align:center;font-size:20px;direction:rtl}
+#pos{position:absolute;left:16px;top:12px;padding:4px 10px;border-radius:8px;background:rgba(0,0,0,.55);color:#9fe8a8;font:600 15px/1.4 monospace;direction:ltr;white-space:pre}
 #mm{position:absolute;top:12px;right:12px;width:200px;height:200px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.12),0 4px 14px rgba(0,0,0,.5)}
 #kf{position:absolute;top:226px;right:14px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;direction:ltr}
 .kfr{background:rgba(0,0,0,.55);padding:3px 10px;border-radius:4px;font-size:16px;font-weight:bold;white-space:nowrap;transition:opacity .5s;text-shadow:0 0 3px #000}
@@ -106,7 +107,7 @@ canvas{display:block}
 @keyframes bl{50%{opacity:.25}}#sdhint.bl{animation:bl 1s steps(2) infinite}
 #flash{display:none;position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
 </style></head><body>
-<div id="hud"><canvas id="mm"></canvas><div id="kf"></div><div id="flash"></div><div id="pbar"><i></i></div><div id="sdhint"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
+<div id="hud"><div id="pos"></div><canvas id="mm"></canvas><div id="kf"></div><div id="flash"></div><div id="pbar"><i></i></div><div id="sdhint"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
 <div id="menu"><h1>Mini Strike</h1>
 <div id="load">در حال لود مپ و کاراکترها...</div>
 <div id="pause"><button class="lbb g" id="lbresume" style="font-size:22px;padding:10px 40px">ادامه بازی</button><br><br><button class="lbb r" id="lbleave" style="font-size:16px">بازگشت به لابی</button></div>
@@ -2135,6 +2136,8 @@ function mmDraw(){
  arrow([h,h],0,5.6*d,'#fff4c2');
  g.beginPath();g.arc(h,h,h-1.5*d,0,6.2832);g.lineWidth=2*d;g.strokeStyle='rgba(255,255,255,.35)';g.stroke();
  g.restore()}
+let POSV=true;   // نمایش مختصات (F6 = روشن/خاموش)
+addEventListener('keydown',e=>{if(e.code==='F6'){e.preventDefault();POSV=!POSV;const q=$('pos');if(q)q.style.display=POSV?'block':'none'}});
 function render(dt){
  const specT=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:null;
  sun.target.position.set(P.p.x,P.p.y,P.p.z);sun.position.set(P.p.x+40,P.p.y+80,P.p.z+20);
@@ -2194,6 +2197,7 @@ function render(dt){
  if(SD.shake>0){const a=SD.shake*.06;cam.position.x+=(R()-.5)*a;cam.position.y+=(R()-.5)*a;cam.position.z+=(R()-.5)*a;cam.rotation.z=(R()-.5)*a*.5}
  vmUpdate(dt);
  try{mmDraw()}catch(e){}
+ if(POSV){const q=$('pos'),w=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:P;if(q)q.textContent='X '+w.p.x.toFixed(2)+'\nY '+w.p.y.toFixed(2)+'\nZ '+w.p.z.toFixed(2)}
  bloodUpdate(dt);
  for(let i=tr.length-1;i>=0;i--){tr[i].t-=dt;if(tr[i].t<=0){scene.remove(tr[i].l);tr[i].l.geometry.dispose();tr.splice(i,1)}}
  mfT-=dt;if(mfT<=0)mflash.intensity=0;
