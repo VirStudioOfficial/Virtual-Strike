@@ -1282,12 +1282,14 @@ function netBroadcast(m){for(const c of NET.conns.values())if(c.open)try{c.send(
 /* ---- حضور (Presence): هر بازیکن یه Peer با id ثابت از روی اسمش ---- */
 function netStartPresence(id,attempt){const p=new Peer(id,{debug:0});NET.pres=p;
  p.on('open',()=>{NET.presOK=true;netUpdateChip();
-  p.on('connection',c=>{c.on('data',m=>netPresenceMsg(c,m))})});
+  if(!p._cb){p._cb=1;p.on('connection',c=>{c.on('data',m=>netPresenceMsg(c,m))})}});
+ p.on('disconnected',()=>{setTimeout(()=>{if(NET.pres===p&&!p.destroyed)try{p.reconnect()}catch(x){}},1500)});   // قطع شدن از سرور سیگنالینگ → خودکار وصل شو
  p.on('error',e=>{
   if(e.type==='unavailable-id'){try{p.destroy()}catch(x){}
    if(attempt<4)setTimeout(()=>netStartPresence(id,attempt+1),1500);   // احتمالاً رفرش قبلی هنوز روی سرور ثبته → با همون id دوباره امتحان کن
    else lbMsg('اتصال آنلاین با این اسم ممکن نشد','alert')}
-  else console.warn('[net]',e.type)})}
+  else{console.warn('[net]',e.type);if(/network|server-error|socket/.test(e.type))setTimeout(()=>{if(NET.pres===p&&!p.destroyed&&p.disconnected)try{p.reconnect()}catch(x){}},3000)}})}
+addEventListener('visibilitychange',()=>{if(document.hidden)return;for(const q of [NET.pres,NET.peer]){if(q&&!q.destroyed&&q.disconnected)try{q.reconnect()}catch(x){}}});
 addEventListener('beforeunload',()=>{try{NET.pres&&NET.pres.destroy()}catch(e){}try{NET.peer&&NET.peer.destroy()}catch(e){}});
 function netEnsurePresence(cb){if(NET.presOK){cb&&cb(true);return}
  if(!NET.myName){const n=prompt('اسم بازیکنی‌ت رو بنویس (دوستات با همین اسم پیدات می‌کنن):','Player'+Math.floor(R()*900+100));
@@ -1339,9 +1341,10 @@ function netHostRoom(cb){if(NET.on){cb&&cb();return}
  netEnsurePresence(ok=>{if(!ok)return;
   const tryMk=()=>{const code=Array.from({length:5},()=>'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(R()*31)]).join(''),
    p=new Peer('ms25r-'+code,{debug:0});NET.peer=p;
-   p.on('open',()=>{NET.on=true;NET.mode='host';NET.room=code;NET.conns=new Map();NET.members=[NET.myName];LB.squad=[NET.myName];
+   p.on('open',()=>{if(NET.on&&NET.mode==='host'&&NET.room===code)return;NET.on=true;NET.mode='host';NET.room=code;NET.conns=new Map();NET.members=[NET.myName];LB.squad=[NET.myName];
     netUpdateChip();lbRenderUI();lbMsg('روم ساخته شد — کد رو برای دوستات بفرست: '+code,'check');cb&&cb()});
    p.on('error',e=>{if(e.type==='unavailable-id'){try{p.destroy()}catch(x){}tryMk()}else console.warn('[net]',e.type)});
+   p.on('disconnected',()=>{setTimeout(()=>{if(NET.peer===p&&!p.destroyed)try{p.reconnect()}catch(x){}},1500)});   // کد روم زنده بمونه تا دوستت دوباره بیاد
    p.on('connection',conn=>{conn.on('data',m=>netRoomMsg(conn,m));conn.on('close',()=>netDropConn(conn))})};
   tryMk()})}
 function netJoinRoom(codeIn){const code=String(codeIn||'').trim().toUpperCase();if(code.length<4){lbMsg('کد روم رو درست بنویس','alert');return}
