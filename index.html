@@ -112,6 +112,7 @@ canvas{display:block}
  <div class="nrow" id="netRoomRow" style="display:none"><span class="nl">کد روم:</span><b id="netRoomCode" title="کلیک = کپی" style="color:#4ade80;letter-spacing:3px;cursor:pointer;user-select:all">-</b><span class="nl">اعضا:</span><b id="netCode" title="اعضای روم">-</b><button class="lbb r" id="netLeave" style="padding:2px 8px;font-size:12px">خروج</button></div>
  <div class="nrow" id="netHostRow"><button class="lbb" id="netHost" style="font-size:12px;padding:4px 10px">ساخت روم آنلاین</button></div>
  <div class="nrow"><input id="netJoinName" maxlength="14" placeholder="اسم دوست آنلاین (عضویت در رومش)"><button class="lbb" id="netJoinF" style="font-size:12px;padding:4px 10px">عضویت</button></div>
+ <div class="nrow" id="netCodeRow"><input id="netJoinCode" maxlength="8" placeholder="کد روم (مثلاً XTF4V)" style="text-transform:uppercase;letter-spacing:2px"><button class="lbb" id="netJoinC" style="font-size:12px;padding:4px 10px">ورود با کد</button></div>
 </div>
 <div id="lbbot" class="pe"><div class="modeb"><span class="mi" data-ic="map"></span><div><b>Dust 2</b><small>رقابتی • ۵ در برابر ۵</small></div></div><button class="lbb g" id="lbstart" data-a="start">شروع بازی</button><div id="lbcnt">اسکواد ۱/۵</div></div>
 <div id="lbset" class="pe"><div class="mbox"><h3>تنظیمات</h3>
@@ -1459,15 +1460,17 @@ function netUpdateChip(){const b=$('netNameBtn');if(!b)return;
  b.textContent=NET.myName||'انتخاب اسم…';
  $('netStat').textContent=NET.presOK?(NET.on?(NET.mode==='host'?'(هاست)':'(مهمان)'):'(آنلاین)'):'';
  const rr=$('netRoomRow'),hr=$('netHostRow');
- if(NET.on){rr.style.display='flex';hr.style.display='none';
+ if(NET.on){rr.style.display='flex';hr.style.display='none';{const cr=$('netCodeRow');if(cr)cr.style.display='none'}
   $('netCode').textContent=NET.members.length?NET.members.join('، '):'-';$('netRoomCode').textContent=NET.room||'-'}
- else{rr.style.display='none';hr.style.display='flex'}}
+ else{rr.style.display='none';hr.style.display='flex';{const cr=$('netCodeRow');if(cr)cr.style.display='flex'}}}
 $('netNameBtn').onclick=()=>{if(NET.on){lbMsg('وسط روم اسم عوض نمی‌شه','alert');return}
  const n=prompt('اسم بازیکنی‌ت:',NET.myName||'Player'+Math.floor(R()*900+100));
  if(!n)return;netSetName(String(n).trim().slice(0,14)||'Player');netUpdateChip();
  netEnsurePresence(ok=>{if(ok)lbMsg('آنلاین شدی — دوستات می‌تونن با اسمت ادت کنن','check')})};
 $('netHost').onclick=()=>netHostRoom();
 $('netJoinF').onclick=()=>netJoinFriend($('netJoinName').value);
+$('netJoinC').onclick=()=>netJoinRoom($('netJoinCode').value);
+$('netJoinCode').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')netJoinRoom($('netJoinCode').value)});
 $('netJoinName').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')netJoinFriend($('netJoinName').value)});
 $('netLeave').onclick=()=>netLeaveRoom(false);
 $('netRoomCode').onclick=()=>{if(!NET.room)return;try{navigator.clipboard.writeText(NET.room).then(()=>lbMsg('کد روم کپی شد: '+NET.room,'check'))}catch(e){}};
