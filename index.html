@@ -340,7 +340,7 @@ function bombFallbackBase(){const mk=(w,h,d,c,y,z)=>{const g=new THREE.BoxGeomet
 function bombMake(len){const B=BOMB.base,g=new THREE.Group();
  for(const it of B.items){const m=new THREE.Mesh(it.geo,it.mat);m.frustumCulled=false;g.add(m)}
  const lcd=lcdMake(),pm=new THREE.Mesh(new THREE.PlaneGeometry(B.lcd.w,B.lcd.h),new THREE.MeshBasicMaterial({map:lcd.tex,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
- pm.rotation.x=-Math.PI/2;pm.position.set(B.lcd.x,B.lcd.y+.0003,B.lcd.z);g.add(pm);g.scale.setScalar(len/BOMB_BASE_LEN);g.rotation.y=Math.PI;return{g,lcd}}   // مدل ۱۸۰° چرخیده: صفحه‌ی LCD بالا، صفحه‌کلید پایین
+ pm.rotation.set(-Math.PI/2,0,Math.PI);pm.position.set(B.lcd.x,B.lcd.y+.0003,B.lcd.z);g.add(pm);g.scale.setScalar(len/BOMB_BASE_LEN);g.rotation.y=Math.PI;return{g,lcd}}   // مدل ۱۸۰° چرخیده: صفحه‌ی LCD بالا، صفحه‌کلید پایین
 function bombVmBuild(){while(bombG.children.length)bombG.remove(bombG.children[0]);BOMB.vm=bombMake(BOMB_VM_LEN);bombG.add(BOMB.vm.g)}
 BOMB.base=bombFallbackBase();bombVmBuild();
 /* مدل اسکلتی رو توی حالت استراحت «می‌پزیم» به یه مش ساده (بدون اسکین): مقیاس inch→متر و محورهای Source (X جلو، Y چپ، Z بالا) → Y-up، بعد نرمال‌سازی اندازه */
