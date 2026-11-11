@@ -11,7 +11,8 @@ canvas{display:block}
 .t{position:absolute;font-size:28px;font-weight:bold;text-shadow:0 0 5px #000;direction:ltr}
 #hp{left:20px;bottom:16px}#ammo{right:20px;bottom:16px}
 #score{top:10px;left:0;right:0;text-align:center;font-size:20px;direction:rtl}
-#kf{position:absolute;top:44px;right:14px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;direction:ltr}
+#mm{position:absolute;top:12px;right:12px;width:200px;height:200px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.12),0 4px 14px rgba(0,0,0,.5)}
+#kf{position:absolute;top:226px;right:14px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;direction:ltr}
 .kfr{background:rgba(0,0,0,.55);padding:3px 10px;border-radius:4px;font-size:16px;font-weight:bold;white-space:nowrap;transition:opacity .5s;text-shadow:0 0 3px #000}
 .kfr.me{border:2px solid #e33}.kfr .a{color:#5aa9ff}.kfr .b{color:#ff6a5a}.kfr .w{color:#ddd;margin:0 8px;font-weight:normal}.kfr .hs{color:#fff}
 #msg{top:40%;left:0;right:0;text-align:center;font-size:30px;color:#fd6}
@@ -105,7 +106,7 @@ canvas{display:block}
 @keyframes bl{50%{opacity:.25}}#sdhint.bl{animation:bl 1s steps(2) infinite}
 #flash{display:none;position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
 </style></head><body>
-<div id="hud"><div id="kf"></div><div id="flash"></div><div id="pbar"><i></i></div><div id="sdhint"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
+<div id="hud"><canvas id="mm"></canvas><div id="kf"></div><div id="flash"></div><div id="pbar"><i></i></div><div id="sdhint"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
 <div id="menu"><h1>Mini Strike</h1>
 <div id="load">در حال لود مپ و کاراکترها...</div>
 <div id="pause"><button class="lbb g" id="lbresume" style="font-size:22px;padding:10px 40px">ادامه بازی</button><br><br><button class="lbb r" id="lbleave" style="font-size:16px">بازگشت به لابی</button></div>
@@ -136,6 +137,7 @@ canvas{display:block}
 const $=id=>document.getElementById(id),R=Math.random;
 const IC_ATTR='class="svgi" viewBox="0 0 24 24" aria-hidden="true"';
 const ICON={
+eye:`<svg ${IC_ATTR}><path d="M12 5C6.5 5 2.3 9 1 12c1.3 3 5.5 7 11 7s9.7-4 11-7c-1.3-3-5.5-7-11-7zm0 11.2a4.2 4.2 0 1 1 0-8.4 4.2 4.2 0 0 1 0 8.4zm0-6.4a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4z"/></svg>`,
 home:`<svg ${IC_ATTR}><path d="M12 2.6 1.8 11.4h2.7V20a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-8.6h2.7zM9.8 21v-5a2.2 2.2 0 0 1 4.4 0v5z"/></svg>`,
 gear:`<svg ${IC_ATTR}><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>`,
 map:`<svg ${IC_ATTR}><path d="M2.5 6.4 8.3 4v13.7L2.5 20zM9.5 4.1l5 1.9v13.7l-5-1.9zM15.7 6l5.8-2.3v13.9l-5.8 2.4z"/></svg>`,
@@ -629,7 +631,8 @@ function vmArms(k){const A=VM.arms;if(!A)return;
     fp.setXYZ(fj,_wv1.x,_wv1.y,_wv1.z);hp.setXYZ(hj,_wv2.x,_wv2.y,_wv2.z)}
    fp.needsUpdate=hp.needsUpdate=true}}}
 function vmUpdate(dt){
- const vis=!P.dead&&!tp;gun.visible=vis;if(VM.arms)VM.arms.group.visible=vis;
+ const spc=!!(SD.on&&P.dead&&SD.spec&&!SD.spec.dead),vis=(!P.dead&&!tp)||spc;gun.visible=vis;if(VM.arms)VM.arms.group.visible=vis;
+ if(spc){P.wp=0;P.rl=0;P.arm=0;P.dr=0;P.sl=0;P.pl=0}   // تماشا از دید یار: ویومدل AK بدون ریلود/چاقو/بمب (بات‌ها فقط AK دارن)
  VM.kick+=(0-VM.kick)*Math.min(1,dt*11);   // بازگشت نرم‌تر → لگد دیده می‌شه
  const u=(TUNE.on&&TUNE.h==='M'&&(P.wp||0)!==2)?.22:P.rl>0?Math.min(1,Math.max(0,1-P.rl/(P.rlT||RELOAD_T))):0;
  if(P.rl<=0)VM.snd=0;else{const SN=(P.wp||0)===2?PSND:SND;while(VM.snd<SN.length&&u>=SN[VM.snd][0]){if((P.wp||0)===2||!SFX.out)beep(SN[VM.snd][1],.06,.06);else if(VM.snd<2)sfx(VM.snd?'in':'out',.6);VM.snd++}}
@@ -651,8 +654,8 @@ function vmUpdate(dt){
   else{const y=t<.25?-dir*.5*(t/.25):t<.6?-dir*.5+dir*1.5*((t-.25)/.35):dir*(1-(t-.6)/.4),e=Math.sin(Math.PI*t);
    k.g[1]+=y;k.g[2]+=-dir*.5*e;k.g[0]+=.3*e;k.p[0]+=dir*.06*e;k.p[2]-=.1*e}}
  /* حرکت گان موقع راه رفتن (bob): فاز با سرعت واقعی بازیکن جلو می‌ره، فقط روی زمین؛ دست‌ها خودشون با گان می‌آن چون IK از روی گان حساب می‌شه */
- {const sp=Math.min(8,Math.hypot(P.p.x-(VM.bx===undefined?P.p.x:VM.bx),P.p.z-(VM.bz===undefined?P.p.z:VM.bz))/Math.max(dt,1e-3));VM.bx=P.p.x;VM.bz=P.p.z;
-  const mv=!P.dead&&P.on&&sp>.8&&!TUNE.on,tg=mv?Math.min(1,sp/6.5):0;
+ {const S=spc?SD.spec:P,sp=Math.min(8,Math.hypot(S.p.x-(VM.bx===undefined?S.p.x:VM.bx),S.p.z-(VM.bz===undefined?S.p.z:VM.bz))/Math.max(dt,1e-3));VM.bx=S.p.x;VM.bz=S.p.z;
+  const mv=(spc?!!S.on:(!P.dead&&P.on))&&sp>.8&&!TUNE.on,tg=mv?Math.min(1,sp/6.5):0;
   VM.ba=(VM.ba||0)+(tg-(VM.ba||0))*Math.min(1,dt*9);if(mv)VM.bp=(VM.bp||0)+dt*(3.2+sp*.8);
   const a=VM.ba*((P.rl>0||P.arm>0)?.6:1),ph=VM.bp||0;
   if(a>.001){k.p=k.p.slice();k.g=k.g.slice();
@@ -1112,6 +1115,7 @@ function fire(e,d){let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z}
  L=Math.min(L,100);const end={x:o0.x+d.x*L,y:o0.y+d.y*L,z:o0.z+d.z*L},o=o0;
  tracer(e.isP?muzzlePos():{x:o.x,y:o.y-.15,z:o.z},end);
  {const mp=e.isP?muzzlePos():{x:o.x,y:o.y-.15,z:o.z};mflash.position.set(mp.x,mp.y,mp.z);mflash.intensity=e.isP?4:2;mfT=.05}   // برای بازیکن: از سر لوله
+ if(!e.isP&&SD.on&&P.dead&&SD.spec===e)VM.kick=Math.min(.11,VM.kick+.07);   // لگد گان موقع تماشا
  const dist=Math.hypot(e.p.x-P.p.x,e.p.z-P.p.z);if(!((!e.isP||(e.wp||0)!==2)&&sfx('shot',e.isP?.75:.6/(1+dist/8),.96+R()*.08)))beep(e.isP?((e.wp||0)===2?230:180):140,e.isP?.05:.05/(1+dist/6));
  if(hit&&!hit.isP)bloodHit(end,d,zone);   // پاشش خون
  if(hit){const pp=e.isP&&(e.wp||0)===2,D={head:e.isP?[100]:[25],body:e.isP?[pp?28:34]:[12],legs:e.isP?[pp?14:18]:[6]};if(NET.mode!=='client')damage(hit,walls?Math.max(1,Math.round(D[zone][0]*mul)):D[zone][0],e,zone,walls>0)}   // روی کلاینت فقط پیش‌بینی بصریه؛ دمیج رو هاست اعمال می‌کنه
@@ -1382,11 +1386,11 @@ function sdHud(){
  const sec=Math.max(0,SD.state==='planted'?SD.bt:SD.rt),tm=SD.state==='planted'?'💣 '+Math.ceil(sec):Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');
  $('score').textContent=SD.wins[0]+' : '+SD.wins[1]+'   '+SD.a0+'v'+SD.a1+'   '+tm;
  $('msg').textContent=SD.msgT>0?SD.msg:'';
- let h='';
- if(P.dead)h=SD.spec?'👁 '+SD.spec.name:'';
+ let h='',hh=false;
+ if(P.dead){if(SD.spec){h=ICON.eye+' '+SD.spec.name;hh=true}}
  else if(SD.state==='planted'&&SD.defT>0)h='⚠ '+Math.max(0,DEFUSE_T-SD.defT).toFixed(1);
  else if(SD.state==='live'&&SD.hasBomb&&!(P.pl>0)&&sdSiteAt(P.p.x,P.p.y,P.p.z)>=0)h='💣';
- const hn=$('sdhint');hn.style.display=h?'block':'none';hn.textContent=h;hn.className=h==='💣'?'bl':'';
+ const hn=$('sdhint');hn.style.display=h?'block':'none';if(hh)hn.innerHTML=h;else hn.textContent=h;hn.className=h==='💣'?'bl':'';
  const pb=$('pbar');pb.style.display=P.pl>0?'block':'none';pb.firstElementChild.style.width=Math.min(100,(P.pl||0)/PLANT_T*100)+'%'}
 function bombUpdate(dt){
  if((P.wp||0)!==3){P.pl=0;return}
@@ -2081,6 +2085,55 @@ function ragRender(e,u,dt){const r=e.rag,m=e.mesh;
  if(r.bad)return;
  if(!r.sleep||!r.posed){ragPose(e,u,r);r.posed=r.sleep}
  else m.updateMatrixWorld(true)}
+/* ================= مینی‌مپ (رادار بالا سمت راست) =================
+   زمینه‌ی مپ یک بار از روی مثلث‌های برخورد کشیده می‌شه (نمای از بالا، روشنایی = ارتفاع، دیوارها خط روشن).
+   رادار دور بازیکن می‌چرخه (جلو = بالا)؛ موقع اسپکت دور یاری که تماشا می‌کنی. دشمن فقط وقتی دیده می‌شه که خط دید باشه. */
+const MM={c:null,x:null,S:200,R:34,d:1,base:null,T:null};
+function mmBuild(){
+ const W0=NX*CELL,H0=NZ*CELL,sc=Math.min(3,2048/Math.max(W0,H0)),W=Math.ceil(W0*sc),H=Math.ceil(H0*sc);
+ const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
+ let y1=-1e9;for(let i=1;i<T.length;i+=3)if(T[i]>y1)y1=T[i];
+ const fl=[],wl=[];
+ for(let i=0;i<NT;i++){const j=i*9;if(Math.abs(TN[i*3+1])>.5)fl.push([(T[j+1]+T[j+4]+T[j+7])/3,i]);else wl.push(i)}
+ fl.sort((a,b)=>a[0]-b[0]);
+ const X=v=>(v-GX0)*sc,Z=v=>(v-GZ0)*sc,span=Math.max(1,y1-MAPMIN);
+ g.fillStyle='#0b1117';g.fillRect(0,0,W,H);g.lineJoin='round';g.lineWidth=.8;
+ for(const f of fl){const j=f[1]*9,t=Math.max(0,Math.min(1,(f[0]-MAPMIN)/span));
+  g.fillStyle=g.strokeStyle='hsl(210,14%,'+(30+t*34).toFixed(1)+'%)';   // بلندتر = روشن‌تر
+  g.beginPath();g.moveTo(X(T[j]),Z(T[j+2]));g.lineTo(X(T[j+3]),Z(T[j+5]));g.lineTo(X(T[j+6]),Z(T[j+8]));g.closePath();g.fill();g.stroke()}
+ g.strokeStyle='#d7e0e8';g.lineWidth=Math.max(1.4,.45*sc);g.lineCap='round';g.beginPath();
+ for(const i of wl){const j=i*9,P3=[[T[j],T[j+2]],[T[j+3],T[j+5]],[T[j+6],T[j+8]]];   // دیوار عمودی: دو رأسی که بیشترین فاصله رو توی صفحه دارن
+  let a=0,b=1,m=-1;for(let p=0;p<3;p++)for(let q=p+1;q<3;q++){const d=Math.hypot(P3[p][0]-P3[q][0],P3[p][1]-P3[q][1]);if(d>m){m=d;a=p;b=q}}
+  if(m<.05)continue;g.moveTo(X(P3[a][0]),Z(P3[a][1]));g.lineTo(X(P3[b][0]),Z(P3[b][1]))}
+ g.stroke();MM.base=cv}
+function mmDraw(){
+ if(!MM.c){MM.c=$('mm');if(!MM.c)return;MM.x=MM.c.getContext('2d');MM.d=Math.min(devicePixelRatio||1,2);MM.c.width=MM.c.height=Math.round(MM.S*MM.d)}
+ if(!NT)return;
+ if(MM.T!==T){MM.T=T;MM.base=null;try{mmBuild()}catch(e){console.warn('[minimap]',e)}}
+ if(!MM.base)return;
+ const sp=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:null,o=sp||P,yaw=sp?sp.yaw:P.yaw;
+ const g=MM.x,d=MM.d,S=MM.S*d,h=S/2,k=h/MM.R,co=Math.cos(yaw),si=Math.sin(yaw);
+ g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,S,S);
+ g.save();g.beginPath();g.arc(h,h,h-1,0,6.2832);g.clip();
+ g.fillStyle='rgba(8,12,18,.8)';g.fillRect(0,0,S,S);
+ g.translate(h,h);g.rotate(yaw);g.scale(k,k);g.translate(-o.p.x,-o.p.z);
+ g.globalAlpha=.92;g.drawImage(MM.base,GX0,GZ0,NX*CELL,NZ*CELL);g.globalAlpha=1;
+ g.setTransform(1,0,0,1,0,0);
+ const pos=(x,z,clamp)=>{const dx=x-o.p.x,dz=z-o.p.z;let rx=(dx*co-dz*si)*k,rz=(dx*si+dz*co)*k;const L=Math.hypot(rx,rz),lim=h-11*d;
+  if(L>lim){if(!clamp)return null;rx*=lim/L;rz*=lim/L}return[h+rx,h+rz]};
+ const arrow=(p,ang,r,col)=>{g.save();g.translate(p[0],p[1]);g.rotate(ang);g.beginPath();g.moveTo(0,-r*1.4);g.lineTo(r*.95,r);g.lineTo(0,r*.45);g.lineTo(-r*.95,r);g.closePath();
+  g.fillStyle=col;g.fill();g.lineWidth=1.2*d;g.strokeStyle='rgba(0,0,0,.75)';g.stroke();g.restore()};
+ if(SD.on&&SD.sites){g.font='bold '+Math.round(11*d)+'px sans-serif';g.textAlign='center';g.textBaseline='middle';
+  for(let i=0;i<SD.sites.length;i++){const q=SD.sites[i],p=pos(q.x,q.z,true);g.beginPath();g.arc(p[0],p[1],8*d,0,6.2832);g.fillStyle='rgba(0,0,0,.6)';g.fill();g.lineWidth=1.6*d;g.strokeStyle='#ffb020';g.stroke();g.fillStyle='#ffb020';g.fillText(SITE_NAME[i],p[0],p[1]+.5*d)}
+  const bb=SD.bomb||SD.drop;if(bb){const p=pos(bb.x,bb.z,true),on=SD.bomb&&(Math.floor(performance.now()/350)%2===0);g.fillStyle=SD.bomb?(on?'#ff3030':'#7a1010'):'#ffd23a';g.fillRect(p[0]-4*d,p[1]-4*d,8*d,8*d);g.lineWidth=1*d;g.strokeStyle='#000';g.strokeRect(p[0]-4*d,p[1]-4*d,8*d,8*d)}}
+ const ob=eye(o);
+ for(const e of ents){if(e.dead||e===o||e.isP)continue;
+  const al=e.team===o.team;
+  if(!al){const tx=e.p.x-ob.x,ty=e.p.y+1.0-ob.y,tz=e.p.z-ob.z,L=Math.hypot(tx,ty,tz);if(L<.1||castRay(ob.x,ob.y,ob.z,tx/L,ty/L,tz/L,L,false)<L-.3)continue}   // دشمن فقط با خط دید
+  const p=pos(e.p.x,e.p.z,false);if(!p)continue;arrow(p,yaw-e.yaw,4.6*d,al?'#4aa3ff':'#ff4a4a')}
+ arrow([h,h],0,5.6*d,'#fff4c2');
+ g.beginPath();g.arc(h,h,h-1.5*d,0,6.2832);g.lineWidth=2*d;g.strokeStyle='rgba(255,255,255,.35)';g.stroke();
+ g.restore()}
 function render(dt){
  const specT=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:null;
  sun.target.position.set(P.p.x,P.p.y,P.p.z);sun.position.set(P.p.x+40,P.p.y+80,P.p.z+20);
@@ -2116,7 +2169,7 @@ function render(dt){
      o.material=Array.isArray(o.material)?o.material.map(q=>q.clone()):o.material.clone();   // متریال مخصوص خودش، تا بقیه بریده نشن
      u.fpAll.push(o);let p=o;while(p&&p!==m){if(p.name==='armL'||p.name==='armR'){u.fpArms.push(o);break}p=p.parent}})}
    if(u.fpOn!==fp){
-    if(e.isP)for(const o of u.fpArms){if(fp){o.userData.om=o.material;o.material=GHOST}else if(o.userData.om)o.material=o.userData.om}   // دست‌های بدن مخفی (ویوومدل خودش دست داره)
+    if(e.isP||isSp)for(const o of u.fpArms){if(fp){o.userData.om=o.material;o.material=GHOST}else if(o.userData.om)o.material=o.userData.om}   // دست‌های بدن مخفی (ویوومدل خودش دست داره)
     for(const o of u.fpAll)for(const q of(Array.isArray(o.material)?o.material:[o.material]))q.clippingPlanes=fp?[u.fpPlane]:null;
     u.fpOn=fp}
    m.rotation.order='YXZ';m.rotation.x=0;
@@ -2124,7 +2177,7 @@ function render(dt){
     m.position.x-=Math.sin(e.yaw)*sh;m.position.z-=Math.cos(e.yaw)*sh;m.rotation.x=e.isP?FP_LEG_TILT*df:0;u.ring.visible=false;
     const up=_dv.set(0,1,0).applyQuaternion(m.quaternion),nh=CHAR_H*FP_NECK*(1-.26*e.cr);   // سر رو از گردن می‌بُریم تا دوربین توی سر نیفته
     u.fpPlane.setFromNormalAndCoplanarPoint(up.clone().negate(),new THREE.Vector3(m.position.x+up.x*nh,m.position.y+up.y*nh,m.position.z+up.z*nh))}
-   if(e.isP&&u.botGun)u.botGun.visible=!fp;
+   if(u.botGun&&(e.isP||isSp||u.fpGunHid)){const hg=e.isP?fp:(isSp&&!e.dead);u.botGun.visible=!hg;u.fpGunHid=hg&&!e.isP}
    m.visible=e.isP?(fp||tp||e.dead):true}
   else m.visible=true}
  const ey=P.p.y+1.6-CROUCH_D*P.cr-P.dip-(P.sdip||0),sy=Math.sin(P.yaw),cy=Math.cos(P.yaw),cp=Math.cos(pitch),spch=Math.sin(pitch);
@@ -2139,6 +2192,7 @@ function render(dt){
  }else{cam.position.set(P.p.x,ey,P.p.z);cam.rotation.set(pitch,P.yaw,0)}
  if(SD.shake>0){const a=SD.shake*.06;cam.position.x+=(R()-.5)*a;cam.position.y+=(R()-.5)*a;cam.position.z+=(R()-.5)*a;cam.rotation.z=(R()-.5)*a*.5}
  vmUpdate(dt);
+ try{mmDraw()}catch(e){}
  bloodUpdate(dt);
  for(let i=tr.length-1;i>=0;i--){tr[i].t-=dt;if(tr[i].t<=0){scene.remove(tr[i].l);tr[i].l.geometry.dispose();tr.splice(i,1)}}
  mfT-=dt;if(mfT<=0)mflash.intensity=0;
