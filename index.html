@@ -109,9 +109,9 @@ canvas{display:block}
 <div id="lbaddp" class="pe"><h4>افزودن دوست</h4><div class="row"><input id="lbname" maxlength="14" placeholder="اسم دوست آنلاین یا بات (مثلاً Viper)"><button class="lbb" data-a="addtyped">افزودن</button></div><div style="font-size:12px;opacity:.6;margin-bottom:6px">بازیکن‌های پیشنهادی</div><div id="lbsug"></div></div>
 <div id="lbnet" class="pe">
  <div class="nrow"><span class="nl">من:</span><b id="netNameBtn">انتخاب اسم…</b><span id="netStat"></span></div>
- <div class="nrow" id="netRoomRow" style="display:none"><span class="nl" id="netRoomLbl">کد روم:</span><b id="netCode" title="کپی کد">----</b><button class="lbb r" id="netLeave" style="padding:2px 8px;font-size:12px">خروج</button></div>
+ <div class="nrow" id="netRoomRow" style="display:none"><span class="nl">اعضا:</span><b id="netCode" title="اعضای روم">-</b><button class="lbb r" id="netLeave" style="padding:2px 8px;font-size:12px">خروج</button></div>
  <div class="nrow" id="netHostRow"><button class="lbb" id="netHost" style="font-size:12px;padding:4px 10px">ساخت روم آنلاین</button></div>
- <div class="nrow"><input id="netJoinCode" maxlength="6" placeholder="کد روم"><button class="lbb" id="netJoin" style="font-size:12px;padding:4px 10px">عضویت</button></div>
+ <div class="nrow"><input id="netJoinName" maxlength="14" placeholder="اسم دوست آنلاین (عضویت در رومش)"><button class="lbb" id="netJoinF" style="font-size:12px;padding:4px 10px">عضویت</button></div>
 </div>
 <div id="lbbot" class="pe"><div class="modeb"><span class="mi" data-ic="map"></span><div><b>Dust 2</b><small>رقابتی • ۵ در برابر ۵</small></div></div><button class="lbb g" id="lbstart" data-a="start">شروع بازی</button><div id="lbcnt">اسکواد ۱/۵</div></div>
 <div id="lbset" class="pe"><div class="mbox"><h3>تنظیمات</h3>
@@ -1211,15 +1211,16 @@ const ini=n=>esc((Array.from(n)[0]||'?').toUpperCase());
 function lbMsg(t,ic){const f=$('lbfeed'),d=document.createElement('div');if(ic&&ICON[ic]){d.innerHTML=ICON[ic];d.appendChild(document.createTextNode(t))}else d.textContent=t;f.appendChild(d);while(f.children.length>5)f.removeChild(f.firstChild);setTimeout(()=>d.remove(),6500)}
 const favHTML=(n,cls,click)=>`<div class="fav ${cls}" ${click?`data-a="fmenu" data-n="${esc(n)}"`:''} style="background:${avBg(n)}">${ini(n)}<i class="on"></i><span class="nm">${esc(n)}</span></div>`;
 function lbRenderUI(){
+ const me=NET.myName||'تو',sq=LB.squad.filter(x=>x!==me);   // اسم خودم نباید دوباره به‌عنوان عضو جدا نمایش داده بشه
  let h=`<button class="fav plus" data-a="addp" title="افزودن دوست">+</button><div class="sep"></div>`;
  for(const n of Object.keys(LB.pend)){const v=LB.pend[n];
   if(v==='friend'||v==='freqout')h+=favHTML(n,'pend',false);
   else if(v==='freq'||v==='invr')h+=favHTML(n,'pend',true)}
  for(const n of LB.friends)h+=favHTML(n,(LB.squad.includes(n)?'insq ':'')+(LB.pend[n]==='invite'?'pend':''),true);
- for(const n of LB.squad)if(!LB.friends.includes(n))h+=favHTML(n,'insq',false);   // اعضای روم آنلاین که هنوز توی لیست دوست‌ها نیستن
+ for(const n of sq)if(!LB.friends.includes(n))h+=favHTML(n,'insq',false);   // اعضای روم آنلاین که هنوز توی لیست دوست‌ها نیستن
  $('lbfrs').innerHTML=h;
  $('lbsug').innerHTML=POOL.filter(n=>!LB.friends.includes(n)).map(n=>`<span class="sug">${esc(n)}<button data-a="add" data-n="${esc(n)}" ${LB.pend[n]==='friend'?'disabled':''}>${LB.pend[n]==='friend'?'…':'+'}</button></span>`).join('');
- $('lbcnt').textContent='اسکواد '+(1+LB.squad.length)+'/۵';
+ $('lbcnt').textContent='اسکواد '+(1+sq.length)+'/۵';
  $('lbstart').disabled=!READY||NET.mode==='client';
  $('lbnet').style.display='flex';netUpdateChip();
  if(inLobby)lbBuildChars()}
@@ -1263,7 +1264,7 @@ document.addEventListener('click',e=>{if(!inLobby)return;const t=e.target,b=t.cl
  else if(a==='settings'){lbSettingsSync();$('lbset').style.display='grid'}
  else if(a==='setclose')$('lbset').style.display='none';
  else if(a==='tab'){if(n!=='PLAY'&&n!=='HOME')lbMsg(n+' — به‌زودی','info')}
- else if(a==='start'){if(!READY)return;if(NET.mode==='client'){lbMsg('فقط هاست می‌تونه شروع کنه','alert');return}startMatch();lockIn()}});
+ else if(a==='start'){if(!READY||inMatch)return;if(NET.mode==='client'){lbMsg('فقط هاست می‌تونه شروع کنه','alert');return}startMatch();lockIn()}});
 
 /* ================= NET: چندنفره واقعی با WebRTC (PeerJS) =================
    - هاست روم می‌سازه (کد ۵ کاراکتری) و مرجع اصلیه: بات‌ها، دمیج و امتیاز روی دستگاه هاست شبیه‌سازی می‌شن.
@@ -1303,6 +1304,10 @@ function netPresenceMsg(c,m){
   const cb=NET.pendReq[n];if(cb){cb('ok');delete NET.pendReq[n]}}
  else if(m.t==='frej'){const n=String(m.from||'');if(LB.pend[n]==='freqout'){delete LB.pend[n];lbMsg(n+' درخواستت رو رد کرد','alert');lbRenderUI()}
   const cb=NET.pendReq[n];if(cb){cb('no');delete NET.pendReq[n]}}
+ else if(m.t==='jn'){const n=String(m.from||'').slice(0,14);   // عضویت با سرچ اسم: اگه روم داری، کدش رو بفرست
+  NET.pconns.set(n,c);
+  if(NET.on&&NET.mode==='host'&&!inMatch)try{c.send({t:'jok',room:NET.room,from:NET.myName})}catch(e){}
+  else try{c.send({t:'jno',from:NET.myName})}catch(e){}}
  else if(m.t==='inv'){const n=String(m.from||''),code=String(m.room||'');
   NET.pconns.set(n,c);LB.pend[n]='invr';NET.pendMeta[n]={room:code};
   lbMsg(n+' تو رو به رومش دعوت کرد — روی آواتارش بزن','info');lbRenderUI()}}
@@ -1317,6 +1322,18 @@ function netFriendReq(n){netEnsurePresence(ok=>{if(!ok){delete LB.pend[n];lbRend
   else if(m.t==='frej'){fin=true;clearTimeout(to);delete LB.pend[n];lbMsg(n+' درخواستت رو رد کرد','alert');lbRenderUI();try{c.close()}catch(e){}}});
  c.on('error',()=>{if(!fin){fin=true;clearTimeout(to);delete LB.pend[n];lbMsg(n+' آنلاین نیست','alert');lbRenderUI()}})})}
 /* ---- روم (گیم‌پلی) ---- */
+function netJoinFriend(nIn){const n=String(nIn||'').trim().slice(0,14);
+ if(!n){lbMsg('اسم دوست رو بنویس','alert');return}
+ if(n===NET.myName){lbMsg('خودت رو نمی‌تونی انتخاب کنی','alert');return}
+ if(NET.on){lbMsg('اول از روم فعلی خارج شو','alert');return}
+ netEnsurePresence(ok=>{if(!ok)return;
+  const c=NET.pres.connect(rid(n),{reliable:true});let fin=false;
+  const to=setTimeout(()=>{if(!fin){fin=true;lbMsg(n+' آنلاین نیست یا رومی نداره','alert');try{c.close()}catch(e){}}},8000);
+  c.on('open',()=>{try{c.send({t:'jn',from:NET.myName})}catch(e){}});
+  c.on('data',m=>{if(fin)return;
+   if(m.t==='jok'){fin=true;clearTimeout(to);lbMsg('وارد روم '+n+' می‌شی…','info');try{c.close()}catch(e){}netJoinRoom(m.room)}
+   else if(m.t==='jno'){fin=true;clearTimeout(to);lbMsg(n+' آنلاینه ولی توی رومی نیست','alert');try{c.close()}catch(e){}}});
+  c.on('error',()=>{if(!fin){fin=true;clearTimeout(to);lbMsg(n+' آنلاین نیست','alert')}})})}
 function netHostRoom(cb){if(NET.on){cb&&cb();return}
  netEnsurePresence(ok=>{if(!ok)return;
   const tryMk=()=>{const code=Array.from({length:5},()=>'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(R()*31)]).join(''),
@@ -1345,8 +1362,8 @@ function netDropConn(conn){if(!NET.on)return;const n=conn._name;if(!n)return;
  lbMsg(n+' قطع شد','info');lbRenderUI();netBroadcast({t:'lobby',squad:NET.members.slice(),host:NET.myName})}
 function netRoomMsg(conn,m){
  if(m.t==='join'){let n=String(m.name||'').slice(0,14)||'Player';
-  if(NET.members.includes(n)||LB.squad.includes(n))n=n+'2';   // اسم تکراری
   if(inMatch||NET.members.length>=5){try{conn.send({t:'full'})}catch(e){}setTimeout(()=>{try{conn.close()}catch(e){}},300);return}
+  if(NET.members.includes(n))n=n+'2';   // اسم تکراری — فقط داخل خود لیست اعضا چک بشه (نه اسکواد محلی که ممکنه کهنه باشه)
   conn._name=n;NET.conns.set(n,conn);NET.members.push(n);LB.squad=NET.members.slice();
   if(!LB.friends.includes(n)){LB.friends.push(n);netSaveReal(n);lbSave()}
   lbMsg(n+' به روم پیوست','check');lbRenderUI();
@@ -1366,8 +1383,8 @@ function netClientMsg(conn,m){
  if(m.t==='start'){if(inMatch)leaveMatchMP();startMatchMP(m.roster);return}
  if(m.t==='tolobby'){if(inMatch)leaveMatchMP();return}
  if(m.t==='rsp'){const e=ents.find(x=>x.name===m.n);if(!e)return;
-  if(e.isP){spawn(P);P.p.x=m.x;P.p.y=m.y;P.p.z=m.z;P.yaw=m.yaw;P.dead=false;P.rt=0;pitch=0}
-  else{spawn(e);e.p.x=m.x;e.p.y=m.y;e.p.z=m.z;e.yaw=m.yaw;e.dead=false;e.fall=0}
+  else if(NET.mode==='client'){if(m.n===NET.myName){spawn(P,true);P.p.x=m.x;P.p.y=m.y;P.p.z=m.z;P.yaw=m.yaw;P.dead=false;P.rt=0;pitch=0}
+   else{const e=ents.find(x=>x.name===m.n);if(e){spawn(e,true);e.p.x=m.x;e.p.y=m.y;e.p.z=m.z;e.yaw=m.yaw;e.dead=false;e.fall=0}}}
   return}
  if(m.t==='kill'){const t=ents.find(x=>x.name===m.tg);
   if(t&&!t.dead){t.dead=true;t.rt=4.5;
@@ -1430,17 +1447,16 @@ function netUpdateChip(){const b=$('netNameBtn');if(!b)return;
  b.textContent=NET.myName||'انتخاب اسم…';
  $('netStat').textContent=NET.presOK?(NET.on?(NET.mode==='host'?'(هاست)':'(مهمان)'):'(آنلاین)'):'';
  const rr=$('netRoomRow'),hr=$('netHostRow');
- if(NET.on){rr.style.display='flex';hr.style.display='none';$('netCode').textContent=NET.room;
-  $('netRoomLbl').textContent=NET.mode==='host'?'کد روم:':'روم:'}
+ if(NET.on){rr.style.display='flex';hr.style.display='none';
+  $('netCode').textContent=NET.members.length?NET.members.join('، '):'-'}
  else{rr.style.display='none';hr.style.display='flex'}}
 $('netNameBtn').onclick=()=>{if(NET.on){lbMsg('وسط روم اسم عوض نمی‌شه','alert');return}
  const n=prompt('اسم بازیکنی‌ت:',NET.myName||'Player'+Math.floor(R()*900+100));
  if(!n)return;netSetName(String(n).trim().slice(0,14)||'Player');netUpdateChip();
  netEnsurePresence(ok=>{if(ok)lbMsg('آنلاین شدی — دوستات می‌تونن با اسمت ادت کنن','check')})};
 $('netHost').onclick=()=>netHostRoom();
-$('netJoin').onclick=()=>netJoinRoom($('netJoinCode').value);
-$('netJoinCode').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')netJoinRoom($('netJoinCode').value)});
-$('netCode').onclick=()=>{try{navigator.clipboard.writeText(NET.room);lbMsg('کد روم کپی شد','check')}catch(e){}};
+$('netJoinF').onclick=()=>netJoinFriend($('netJoinName').value);
+$('netJoinName').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')netJoinFriend($('netJoinName').value)});
 $('netLeave').onclick=()=>netLeaveRoom(false);
 function netLeaveRoom(silent){if(NET.mode==='host')netBroadcast({t:'roomend'});
  try{if(NET.peer)NET.peer.destroy()}catch(e){}
@@ -1467,11 +1483,11 @@ function lbPose(m){const u=m.userData,g=n=>u.body.getObjectByName(n),kl=g('kneeL
  u.ring.visible=false;u.botGun.visible=true}
 function lbClearChars(){for(const m of LB3.meshes)scene.remove(m);LB3.meshes=[];$('lbcards').innerHTML=''}
 function lbBuildChars(){lbClearChars();const s=LB3.spot;if(!s)return;
- const names=['تو',...LB.squad],cx=s.x-LB3.f.x*LB3.D,cz=s.z-LB3.f.z*LB3.D;let cards='';
+ const me=NET.myName||'تو',names=[me,...LB.squad.filter(x=>x!==me)],cx=s.x-LB3.f.x*LB3.D,cz=s.z-LB3.f.z*LB3.D;let cards='';
  names.forEach((n,i)=>{const m=mkMesh(0),[sx,sd]=LB_SLOTS[i],x=s.x+LB3.r.x*sx+LB3.f.x*sd,z=s.z+LB3.r.z*sx+LB3.f.z*sd;
   const t=castRay(x,s.y+1.5,z,0,-1,0,4,false),gy=t<4?s.y+1.5-t:s.y;
   lbPose(m);m.position.set(x,gy,z);m.rotation.y=Math.atan2(-(cx-x),-(cz-z))+.55;LB3.meshes.push(m);
-  cards+=`<div class="pc"><div class="pcb" style="background:${avBg(n)}">${i===0?'<span class="crown">'+ICON.crown+'</span>':''}${ini(n)}</div><div class="pcn">${i===0?'تو (لیدر)':esc(n)}</div></div>`});
+  cards+=`<div class="pc"><div class="pcb" style="background:${avBg(n)}">${i===0?'<span class="crown">'+ICON.crown+'</span>':''}${ini(n)}</div><div class="pcn">${esc(n)}${i===0?' <small style="opacity:.65">(لیدر)</small>':''}</div></div>`});
  $('lbcards').innerHTML=cards}
 function lobbyFrame(dt){const s=LB3.spot;if(!s)return;gun.visible=false;if(VM.arms)VM.arms.group.visible=false;LB3.t+=dt;const t=LB3.t,f=LB3.f,r=LB3.r;
  sun.target.position.set(s.x,s.y,s.z);sun.position.set(s.x+40,s.y+80,s.z+20);
@@ -1487,10 +1503,12 @@ function lobbyEnter(){inLobby=true;inMatch=false;
  lbLayout();showMenu();lbRenderUI()}
 function lobbyExit(){inLobby=false;lbClearChars();$('lb').style.display='none';$('lbmenu').style.display='none';$('lbaddp').style.display='none';$('lbset').style.display='none';cam.fov=SET.fov;cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}
 function startMatch(){
+ if(inMatch)return;   // دبل‌کلیک/اسپم روی شروع نباید دوباره بازی بسازه
  lobbyExit();bloodClear();
- const isHost=NET.mode==='host',sq=isHost?NET.members.slice(1):LB.squad.slice(),used=new Set([isHost?NET.myName:'تو',...sq]);
+ const me=NET.myName||'تو',isHost=NET.mode==='host',
+  sq=(isHost?NET.members.slice(1):LB.squad.slice()).filter(x=>x!==me),used=new Set([me,...sq]);
  NAMES_N[0]=NAMES_N[1]=0;score[0]=score[1]=0;
- P=addEnt(0,true,isHost?NET.myName:'تو');P.mesh.visible=false;
+ P=addEnt(0,true,me);P.mesh.visible=false;
  for(const n of sq){const e=addEnt(0,false,n);e.squad=true;e.mesh.userData.ring.material.color.set(0x35d07f);
   if(isHost&&NET.conns.has(n)){e.net=true;e.tg={x:e.p.x,y:e.p.y,z:e.p.z,yaw:e.yaw}}}   // اعضای واقعی روم: بات نیستن، موقعیت‌شون از کلاینت میاد
  const pickN=(arr)=>{for(const n of arr)if(!used.has(n)){used.add(n);return n}return 'Bot'+(used.size+1)};
