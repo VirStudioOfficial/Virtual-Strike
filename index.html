@@ -1460,6 +1460,7 @@ $('netHost').onclick=()=>netHostRoom();
 $('netJoinF').onclick=()=>netJoinFriend($('netJoinName').value);
 $('netJoinName').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')netJoinFriend($('netJoinName').value)});
 $('netLeave').onclick=()=>netLeaveRoom(false);
+if(NET.myName)setTimeout(()=>netEnsurePresence(),800);   // اگه قبلاً اسم ثبت کرده، خودکار آنلاین شو (بدون نیاز به رفرش/کلیک)
 function netLeaveRoom(silent){if(NET.mode==='host')netBroadcast({t:'roomend'});
  try{if(NET.peer)NET.peer.destroy()}catch(e){}
  NET.on=false;NET.mode=null;NET.room='';NET.members=[];NET.conns=new Map();NET.hostConn=null;LB.squad=[];
