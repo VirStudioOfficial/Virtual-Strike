@@ -1762,8 +1762,8 @@ function lbfPrep(o){
  /* رنگ‌آمیزی بدون تکسچر: بر اساس استخونی که هر رأس بهش وصله (دست‌کش/بوت/کلاه/جلیقه/لباس) */
  {const geo=mesh.geometry,si=geo.attributes.skinIndex,sw=geo.attributes.skinWeight,bones=mesh.skeleton.bones;
   if(si&&sw){const grp=bones.map(b=>{const k=lbfKey(b);return /Hand/.test(k)?1:/Foot|Toe/.test(k)?2:/Head|Neck/.test(k)?3:/Spine|Hips|Shoulder/.test(k)?4:0});
-   const COL=[[.33,.37,.26],[.11,.11,.11],[.10,.10,.10],[.20,.23,.17],[.25,.29,.20]],col=new Float32Array(si.count*3);
-   for(let i=0;i<si.count;i++){let r=0,g=0,b=0,ws=0;for(let k=0;k<4;k++){const w=sw.getComponent(i,k);if(!w)continue;const c=COL[grp[si.getComponent(i,k)]||0];r+=c[0]*w;g+=c[1]*w;b+=c[2]*w;ws+=w}
+   const COL=[[.33,.37,.26],[.11,.11,.11],[.10,.10,.10],[.20,.23,.17],[.25,.29,.20]],col=new Float32Array(si.array.length/4*3);
+   for(let i=0;i<si.array.length/4;i++){let r=0,g=0,b=0,ws=0;for(let k=0;k<4;k++){const w=sw.array[i*4+k];if(!w)continue;const c=COL[grp[si.array[i*4+k]]||0];r+=c[0]*w;g+=c[1]*w;b+=c[2]*w;ws+=w}
     ws=ws||1;col[i*3]=r/ws;col[i*3+1]=g/ws;col[i*3+2]=b/ws}
    geo.setAttribute('color',new THREE.BufferAttribute(col,3))}
   const m=new THREE.MeshLambertMaterial({vertexColors:true,color:0xffffff});m.skinning=true;mesh.material=m}
