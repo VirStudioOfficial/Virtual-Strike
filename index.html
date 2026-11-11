@@ -95,13 +95,22 @@ canvas{display:block}
 #netNameBtn{cursor:pointer;color:#9fd0ff}#netNameBtn:hover{text-decoration:underline}
 #netCode{color:#ffd24a;letter-spacing:2px;cursor:pointer}
 #netStat{font-size:11px;opacity:.6}
+
+.mchip{font:inherit;color:#fff;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:7px 12px;cursor:pointer;text-align:center;line-height:1.3}
+.mchip small{display:block;font-size:11px;opacity:.65}.mchip.on{background:rgba(255,210,63,.18);border-color:#ffd23f}.mchip:hover{background:rgba(255,255,255,.14)}
+#lbmodes{display:flex;gap:8px;margin:0 10px}
+#pbar{display:none;position:absolute;left:50%;bottom:150px;width:260px;height:12px;margin-left:-130px;border:2px solid #fff;background:rgba(0,0,0,.5);border-radius:6px;overflow:hidden}
+#pbar i{display:block;height:100%;width:0;background:#ffd23f}
+#sdhint{display:none;position:absolute;left:0;right:0;bottom:100px;text-align:center;font-size:20px;color:#fff;text-shadow:0 2px 6px #000;direction:rtl;padding:0 20px}
+#flash{display:none;position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
 </style></head><body>
-<div id="hud"><div id="kf"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
+<div id="hud"><div id="kf"></div><div id="flash"></div><div id="pbar"><i></i></div><div id="sdhint"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
 <div id="menu"><h1>Mini Strike</h1>
 <div id="load">در حال لود مپ و کاراکترها...</div>
 <div id="pause"><button class="lbb g" id="lbresume" style="font-size:22px;padding:10px 40px">ادامه بازی</button><br><br><button class="lbb r" id="lbleave" style="font-size:16px">بازگشت به لابی</button></div>
 <div>حرکت: WASD &nbsp;|&nbsp; نگاه: ماوس &nbsp;|&nbsp; شلیک: کلیک چپ &nbsp;|&nbsp; پرش: Space &nbsp;|&nbsp; آهسته‌راه رفتن: Shift &nbsp;|&nbsp; نشستن: C &nbsp;|&nbsp; ریلود: R &nbsp;|&nbsp; تفنگ: ۱ &nbsp;|&nbsp; پیستول: ۲ (هر کلیک یک تیر) &nbsp;|&nbsp; چاقو: ۳ (کلیک چپ: ضربه، راست: ضربهٔ سنگین) &nbsp;|&nbsp; Q = سلاح قبلی &nbsp;|&nbsp; دید سوم‌شخص: V</div>
-<div>تو و ۴ یار (حلقه‌ی آبی) در برابر ۵ دشمن (حلقه‌ی قرمز). Esc برای توقف.</div></div>
+<div>تو و ۴ یار (حلقه‌ی آبی) در برابر ۵ دشمن (حلقه‌ی قرمز). Esc برای توقف.</div>
+<div style="margin-top:6px;font-size:13px;opacity:.8">«گشتن و نابود کردن»: بمب با کلید ۴ | داخل سایت A/B کلیک چپ (یا E) رو نگه دار تا پلنت بشه | بعد از مرگ ریسپاون نیست و از دید یارت تماشا می‌کنی | F7/F8: ثبت جای سایت A/B (وسط سایت وایسا) | F9: برگشت به جای خودکار</div></div>
 <div id="lb"><div id="lbvig"></div><div id="lbcards"></div>
 <div id="lbtop" class="pe"><div class="ic"><button class="ib" data-a="tab" data-n="HOME" title="خانه" data-ic="home"></button><button class="ib" data-a="settings" title="تنظیمات" data-ic="gear"></button></div>
 <button class="tab" data-a="tab" data-n="INVENTORY">INVENTORY</button><button class="tab" data-a="tab" data-n="LOADOUT">LOADOUT</button><button class="tab on" data-a="tab" data-n="PLAY">PLAY</button><button class="tab" data-a="tab" data-n="STORE">STORE</button><button class="tab" data-a="tab" data-n="NEWS">NEWS</button></div>
@@ -114,7 +123,7 @@ canvas{display:block}
  <div class="nrow"><input id="netJoinName" maxlength="14" placeholder="اسم دوست آنلاین (عضویت در رومش)"><button class="lbb" id="netJoinF" style="font-size:12px;padding:4px 10px">عضویت</button></div>
  <div class="nrow" id="netCodeRow"><input id="netJoinCode" maxlength="8" placeholder="کد روم (مثلاً XTF4V)" style="text-transform:uppercase;letter-spacing:2px"><button class="lbb" id="netJoinC" style="font-size:12px;padding:4px 10px">ورود با کد</button></div>
 </div>
-<div id="lbbot" class="pe"><div class="modeb"><span class="mi" data-ic="map"></span><div><b>Dust 2</b><small>رقابتی • ۵ در برابر ۵</small></div></div><button class="lbb g" id="lbstart" data-a="start">شروع بازی</button><div id="lbcnt">اسکواد ۱/۵</div></div>
+<div id="lbbot" class="pe"><div class="modeb"><span class="mi" data-ic="map"></span><div><b>Dust 2</b><small id="lbmsub">رقابتی • ۵ در برابر ۵</small></div></div><div id="lbmodes"><button class="mchip on" data-a="mode" data-n="dm">رقابتی<small>با ریسپاون</small></button><button class="mchip" data-a="mode" data-n="sd">گشتن و نابود کردن<small>پلنت بمب • بدون ریسپاون</small></button></div><button class="lbb g" id="lbstart" data-a="start">شروع بازی</button><div id="lbcnt">اسکواد ۱/۵</div></div>
 <div id="lbset" class="pe"><div class="mbox"><h3>تنظیمات</h3>
 <label>حساسیت ماوس <b id="vs"></b><input type="range" id="rs" min="0.3" max="3" step="0.05"></label>
 <label>میدان دید (FOV) <b id="vf"></b><input type="range" id="rf" min="60" max="110" step="1"></label>
@@ -141,7 +150,7 @@ alert:`<svg ${IC_ATTR}><path d="M12 2.5 1.8 20.2a.8.8 0 0 0 .7 1.3h19a.8.8 0 0 0
 };
 document.querySelectorAll('[data-ic]').forEach(e=>{e.innerHTML=ICON[e.dataset.ic]});
 /* فایل‌هایی که باید کنار همین HTML باشن (و با یه سرور محلی باز بشه، نه file://) */
-const FILES={map:'de_dust2_-_cs_map.glb',ally:'model.glb',enemy:'char_t.glb',gun:'ak47_cs2.glb',knife:'m9_bayonet_knife.glb',pistol:'pistol__usp_no_silencer_weapon_model_cs2.glb',ball:'soccer_ball.glb'};
+const FILES={map:'de_dust2_-_cs_map.glb',ally:'model.glb',enemy:'char_t.glb',gun:'ak47_cs2.glb',knife:'m9_bayonet_knife.glb',pistol:'pistol__usp_no_silencer_weapon_model_cs2.glb',ball:'soccer_ball.glb',bomb:'bomb__c4_explosive_model_cs2.glb'};
 const IN=39.37; // تبدیل اینچ مدل‌های قدیمی به متر
 const CHARS={
  ally:{arms:true,armPitch:[.88,.84],armRoll:.79,center:[0,0]},
@@ -316,6 +325,61 @@ function pistolPose(){
   k.L=r.p;k.ld=r.d;k.lp=r.n;k.lw=0}
  return k}
 function PTXT(){const h=TUNE.h==='R'?'R':'L';return`TUNE PISTOL  hand=${h}  (G خاموش | T دست | ←→↑↓ PgUp/PgDn | I K J L جهت | U O رول)\nPG.R=[${PG.R.join(', ')}]\nPG.L=[${PG.L.join(', ')}]\nPG.rd=[${PG.rd.join(', ')}]  PG.ld=[${PG.ld.join(', ')}]\nPROLL L=${PROLL.L} R=${PROLL.R}\nreach L=${(VM.reach.L||0).toFixed(2)} R=${(VM.reach.R||0).toFixed(2)} (>1 = بازو کوتاهه)`}
+
+/* ================= C4: مدل بمب (bomb__c4_explosive_model_cs2.glb) + حالت دو‌دستی توی ویومدل ================= */
+const BOMB_BASE_LEN=.28,BOMB_VM_LEN=.26;      // طول نرمال‌شده‌ی مدل | طول بمب توی دست (متر)
+const BOMB={base:null,vm:null};
+const bombG=new THREE.Group();bombG.visible=false;gun.add(bombG);
+const BP={p:[-.17,.035,-.125],g:[1.12,0,0]};   // جای بمب توی دست: جابه‌جایی/چرخش گان (g[0]=کج‌شدن صفحه‌کلید به سمت دوربین)
+const BH={R:[.106,-.01,.07],L:[-.106,-.01,.07],rd:[-.30,.38,-.87],ld:[.30,.38,-.87],rn:[-1,.05,.1],ln:[1,.05,.1]};  // دست‌ها کنار بمب (فضای گان؛ جهت‌ها فضای دوربین)
+function lcdMake(){const cv=document.createElement('canvas');cv.width=512;cv.height=128;const cx=cv.getContext('2d'),tex=new THREE.CanvasTexture(cv),o={cv,tex,txt:null,set(t){if(t===o.txt)return;o.txt=t;
+  cx.fillStyle='#a9b552';cx.fillRect(0,0,512,128);cx.fillStyle='rgba(40,50,10,.12)';for(let i=0;i<512;i+=4)cx.fillRect(i,0,1,128);
+  cx.fillStyle='#1d2506';cx.font='bold 92px "Courier New",monospace';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(t,256,68,480);tex.needsUpdate=true}};o.set('-------');return o}
+function bombFallbackBase(){const mk=(w,h,d,c,y,z)=>{const g=new THREE.BoxGeometry(w,h,d);g.translate(0,y,z);return{geo:g,mat:new THREE.MeshLambertMaterial({color:c})}};
+ return{items:[mk(.19,.085,.28,0x9b7b4a,0,0),mk(.1,.02,.1,0x222222,.05,.07)],lcd:{x:-.01,y:.0426,z:-.1,w:.09,h:.022}}}
+function bombMake(len){const B=BOMB.base,g=new THREE.Group();
+ for(const it of B.items){const m=new THREE.Mesh(it.geo,it.mat);m.frustumCulled=false;g.add(m)}
+ const lcd=lcdMake(),pm=new THREE.Mesh(new THREE.PlaneGeometry(B.lcd.w,B.lcd.h),new THREE.MeshBasicMaterial({map:lcd.tex,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+ pm.rotation.x=-Math.PI/2;pm.position.set(B.lcd.x,B.lcd.y+.0003,B.lcd.z);g.add(pm);g.scale.setScalar(len/BOMB_BASE_LEN);return{g,lcd}}
+function bombVmBuild(){while(bombG.children.length)bombG.remove(bombG.children[0]);BOMB.vm=bombMake(BOMB_VM_LEN);bombG.add(BOMB.vm.g)}
+BOMB.base=bombFallbackBase();bombVmBuild();
+/* مدل اسکلتی رو توی حالت استراحت «می‌پزیم» به یه مش ساده (بدون اسکین): مقیاس inch→متر و محورهای Source (X جلو، Y چپ، Z بالا) → Y-up، بعد نرمال‌سازی اندازه */
+function bombBake(root){
+ root.updateMatrixWorld(true);const parts=[];
+ root.traverse(o=>{if(!o.isMesh||!o.geometry||!o.geometry.attributes.position)return;
+  const g0=o.geometry,pa=g0.attributes.position,na=g0.attributes.normal,n=pa.count,P3=new Float32Array(n*3),N3=na?new Float32Array(n*3):null;
+  const M=new THREE.Matrix4(),F=new THREE.Matrix4(),v=new THREE.Vector3(),nv=new THREE.Vector3(),si=g0.attributes.skinIndex,sw=g0.attributes.skinWeight;
+  let mats=null;if(o.isSkinnedMesh&&si&&sw){o.skeleton.update();const bm=o.skeleton.boneMatrices;mats=o.skeleton.bones.map((_,i)=>new THREE.Matrix4().fromArray(bm,i*16))}
+  for(let i=0;i<n;i++){
+   if(mats){const e=M.elements;e.fill(0);for(let k=0;k<4;k++){const w=sw.array[i*4+k];if(!w)continue;const me=mats[si.array[i*4+k]].elements;for(let t=0;t<16;t++)e[t]+=me[t]*w}
+    F.copy(o.bindMatrixInverse).multiply(M).multiply(o.bindMatrix).premultiply(o.matrixWorld)}else F.copy(o.matrixWorld);
+   v.fromBufferAttribute(pa,i).applyMatrix4(F);P3[i*3]=v.x;P3[i*3+1]=v.y;P3[i*3+2]=v.z;
+   if(N3){nv.fromBufferAttribute(na,i).transformDirection(F);N3[i*3]=nv.x;N3[i*3+1]=nv.y;N3[i*3+2]=nv.z}}
+  parts.push({P3,N3,n,uv:g0.attributes.uv,index:g0.index,mat:o.material,panel:/panel|control/i.test((o.material&&o.material.name)||'')||n<=64})});
+ const body=parts.filter(p=>!p.panel);if(!body.length)throw new Error('mesh بمب پیدا نشد');
+ const bb=new THREE.Box3(),tv=new THREE.Vector3();
+ for(const p of body)for(let i=0;i<p.n;i++)bb.expandByPoint(tv.set(p.P3[i*3],p.P3[i*3+1],p.P3[i*3+2]));
+ const sz=bb.getSize(new THREE.Vector3()),sa=[sz.x,sz.y,sz.z];
+ const conv=sa.indexOf(Math.min(...sa))===2?new THREE.Matrix4().set(0,-1,0,0, 0,0,1,0, -1,0,0,0, 0,0,0,1):null;   // (x,y,z)→(-y,z,-x)
+ if(conv)for(const p of parts)for(let i=0;i<p.n;i++){tv.set(p.P3[i*3],p.P3[i*3+1],p.P3[i*3+2]).applyMatrix4(conv);p.P3[i*3]=tv.x;p.P3[i*3+1]=tv.y;p.P3[i*3+2]=tv.z;
+  if(p.N3){tv.set(p.N3[i*3],p.N3[i*3+1],p.N3[i*3+2]).transformDirection(conv);p.N3[i*3]=tv.x;p.N3[i*3+1]=tv.y;p.N3[i*3+2]=tv.z}}
+ bb.makeEmpty();for(const p of body)for(let i=0;i<p.n;i++)bb.expandByPoint(tv.set(p.P3[i*3],p.P3[i*3+1],p.P3[i*3+2]));
+ const c=bb.getCenter(new THREE.Vector3()),s2=bb.getSize(new THREE.Vector3()),k=BOMB_BASE_LEN/Math.max(s2.x,s2.y,s2.z);
+ const mkGeo=p=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p.P3.slice(),3));
+  if(p.N3)g.setAttribute('normal',new THREE.BufferAttribute(p.N3.slice(),3));if(p.uv)g.setAttribute('uv',p.uv.clone());if(p.index)g.setIndex(p.index.clone());
+  if(!p.N3)g.computeVertexNormals();g.translate(-c.x,-c.y,-c.z);g.scale(k,k,k);return g};
+ const items=body.map(p=>{const mat=p.mat.clone();mat.skinning=false;mat.vertexTangents=false;mat.normalMap=null;mat.aoMap=null;mat.metalnessMap=null;mat.roughnessMap=null;
+  mat.metalness=0;mat.roughness=.72;if(mat.map){mat.map.encoding=THREE.LinearEncoding;mat.map.anisotropy=4;mat.map.needsUpdate=true;mat.emissive.setScalar(.28);mat.emissiveMap=mat.map}
+  mat.needsUpdate=true;return{geo:mkGeo(p),mat}});
+ let lcd={x:-.01,y:.0426,z:-.1,w:.09,h:.022};const pn=parts.find(p=>p.panel);
+ if(pn){const g=mkGeo(pn);g.computeBoundingBox();const b=g.boundingBox,cc=b.getCenter(new THREE.Vector3()),ss=b.getSize(new THREE.Vector3());lcd={x:cc.x,y:b.max.y,z:cc.z,w:ss.x,h:ss.z}}
+ return{items,lcd}}
+function bombLoad(){loadGLB(FILES.bomb).then(root=>{BOMB.base=bombBake(root);bombVmBuild();console.log('[bomb] مدل C4 آماده شد')}).catch(e=>console.warn('مدل بمب لود نشد؛ جعبه‌ی ساده استفاده می‌شه:',e.message))}
+function bombPose(){
+ const pl=P.pl>0?Math.min(1,P.pl/PLANT_T):0,lo=_sm(pl/.3),k={p:BP.p.slice(),g:BP.g.slice(),L:BH.L.slice(),R:BH.R.slice(),ld:[1,0,0],rd:[-1,0,0],lp:[1,0,0],rp:[-1,0,0],lw:0};
+ k.p[1]-=.15*lo;k.p[2]-=.05*lo;k.g[0]+=.5*lo;k.p[0]+=Math.sin(performance.now()*.045)*.0018*lo;k.p[1]+=Math.sin(performance.now()*.06)*.0012*lo;   // پایین میاد و موقع پلنت کمی می‌لرزه
+ if(BOMB.vm)BOMB.vm.lcd.set(pl>0?'7355608'.slice(0,Math.floor(pl*6.99)+1):'-------');
+ return k}
 
 /* ================= ویوومدل: دست‌های کاراکتر روی گان + انیمیشن ریلود ================= */
 const RELOAD_T=2.1;                                   // مدت ریلود (ثانیه)
@@ -547,7 +611,7 @@ function vmArms(k){const A=VM.arms;if(!A)return;
   const r=ik2(S,Wt,a.l1*f,a.l2*f,POLE[sd]);
   const kl=!!VM.kn&&sd==='L',hs=kl?KNIFE_LH_SCALE:1;   // دست چپ موقع چاقو: درشت‌تر + ساعد هم‌جهت با کف دست برعکس
   a.upper.scale.set(1,f,1);a.fore.scale.set(1+(hs-1)*.4,f,1+(hs-1)*.4);a.hand.scale.setScalar(hs);
-  const cu=a.curl;if(cu){const tg=sd==='R'?(VM.kn?1:0):(VM.lc||0);if(cu.k!==tg){if(sd==='L')cu.k=tg;else{cu.k+=Math.max(-.25,Math.min(.25,tg-cu.k));if(Math.abs(tg-cu.k)<.01)cu.k=tg}   // انگشت‌ها نرم بسته/باز می‌شن
+  const cu=a.curl;if(cu){const tg=sd==='R'?(VM.kn?1:VM.bm?.5:0):(VM.lc||0);if(cu.k!==tg){if(sd==='L')cu.k=tg;else{cu.k+=Math.max(-.25,Math.min(.25,tg-cu.k));if(Math.abs(tg-cu.k)<.01)cu.k=tg}   // انگشت‌ها نرم بسته/باز می‌شن
    const hp=a.hand.geometry.attributes.position,hn=a.hand.geometry.attributes.normal,m=cu.k*cu.k*(3-2*cu.k);
    for(let i=0;i<hp.array.length;i++){hp.array[i]=cu.base[i]+(cu.cp[i]-cu.base[i])*m;hn.array[i]=cu.bn[i]+(cu.cn[i]-cu.bn[i])*m}
    hp.needsUpdate=hn.needsUpdate=true}}
@@ -568,11 +632,11 @@ function vmUpdate(dt){
  VM.kick+=(0-VM.kick)*Math.min(1,dt*11);   // بازگشت نرم‌تر → لگد دیده می‌شه
  const u=(TUNE.on&&TUNE.h==='M'&&(P.wp||0)!==2)?.22:P.rl>0?Math.min(1,Math.max(0,1-P.rl/(P.rlT||RELOAD_T))):0;
  if(P.rl<=0)VM.snd=0;else{const SN=(P.wp||0)===2?PSND:SND;while(VM.snd<SN.length&&u>=SN[VM.snd][0]){if((P.wp||0)===2||!SFX.out)beep(SN[VM.snd][1],.06,.06);else if(VM.snd<2)sfx(VM.snd?'in':'out',.6);VM.snd++}}
- const kn=(P.wp||0)===1&&!!VM.knifeReady,pi=(P.wp||0)===2&&!!VM.pistolReady,k=pi?pistolPose():samplePose(kn||pi?0:u);VM.pi=pi;VM.kn=kn;
- if(VM.model)VM.model.visible=!kn&&!pi;knifeG.visible=kn;pistolG.visible=pi;
+ const kn=(P.wp||0)===1&&!!VM.knifeReady,pi=(P.wp||0)===2&&!!VM.pistolReady,bm=(P.wp||0)===3,k=bm?bombPose():pi?pistolPose():samplePose(kn||pi?0:u);VM.pi=pi;VM.kn=kn;VM.bm=bm;
+ if(VM.model)VM.model.visible=!kn&&!pi&&!bm;knifeG.visible=kn;pistolG.visible=pi;bombG.visible=bm;
  if(pi)pistolAnim(dt);else{VM.pWas=false;fallMag.visible=false}
  VM.lc=0;
- if(!kn&&P.arm>0){P.arm=Math.max(0,P.arm-dt);const t=1-P.arm/P.armD,sm=_sm;   // مسلح کردن: گان کج می‌شه، دست چپ از روی گان می‌ره سمت دسته‌ی اسلحه‌کش، می‌گیره، عقب می‌کشه و ول می‌کنه
+ if(!kn&&!bm&&P.arm>0){P.arm=Math.max(0,P.arm-dt);const t=1-P.arm/P.armD,sm=_sm;   // مسلح کردن: گان کج می‌شه، دست چپ از روی گان می‌ره سمت دسته‌ی اسلحه‌کش، می‌گیره، عقب می‌کشه و ول می‌کنه
   const e=sm(t/.26)*(1-sm((t-.8)/.2));k.g=[k.g[0]+ARM_TILT[0]*e,k.g[1]+ARM_TILT[1]*e,k.g[2]+ARM_TILT[2]*e];k.p=[k.p[0]+ARM_TILT_P[0]*e,k.p[1]+ARM_TILT_P[1]*e,k.p[2]+ARM_TILT_P[2]*e];
   const AK=[[0,GRIP_L,IDLE.ld,IDLE.lp,0],ARM_KEYS[0],ARM_KEYS[1],ARM_KEYS[2],ARM_KEYS[3],ARM_KEYS[4],[1,GRIP_L,IDLE.ld,IDLE.lp,0]];
   let a=0;while(a<AK.length-2&&t>AK[a+1][0])a++;const A=AK[a],B=AK[a+1],x=sm((t-A[0])/(B[0]-A[0]));
@@ -606,7 +670,8 @@ function vmUpdate(dt){
   else{k.R=KNIFE_GRIP.slice();k.rd=dr(KNIFE_RH.d);k.rp=dr(KNIFE_RH.n)}}
  if(pi&&k.lw>0){const inv=gun.matrix.clone().invert(),pt=a=>{_gv.set(a[0],a[1],a[2]).applyMatrix4(inv);return[_gv.x,_gv.y,_gv.z]},dr=a=>{_gv.set(a[0],a[1],a[2]).normalize().transformDirection(inv);return[_gv.x,_gv.y,_gv.z]},w=k.lw;
   k.L=_lr(k.L,pt(PLH.p),w);k.ld=_lr(k.ld,dr(PLH.d),w);k.lp=_lr(k.lp,dr(PLH.n),w)}   // دست چپ وقتی ریلود نمی‌کنی توی فضای دوربین می‌مونه
- const M=VM.mag;if(M&&(kn||pi))M.visible=false;else if(M){let show,follow;
+ if(bm){const inv=gun.matrix.clone().invert(),dr=a=>{_gv.set(a[0],a[1],a[2]).normalize().transformDirection(inv);return[_gv.x,_gv.y,_gv.z]};k.rd=dr(BH.rd);k.ld=dr(BH.ld);k.rp=dr(BH.rn);k.lp=dr(BH.ln);VM.lc=.5}   // بمب: دو دست دو طرف
+ const M=VM.mag;if(M&&(kn||pi||bm))M.visible=false;else if(M){let show,follow;
   if(VM.magReal){show=!(u>=.36&&u<.44);follow=(u>=.22&&u<.36)||(u>=.44&&u<.66)}   // خشاب قدیمی دست رو دنبال می‌کنه، می‌افته، بعد خشاب نو برمی‌گرده
   else{show=u>=.44&&u<.66;follow=true}                                              // فقط خشاب نو (جعبه‌ای)
   M.visible=show;const o=follow?V.sub(k.L,MAG_GRAB):[0,0,0],r=VM.magRest;M.position.set(r[0]+o[0],r[1]+o[1],r[2]+o[2])}
@@ -1060,12 +1125,12 @@ let hm=0;
 const NAMES=[['تو','آرش','بابک','سینا','داریوش'],['Viper','Ghost','Wolf','Raven','Falcon']];
 function killFeed(by,t,hs,wb){const f=$('kf'),r=document.createElement('div');r.className='kfr'+(by.isP||t.isP?' me':'');
  const nm=e=>`<span class="${e.team?'b':'a'}">${e.name}</span>`;
- r.innerHTML=`${nm(by)}<span class="w">${hs?'<span class="hs">'+ICON.headshot+' </span>':''}${wb?'<span class="hs">'+ICON.wall+' </span>':''}${by.wp===1?ICON.knife:ICON.gun}</span>${nm(t)}`;
+ r.innerHTML=`${nm(by)}<span class="w">${hs?'<span class="hs">'+ICON.headshot+' </span>':''}${wb?'<span class="hs">'+ICON.wall+' </span>':''}${by.wp===3?'💥':by.wp===1?ICON.knife:ICON.gun}</span>${nm(t)}`;
  f.appendChild(r);while(f.children.length>5)f.removeChild(f.firstChild);
  setTimeout(()=>{r.style.opacity=0;setTimeout(()=>r.remove(),500)},4500)}
 function damage(t,a,by,zone,wb){t.hp-=a;if(!t.isP&&!t.dead&&by&&by.p){t.mem=Math.max(t.mem||0,2);t.lk=[by.p.x,by.p.z]}   // ازش تیر خورده → به سمت تیرانداز می‌چرخه
  if(t.isP)$('dmg').style.opacity=1;if(by.isP){$('cross').style.borderColor='#f33';hm=.12;if(zone==='head')sfx('hs',.85)}
- if(t.hp<=0&&!t.dead){t.dead=true;t.rt=4.5;score[by.team]++;killFeed(by,t,zone==='head',wb);ragStart(t,by,zone);bloodPool(t);
+ if(t.hp<=0&&!t.dead){t.dead=true;t.rt=SD.on?1e9:4.5;score[by.team]++;killFeed(by,t,zone==='head',wb);ragStart(t,by,zone);bloodPool(t);
   if(NET.mode==='host')NET.send({t:'kill',by:by.name,bteam:by.team,tg:t.name,zone,hs:zone==='head'?1:0,wb:wb?1:0,bx:+by.p.x.toFixed(2),bz:+by.p.z.toFixed(2)})}}
 /* ---- ragdoll v3: فیزیک واقعی — اسکلت ذره‌ای (سر، شونه‌ها، لگن، زانو، پا، دست) + میله‌های فاصله + محدودیت مفصل + برخورد با مپ.
    ragStart فقط ضربه‌ی گلوله رو می‌ده و اسکلت رو از پوز لحظه‌ی مرگ می‌سازه؛ بقیه‌ش فیزیکه (ragStep/ragSub) و رندر (ragRender/ragPose) ---- */
@@ -1112,7 +1177,7 @@ function ragStep(e,dt){const r=e.rag;if(!r)return;
   r.ground=false;
   /* e.p دنبال لگنه (دوربین مرگ، خون و ... ازش استفاده می‌کنن) */
   if(!r.bad){e.p.x=px;e.p.z=pz;let y=1e9;for(const q of P)y=Math.min(y,q.y-q.r);e.p.y=y}}}
-function reload(){const w=P.wp||0;if(w===1||P.arm>0||P.rl>0||P.ammo>=AMAX[w])return;P.rlT=w===2?PRELOAD_T:RELOAD_T;P.rl=P.rlT}
+function reload(){const w=P.wp||0;if(w===1||w===3||P.arm>0||P.rl>0||P.ammo>=AMAX[w])return;P.rlT=w===2?PRELOAD_T:RELOAD_T;P.rl=P.rlT}
 
 /* ---- توپ فوتبال (soccer_ball.glb): با گلوله لگد می‌خوره، کاراکترها با برخورد هلش می‌دن، و با جاذبه/جهش/اصطکاک روی مپ می‌غلته ---- */
 let BALL=null;
@@ -1181,9 +1246,154 @@ function stepBall(dt){
  if(B.p.y<MAPMIN-6||Math.hypot(B.p.x,B.p.z)>220){B.p.x=B.home.x;B.p.y=B.home.y+.5;B.p.z=B.home.z;B.v.x=B.v.y=B.v.z=0}
  B.m.position.set(B.p.x,B.p.y,B.p.z)}
 
+/* ================= حالت «گشتن و نابود کردن» (Search & Destroy) =================
+   تو و تیمت مهاجمین (بمب پیش توئه، کلید ۴)؛ دشمن‌ها مدافع. بدون ریسپاون؛ بعد از مرگ از دید یارت تماشا می‌کنی.
+   مهاجم‌ها برن → اگه همه‌ی دشمن‌ها بمیرن یا بمب منفجر بشه می‌برن؛ اگه همه‌ی خودی‌ها بمیرن (قبل از پلنت)، زمان تموم بشه یا بمب خنثی بشه می‌بازن. */
+const PLANT_T=3.2,DEFUSE_T=5,BOMB_T=40,SD_ROUND_T=120,SD_WIN=3,SITE_R=9,SD_OVER_T=5.5,SITE_NAME=['A','B'];
+const SD={on:false,round:0,wins:[0,0],state:'idle',rt:0,bt:0,hasBomb:false,bomb:null,carrier:null,defuser:null,target:0,spec:null,msg:'',msgT:0,overT:0,defT:0,sites:[],mk:null,fx:[],shake:0,beepT:0,ledA:0,led:null,a0:0,a1:0,final:false};
+const BOMB_ENT={name:'C4',team:0,isP:false,wp:3,p:{x:0,y:0,z:0}};
+const sdMsg=(t,s)=>{SD.msg=t;SD.msgT=s||3};
+const sdSiteAt=(x,y,z)=>{for(let i=0;i<SD.sites.length;i++){const s=SD.sites[i];if(Math.hypot(x-s.x,z-s.z)<SITE_R&&Math.abs(y-s.y)<3.2)return i}return -1};
+/* ---- پیدا کردن سایت‌ها: نقطه‌های باز و دور (از نظر مسیر) از اسپاون مهاجم‌ها؛ دقیق‌ترش با F7/F8 (ایستادن وسط سایت) ثبت می‌شه ---- */
+function sdAutoSites(){
+ const sp0=SPAWN[0][0],sp1=SPAWN[1][0],s0=nearestNode(sp0[0],sp0[1],sp0[2]),dist=new Float32Array(NN).fill(Infinity);let md=0;
+ if(s0>=0){dist[s0]=0;hpN.length=0;hpF.length=0;heapPush(s0,0);
+  while(hpN.length){const f=hpF[0],u=heapPop();if(f>dist[u]+1e-4)continue;for(let k=adjS[u];k<adjS[u+1];k++){const v=adjT[k],nd=dist[u]+adjW[k];if(nd<dist[v]){dist[v]=nd;heapPush(v,nd)}}}}
+ for(let n=0;n<NN;n++)if(ncomp[n]===mainComp&&dist[n]<1e8)md=Math.max(md,dist[n]);
+ const cand=[];let mo=1;
+ for(let n=0;n<NN;n+=2){if(ncomp[n]!==mainComp||!(dist[n]<1e8)||dist[n]<md*.4)continue;if(Math.hypot(nvx[n]-sp1[0],nvz[n]-sp1[2])<14)continue;
+  let c=0;const gx=Math.floor((nvx[n]-GX0)/NAVC),gz=Math.floor((nvz[n]-GZ0)/NAVC);
+  for(let dz=-5;dz<=5;dz++)for(let dx=-5;dx<=5;dx++){const hx=gx+dx,hz=gz+dz;if(hx<0||hz<0||hx>=NGX||hz>=NGZ)continue;const ci=hz*NGX+hx;
+   for(let m=ncF[ci];m<ncF[ci]+ncN[ci];m++)if(ncomp[m]===mainComp&&Math.abs(nvy[m]-nvy[n])<.7&&Math.hypot(nvx[m]-nvx[n],nvz[m]-nvz[n])<=5.5)c++}
+  mo=Math.max(mo,c);cand.push({n,c,sc:0})}
+ for(const q of cand)q.sc=q.c*(.6+.4*dist[q.n]/md);
+ const pick=(ex)=>{let b=null;for(const q of cand){if(ex&&Math.hypot(nvx[q.n]-ex.x,nvz[q.n]-ex.z)<32)continue;if(!b||q.sc>b.sc)b=q}
+  if(!b)return null;let sx=0,sz=0,k=0;for(const q of cand)if(Math.hypot(nvx[q.n]-nvx[b.n],nvz[q.n]-nvz[b.n])<4&&q.c>=b.c*.85){sx+=nvx[q.n];sz+=nvz[q.n];k++}
+  return{x:sx/k,y:nvy[b.n],z:sz/k}};
+ const a=pick(null),b=a?pick(a):null;
+ if(a&&b)return[a,b];
+ const o=SPAWN[1][0];return[{x:o[0]+20,y:o[1],z:o[2]},{x:o[0]-20,y:o[1],z:o[2]}]}
+function pickSites(){let s=null;
+ try{const j=JSON.parse(localStorage.getItem('ms_sd_sites')||'null');if(Array.isArray(j)&&j.length===2&&j.every(a=>Array.isArray(a)&&a.length===3&&a.every(Number.isFinite)))s=j.map(a=>({x:a[0],y:a[1],z:a[2]}))}catch(e){}
+ SD.sites=s||sdAutoSites();console.log('[sd] سایت‌ها (A,B):',SD.sites.map(q=>[q.x,q.y,q.z].map(v=>+v.toFixed(1))),s?'(دستی)':'(خودکار)')}
+function sdSaveSites(){try{localStorage.setItem('ms_sd_sites',JSON.stringify(SD.sites.map(q=>[+q.x.toFixed(2),+q.y.toFixed(2),+q.z.toFixed(2)])))}catch(e){}}
+function sdSetSite(i){SD.sites[i]={x:P.p.x,y:P.p.y,z:P.p.z};sdSaveSites();sdBuildMarkers();sdMsg('سایت '+SITE_NAME[i]+' همین‌جا ثبت شد ✅',2.5);console.log('[sd] سایت',SITE_NAME[i],'=',[P.p.x,P.p.y,P.p.z].map(v=>+v.toFixed(2)))}
+function sdResetSites(){try{localStorage.removeItem('ms_sd_sites')}catch(e){}SD.sites=sdAutoSites();sdBuildMarkers();sdMsg('سایت‌ها به حالت خودکار برگشتن',2.5)}
+function sdLabel(ch){const cv=document.createElement('canvas');cv.width=cv.height=128;const x=cv.getContext('2d');x.fillStyle='rgba(0,0,0,.5)';x.beginPath();x.arc(64,64,58,0,7);x.fill();x.lineWidth=6;x.strokeStyle='#ffd23f';x.stroke();
+ x.fillStyle='#ffd23f';x.font='bold 84px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(ch,64,70);
+ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthTest:false,opacity:.9}));sp.scale.set(4.5,4.5,1);sp.renderOrder=10;return sp}
+function sdBuildMarkers(){sdClearMarkers();const g=new THREE.Group();
+ SD.sites.forEach((s,i)=>{const r=new THREE.Mesh(new THREE.RingGeometry(SITE_R-.35,SITE_R,64),new THREE.MeshBasicMaterial({color:0xffd23f,transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false}));
+  r.rotation.x=-Math.PI/2;r.position.set(s.x,s.y+.1,s.z);g.add(r);const l=sdLabel(SITE_NAME[i]);l.position.set(s.x,s.y+6,s.z);g.add(l)});
+ scene.add(g);SD.mk=g}
+function sdClearMarkers(){if(SD.mk){scene.remove(SD.mk);SD.mk=null}}
+/* ---- شروع/پایان راند ---- */
+function sdStartMatch(){SD.on=true;SD.round=0;SD.wins=[0,0];SD.final=false;sdBuildMarkers();sdBeginRound()}
+function sdBombClear(){if(SD.bomb&&SD.bomb.g)scene.remove(SD.bomb.g);if(SD.led){scene.remove(SD.led);SD.led=null}SD.bomb=null;
+ for(const f of SD.fx){scene.remove(f.m);if(f.m.geometry)f.m.geometry.dispose();f.m.material.dispose()}SD.fx.length=0}
+function sdBeginRound(){
+ sdBombClear();bloodClear();SD.round++;SD.state='live';SD.rt=SD_ROUND_T;SD.bt=0;SD.defT=0;SD.overT=0;SD.hasBomb=true;SD.carrier=null;SD.defuser=null;SD.spec=null;SD.final=false;SD.target=R()<.5?0:1;SD.shake=0;
+ P.wp=0;P.pw=undefined;P.pl=0;P.pld=-1;P.sl=0;P.dr=0;P.arm=0;P.wAmmo={0:30,2:12};clickL=clickR=false;
+ const off=R()<.5?0:1;let di=0;
+ for(const e of ents){spawn(e);e.rg=null;e.path=null;e.plantT=0;e.defT=0;e.mem=0;e.seen=false;if(e.team===1)e.sdSite=(di++ +off)%2}
+ sdMsg('راند '+SD.round+' — بمب پیش توئه: کلید ۴، بعد داخل سایت A یا B کلیک چپ رو نگه دار',6)}
+function sdEndRound(w,why){if(SD.state==='over')return;SD.state='over';SD.wins[w]++;SD.overT=SD_OVER_T;SD.final=SD.wins[w]>=SD_WIN;P.pl=0;
+ sdMsg((w===0?'🏆 تیم تو راند رو برد':'💀 دشمن راند رو برد')+' — '+why+(SD.final?(w===0?'\nبازی رو بردی!':'\nبازی رو باختی'):''),SD_OVER_T);beep(w===0?660:180,.08,.3)}
+function sdFinish(){const win=SD.wins[0]>SD.wins[1];if(document.pointerLockElement)document.exitPointerLock();leaveMatch();
+ setTimeout(()=>lbMsg(win?'🏆 بازی «گشتن و نابود کردن» رو بردی ('+SD.wins[0]+' به '+SD.wins[1]+')':'💀 بازی «گشتن و نابود کردن» رو باختی ('+SD.wins[0]+' به '+SD.wins[1]+')'),50)}
+function sdCleanup(){SD.on=false;SD.state='idle';sdBombClear();sdClearMarkers();for(const id of['pbar','sdhint','flash'])$(id).style.display='none'}
+/* ---- بمب‌بر، پلنت، خنثی‌سازی، انفجار ---- */
+function sdCarrierUpdate(){if(SD.hasBomb||(SD.carrier&&!SD.carrier.dead))return;
+ let best=null,bd=1e9;const s=SD.sites[SD.target];for(const e of ents){if(e.dead||e.team!==0||e.isP)continue;const d=Math.hypot(e.p.x-s.x,e.p.z-s.z);if(d<bd){bd=d;best=e}}
+ SD.carrier=best;if(best){sdMsg(best.name+' بمب رو برداشت',3);best.rg=null;best.path=null}}
+function sdPlant(x,y,z,by){if(SD.state!=='live')return;
+ const t=castRay(x,y+.4,z,0,-1,0,2,false),fy=t<Infinity?y+.4-t:y,len=.42,bm=bombMake(len);
+ bm.g.position.set(x,fy+.087*len/BOMB_BASE_LEN/2+.01,z);bm.g.rotation.y=by.yaw||0;scene.add(bm.g);
+ const cv=document.createElement('canvas');cv.width=cv.height=64;const cx=cv.getContext('2d'),gr=cx.createRadialGradient(32,32,2,32,32,30);gr.addColorStop(0,'rgba(255,60,40,1)');gr.addColorStop(1,'rgba(255,0,0,0)');cx.fillStyle=gr;cx.fillRect(0,0,64,64);
+ const led=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.2}));led.scale.set(.6,.6,1);led.position.set(x,fy+.3,z);scene.add(led);SD.led=led;
+ SD.bomb={x,y:fy,z,g:bm.g,lcd:bm.lcd,site:Math.max(0,sdSiteAt(x,fy,z))};SD.state='planted';SD.bt=BOMB_T;SD.beepT=0;SD.hasBomb=false;SD.carrier=null;SD.defT=0;SD.defuser=null;
+ for(const e of ents){e.rg=null;e.path=null;e.plantT=0;e.defT=0}
+ if(by&&by.isP){P.pl=0;setWeapon(0)}
+ sdMsg('💣 بمب توی سایت '+SITE_NAME[SD.bomb.site]+' پلنت شد — ازش محافظت کن!',3.5);for(let i=0;i<3;i++)setTimeout(()=>beep(700+i*250,.08,.12),i*140)}
+function sdBombTick(dt){const b=SD.bomb;if(!b)return;
+ SD.beepT-=dt;if(SD.beepT<=0){SD.beepT=.1+.9*Math.max(0,SD.bt)/BOMB_T;const d=Math.hypot(P.p.x-b.x,P.p.z-b.z);beep(1175,Math.min(.12,.5/(1+d/10)),.08);SD.ledA=1}
+ SD.ledA=Math.max(0,SD.ledA-dt*6);if(SD.led)SD.led.material.opacity=.15+.85*SD.ledA;
+ b.lcd.set('00:'+String(Math.max(0,Math.ceil(SD.bt))).padStart(2,'0'))}
+function boomSound(g){if(!AC)return;const t=AC.currentTime,len=2.4,n=AC.sampleRate*len|0,buf=AC.createBuffer(1,n,AC.sampleRate),ch=buf.getChannelData(0);
+ for(let i=0;i<n;i++)ch[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.2);
+ const src=AC.createBufferSource();src.buffer=buf;const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(1800,t);lp.frequency.exponentialRampToValueAtTime(70,t+len);
+ const gn=AC.createGain();gn.gain.value=.9*Math.max(.25,g);src.connect(lp);lp.connect(gn);gn.connect(AC.destination);src.start(t);
+ const o=AC.createOscillator(),og=AC.createGain();o.type='sine';o.frequency.setValueAtTime(70,t);o.frequency.exponentialRampToValueAtTime(24,t+1.2);og.gain.setValueAtTime(.9*Math.max(.3,g),t);og.gain.exponentialRampToValueAtTime(.001,t+1.4);o.connect(og);og.connect(AC.destination);o.start(t);o.stop(t+1.5)}
+function sdExplode(){const b=SD.bomb;if(!b)return;const cx=b.x,cy=b.y+.3,cz=b.z;BOMB_ENT.p.x=cx;BOMB_ENT.p.y=cy;BOMB_ENT.p.z=cz;
+ for(const e of ents){if(e.dead)continue;const dx=e.p.x-cx,dy=e.p.y+1-cy,dz=e.p.z-cz,d=Math.hypot(dx,dy,dz);if(d>26)continue;
+  let dmg=d<12?300:(1-(d-12)/14)*130;if(d>5&&wallDist({x:cx,y:cy,z:cz},{x:dx/d,y:dy/d,z:dz/d})<d-.5)dmg*=.4;if(dmg>=1)damage(e,dmg,BOMB_ENT,'body',false)}
+ scene.remove(b.g);if(SD.led){scene.remove(SD.led);SD.led=null}
+ const mk=(geo,col,op,d,s0,s1,rise,flat)=>{const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false,side:THREE.DoubleSide}));m.position.set(cx,cy,cz);if(flat)m.rotation.x=-Math.PI/2;scene.add(m);SD.fx.push({m,t:0,d,s0,s1,op,rise,y0:cy})};
+ mk(new THREE.SphereGeometry(1,20,14),0xff9a2e,.95,1.3,.6,15,0);mk(new THREE.SphereGeometry(1,16,12),0xfff0b8,1,.55,.4,9,0);
+ mk(new THREE.RingGeometry(.92,1,48),0xffe3a0,.8,.9,1,30,0,true);mk(new THREE.SphereGeometry(1,14,10),0x2b2724,.6,4.5,2,11,5);
+ const dp=Math.hypot(P.p.x-cx,P.p.z-cz),k=Math.max(0,1-dp/45);SD.shake=Math.max(SD.shake,.5+k*1.3);boomSound(k);
+ const f=$('flash');f.style.display='block';f.style.transition='none';f.style.opacity=Math.min(1,.25+k*1.2);requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transition='opacity 1.8s';f.style.opacity=0}))}
+function sdFxUpdate(dt){for(let i=SD.fx.length-1;i>=0;i--){const f=SD.fx[i];f.t+=dt;const u=Math.min(1,f.t/f.d),s=f.s0+(f.s1-f.s0)*(1-(1-u)*(1-u));
+  f.m.scale.setScalar(s);f.m.material.opacity=f.op*(1-u);if(f.rise)f.m.position.y=f.y0+f.rise*u;
+  if(u>=1){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose();SD.fx.splice(i,1)}}}
+/* ---- بات‌ها: جای گشت، پلنت، خنثی‌سازی ---- */
+const _sdn=[];
+function sdNodesNear(c,r,out){out.length=0;const g0=Math.max(0,Math.floor((c.x-r-GX0)/NAVC)),g1=Math.min(NGX-1,Math.floor((c.x+r-GX0)/NAVC)),z0=Math.max(0,Math.floor((c.z-r-GZ0)/NAVC)),z1=Math.min(NGZ-1,Math.floor((c.z+r-GZ0)/NAVC));
+ for(let gz=z0;gz<=z1;gz++)for(let gx=g0;gx<=g1;gx++){const ci=gz*NGX+gx;for(let n=ncF[ci];n<ncF[ci]+ncN[ci];n++){if(ncomp[n]!==mainComp||Math.abs(nvy[n]-c.y)>3.2)continue;if(Math.hypot(nvx[n]-c.x,nvz[n]-c.z)<=r)out.push(n)}}return out}
+function sdPickRoam(e){let c=null,r=10;const pl=SD.state==='planted'&&SD.bomb;
+ if(e.team===1){if(pl){c=SD.bomb;r=e===SD.defuser?1.6:10}else{c=SD.sites[e.sdSite||0];r=13}}
+ else{if(pl){c=SD.bomb;r=11}else if(e===SD.carrier){c=SD.sites[SD.target];r=3}else{c=SD.sites[SD.target];r=22}}
+ if(!c)return false;const L=sdNodesNear(c,r,_sdn);if(!L.length)return false;let best=null,bs=-1e9;
+ for(let k=0;k<14;k++){const n=L[Math.floor(R()*L.length)];let md=60;for(const t of ents){if(t===e||t.team!==e.team||!t.rg)continue;md=Math.min(md,Math.hypot(t.rg[0]-nvx[n],t.rg[2]-nvz[n]))}
+  const sc=md+R()*4;if(sc>bs){bs=sc;best=[nvx[n],nvy[n],nvz[n]]}}
+ e.rg=best;e.rgt=8+R()*8;e.path=null;e.pt=0;return true}
+function sdHold(e,dt){   // true = بات باید ثابت بایسته (پلنت یا خنثی‌سازی)
+ if(!SD.on)return false;
+ if(SD.state==='live'&&e.team===0&&e===SD.carrier){const s=SD.sites[SD.target];
+  if(s&&Math.hypot(e.p.x-s.x,e.p.z-s.z)<SITE_R*.8&&Math.abs(e.p.y-s.y)<3){e.sdHeld=true;e.plantT=(e.plantT||0)+dt;if(e.plantT>=PLANT_T)sdPlant(e.p.x,e.p.y,e.p.z,e);return true}}
+ else if(SD.state==='planted'&&e.team===1&&SD.bomb){const b=SD.bomb;
+  if(Math.hypot(e.p.x-b.x,e.p.z-b.z)<2.3&&Math.abs(e.p.y-b.y)<2.2){e.sdHeld=true;e.defT=(e.defT||0)+dt;return true}}
+ return false}
+/* ---- حلقه‌ی اصلی حالت ---- */
+function sdSpecCycle(dir){const al=ents.filter(e=>!e.dead&&e.team===0&&!e.isP);if(!al.length){SD.spec=null;return}let i=al.indexOf(SD.spec);i=i<0?0:(i+dir+al.length)%al.length;SD.spec=al[i]}
+function sdUpdate(dt){
+ if(SD.msgT>0)SD.msgT-=dt;SD.shake=Math.max(0,SD.shake-dt*1.6);sdFxUpdate(dt);
+ if(P.dead){if(SD.hasBomb&&SD.state==='live')SD.hasBomb=false;
+  if(clickL){clickL=false;sdSpecCycle(1)}if(clickR){clickR=false;sdSpecCycle(-1)}if(!SD.spec||SD.spec.dead)sdSpecCycle(1)}
+ let a0=0,a1=0,dm=0;for(const e of ents){if(e.dead)continue;if(e.team===0)a0++;else{a1++;dm=Math.max(dm,e.defT||0)}}SD.a0=a0;SD.a1=a1;SD.defT=dm;
+ if(SD.state==='live'){SD.rt-=dt;sdCarrierUpdate();
+  if(a1===0)sdEndRound(0,'همه‌ی دشمن‌ها کشته شدن');else if(a0===0)sdEndRound(1,'همه‌ی تیم تو کشته شدن');else if(SD.rt<=0)sdEndRound(1,'زمان تموم شد')}
+ else if(SD.state==='planted'){SD.bt-=dt;sdBombTick(dt);
+  if(!SD.defuser||SD.defuser.dead){let best=null,bd=1e9;for(const e of ents){if(e.dead||e.team!==1)continue;const d=Math.hypot(e.p.x-SD.bomb.x,e.p.z-SD.bomb.z);if(d<bd){bd=d;best=e}}SD.defuser=best;if(best){best.rg=null;best.path=null}}
+  if(a1===0)sdEndRound(0,'همه‌ی دشمن‌ها کشته شدن');
+  else if(SD.defT>=DEFUSE_T){if(SD.bomb.g)scene.remove(SD.bomb.g);if(SD.led){scene.remove(SD.led);SD.led=null}sdEndRound(1,'بمب خنثی شد')}
+  else if(SD.bt<=0){sdExplode();sdEndRound(0,'بمب منفجر شد 💥')}}
+ else if(SD.state==='over'){SD.overT-=dt;if(SD.overT<=0){if(SD.final)sdFinish();else sdBeginRound()}}}
+function sdHud(){
+ const t=SD.state==='planted'&&SD.bomb?'💣 '+Math.max(0,Math.ceil(SD.bt))+'s (سایت '+SITE_NAME[SD.bomb.site]+')':'⏱ '+Math.floor(Math.max(0,SD.rt)/60)+':'+String(Math.floor(Math.max(0,SD.rt)%60)).padStart(2,'0');
+ $('score').textContent='راند '+SD.round+' — تیم تو '+SD.wins[0]+' : '+SD.wins[1]+' دشمن — زنده '+SD.a0+' در برابر '+SD.a1+' — '+t;
+ $('msg').style.whiteSpace='pre-line';$('msg').textContent=SD.msgT>0?SD.msg:'';
+ let h='';const si=sdSiteAt(P.p.x,P.p.y,P.p.z);
+ if(P.dead)h=SD.spec?'👁 تماشای '+SD.spec.name+' — کلیک چپ/راست: یار بعدی/قبلی':'همه‌ی یارهات کشته شدن؛ منتظر پایان راند...';
+ else if(SD.state==='live'&&SD.hasBomb)h=(P.wp||0)===3?(si>=0?'سایت '+SITE_NAME[si]+' — کلیک چپ (یا E) رو نگه دار تا بمب پلنت بشه':'برو داخل سایت A یا B (دایره‌ی زرد)'):(si>=0?'توی سایت '+SITE_NAME[si]+' هستی — کلید ۴ رو بزن تا بمب بیاد دستت':'بمب پیش توئه: کلید ۴');
+ else if(SD.state==='live')h='بمب دست '+(SD.carrier?SD.carrier.name:'یاره')+'ه — ازش محافظت کن';
+ else if(SD.state==='planted')h=SD.defT>0?'⚠ دشمن داره بمب رو خنثی می‌کنه ('+Math.max(0,DEFUSE_T-SD.defT).toFixed(1)+'s)':'از بمب محافظت کن!';
+ const hn=$('sdhint');hn.style.display='block';hn.textContent=h;
+ const pb=$('pbar');pb.style.display=P.pl>0?'block':'none';pb.firstElementChild.style.width=Math.min(100,(P.pl||0)/PLANT_T*100)+'%'}
+function bombUpdate(dt){
+ if((P.wp||0)!==3){P.pl=0;return}
+ const cl=clickL;clickL=clickR=false;
+ if(!SD.on||!SD.hasBomb||SD.state!=='live'){P.pl=0;return}
+ const si=sdSiteAt(P.p.x,P.p.y,P.p.z),hold=mouse||keys.KeyE;
+ if(hold&&si>=0&&P.on&&P.dr<=0){
+  if(!(P.pl>0))P.pl=.0001;P.pl+=dt;P.vx=P.vz=0;
+  const dg=Math.floor(P.pl/PLANT_T*7);if(dg!==P.pld){P.pld=dg;beep(900+dg*70,.05,.05)}
+  if(P.pl>=PLANT_T)sdPlant(P.p.x,P.p.y,P.p.z,P)}
+ else{if(P.pl>0)beep(180,.05,.1);P.pl=0;P.pld=-1;if(cl&&si<0)sdMsg('باید داخل سایت A یا B باشی',1.6)}}
+
 /* ================= INPUT ================= */
 const keys={};let locked=false,mouse=false,mouse2=false,clickL=false,clickR=false,READY=false;
-addEventListener('keydown',e=>{if(!inMatch)return;if(locked&&(e.code==='Space'||e.ctrlKey))e.preventDefault();keys[e.code]=1;if(e.code==='Space'&&!e.repeat&&P)P.jb=.12;if(e.code==='KeyR')reload();if(e.code==='Digit1')setWeapon(0);if(e.code==='Digit2')setWeapon(2);if(e.code==='Digit3')setWeapon(1);if(e.code==='KeyQ'&&P)setWeapon(P.pw!==undefined?P.pw:1);if(e.code==='KeyV'&&locked)tp=!tp});addEventListener('keyup',e=>keys[e.code]=0);addEventListener('blur',()=>{for(const k in keys)keys[k]=0});
+addEventListener('keydown',e=>{if(!inMatch)return;if(locked&&(e.code==='Space'||e.ctrlKey))e.preventDefault();keys[e.code]=1;if(e.code==='Space'&&!e.repeat&&P)P.jb=.12;if(e.code==='KeyR')reload();if(e.code==='Digit1')setWeapon(0);if(e.code==='Digit2')setWeapon(2);if(e.code==='Digit3')setWeapon(1);if(e.code==='Digit4')setWeapon(3);if(SD.on&&P&&!P.dead){if(e.code==='F7'||e.code==='F8'||e.code==='F9')e.preventDefault();if(e.code==='F7')sdSetSite(0);if(e.code==='F8')sdSetSite(1);if(e.code==='F9')sdResetSites()}if(e.code==='KeyQ'&&P)setWeapon(P.pw!==undefined?P.pw:1);if(e.code==='KeyV'&&locked)tp=!tp});addEventListener('keyup',e=>keys[e.code]=0);addEventListener('blur',()=>{for(const k in keys)keys[k]=0});
 addEventListener('mousedown',e=>{if(!locked)return;if(e.button===0){mouse=true;clickL=true}if(e.button===2){mouse2=true;clickR=true}});addEventListener('mouseup',e=>{if(e.button===0)mouse=false;if(e.button===2)mouse2=false});
 addEventListener('contextmenu',e=>{if(locked)e.preventDefault()});
 addEventListener('mousemove',e=>{if(!locked||P.dead)return;P.yaw-=e.movementX*SENS;pitch=Math.max(-1.5,Math.min(1.5,pitch-e.movementY*SENS))});
@@ -1202,7 +1412,8 @@ $('lbresume').onclick=()=>{if(READY&&inMatch)lockIn()};
 $('lbleave').onclick=()=>leaveMatch();
 /* ================= LOBBY (مثل CS2: کاراکترها وسط، منوی بالا، دوست‌ها سمت راست) ================= */
 const POOL=['آرش','بابک','سینا','داریوش','Viper','Ghost','Wolf','Raven','Falcon','Nova','Rex','Shadow'];
-const LB={friends:[],squad:[],pend:{}};
+const LB={friends:[],squad:[],pend:{},mode:'dm'};
+try{const m=localStorage.getItem('ms_mode');if(m==='sd'||m==='dm')LB.mode=m}catch(e){}
 try{LB.friends=JSON.parse(localStorage.getItem('ms_friends')||'[]').filter(x=>typeof x==='string')}catch(e){}
 const lbSave=()=>{try{localStorage.setItem('ms_friends',JSON.stringify(LB.friends))}catch(e){}};
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1212,6 +1423,8 @@ const ini=n=>esc((Array.from(n)[0]||'?').toUpperCase());
 function lbMsg(t,ic){const f=$('lbfeed'),d=document.createElement('div');if(ic&&ICON[ic]){d.innerHTML=ICON[ic];d.appendChild(document.createTextNode(t))}else d.textContent=t;f.appendChild(d);while(f.children.length>5)f.removeChild(f.firstChild);setTimeout(()=>d.remove(),6500)}
 const favHTML=(n,cls,click)=>`<div class="fav ${cls}" ${click?`data-a="fmenu" data-n="${esc(n)}"`:''} style="background:${avBg(n)}">${ini(n)}<i class="on"></i><span class="nm">${esc(n)}</span></div>`;
 function lbRenderUI(){
+ for(const b of document.querySelectorAll('#lbmodes [data-n]'))b.classList.toggle('on',b.dataset.n===(NET.mode?'dm':LB.mode));
+ {const q=$('lbmsub');if(q)q.textContent=(LB.mode==='sd'&&!NET.mode)?'گشتن و نابود کردن • بدون ریسپاون':'رقابتی • ۵ در برابر ۵'}
  const me=NET.myName||'تو',sq=LB.squad.filter(x=>x!==me);   // اسم خودم نباید دوباره به‌عنوان عضو جدا نمایش داده بشه
  let h=`<button class="fav plus" data-a="addp" title="افزودن دوست">+</button><div class="sep"></div>`;
  for(const n of Object.keys(LB.pend)){const v=LB.pend[n];
@@ -1265,6 +1478,7 @@ document.addEventListener('click',e=>{if(!inLobby)return;const t=e.target,b=t.cl
  else if(a==='settings'){lbSettingsSync();$('lbset').style.display='grid'}
  else if(a==='setclose')$('lbset').style.display='none';
  else if(a==='tab'){if(n!=='PLAY'&&n!=='HOME')lbMsg(n+' — به‌زودی','info')}
+ else if(a==='mode'){if(NET.mode){lbMsg('«گشتن و نابود کردن» فقط آفلاین (با بات) در دسترسه','alert');return}LB.mode=n;try{localStorage.setItem('ms_mode',n)}catch(e){}lbRenderUI()}
  else if(a==='start'){if(!READY||inMatch)return;if(NET.mode==='client'){lbMsg('فقط هاست می‌تونه شروع کنه','alert');return}startMatch();lockIn()}});
 
 /* ================= NET: چندنفره واقعی با WebRTC (PeerJS) =================
@@ -1446,7 +1660,7 @@ function startMatchMP(roster){lobbyExit();bloodClear();
   else{const e=addEnt(r.team,false,r.name);e.net=true;e.tg={x:e.p.x,y:e.p.y,z:e.p.z,yaw:e.yaw};
    if(r.team===0)e.mesh.userData.ring.material.color.set(0x35d07f)}}
  $('kf').innerHTML='';inMatch=true;$('hud').style.display='';showMenu()}
-function leaveMatchMP(){bloodClear();
+function leaveMatchMP(){sdCleanup();bloodClear();
  for(const e of ents){const u=e.mesh&&e.mesh.userData;if(u&&u.gdObj&&u.gdObj.parent)u.gdObj.parent.remove(u.gdObj);if(e.mesh)scene.remove(e.mesh)}
  ents.length=0;P=undefined;inMatch=false;score[0]=score[1]=0;pitch=0;$('msg').textContent='';$('kf').innerHTML='';
  lobbyEnter()}
@@ -1534,6 +1748,7 @@ function startMatch(){
  while(ents.filter(t=>t.team===0).length<5)addEnt(0,false,pickN([...NAMES[0].slice(1),...POOL]));
  for(let i=0;i<5;i++)addEnt(1,false,pickN([...NAMES[1],...POOL.filter(x=>/^[A-Za-z]/.test(x))]));
  $('kf').innerHTML='';inMatch=true;$('hud').style.display='';
+ if(LB.mode==='sd'&&!NET.mode)sdStartMatch();
  if(isHost)NET.send({t:'start',roster:ents.map(e=>({name:e.name,team:e.team}))})}
 function leaveMatch(){if(NET.mode==='host')NET.send({t:'tolobby'});if(NET.mode==='client')NET.send({t:'clleave'});leaveMatchMP()}
 const unlockMouse=()=>{if(document.pointerLockElement)document.exitPointerLock();showMenu();locked=false;mouse=false;mouse2=false;for(const k in keys)keys[k]=0};   // رفتن به تب/پنجره‌ی دیگه: ماوس آزاد بشه
@@ -1544,7 +1759,7 @@ document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockEl
 /* ================= SIMULATION ================= */
 /* ---- حرکت بازیکن: سرعت افقی با شتاب (روی زمین چابک، توی هوا تکانه حفظ می‌شه)، نشستن نرم، پرش با coyote-time و بافر ---- */
 const canStand=()=>castRay(P.p.x,P.p.y+.9,P.p.z,0,1,0,1.2,false)>.97;   // بالای سر جا برای ایستادن هست؟
-function setWeapon(w){if(!P||P.dead||(P.wp||0)===w||(w===2&&!VM.pistolReady))return;const o=P.wp||0;P.wAmmo=P.wAmmo||{0:30,2:12};P.wAmmo[o]=P.ammo;P.pw=o;P.wp=w;P.ammo=P.wAmmo[w]!==undefined?P.wAmmo[w]:30;P.rl=0;P.sl=0;P.dr=.3;clickL=clickR=false;if(w===0){P.arm=P.armD=1.3;P.s1=P.s2=0}else P.arm=0;beep(w?260:200,.04,.05)}
+function setWeapon(w){if(!P||P.dead||(P.wp||0)===w||(w===2&&!VM.pistolReady)||(w===3&&!(SD.on&&SD.hasBomb&&SD.state==='live')))return;const o=P.wp||0;P.wAmmo=P.wAmmo||{0:30,2:12};P.wAmmo[o]=P.ammo;P.pw=o;P.wp=w;P.ammo=P.wAmmo[w]!==undefined?P.wAmmo[w]:30;P.rl=0;P.sl=0;P.pl=0;P.dr=.3;clickL=clickR=false;if(w===0){P.arm=P.armD=1.3;P.s1=P.s2=0}else P.arm=0;beep(w?260:200,.04,.05)}
 function meleeHit(){const o=eye(P),cp=Math.cos(pitch),d={x:-Math.sin(P.yaw)*cp,y:Math.sin(pitch),z:-Math.cos(P.yaw)*cp},range=P.sk?2.1:1.9,wd=wallDist(o,d);let best=null,bd=1e9;
  for(const t of ents){if(t===P||t.dead||t.team===P.team)continue;const c=t.cr||0;
   for(const[cy,r]of[[1.62-CROUCH_D*c,.4],[.92-.27*c,.6]]){const dd=raySph(o,d,{x:t.p.x,y:t.p.y+cy,z:t.p.z},r);if(dd<bd&&dd<=range&&dd<=wd){bd=dd;best=t}}}
@@ -1566,7 +1781,7 @@ function playerUpdate(dt){
  const want=keys.KeyC||(P.cr>.02&&!canStand())?1:0;
  P.cr+=(want-P.cr)*Math.min(1,dt*12);if(Math.abs(want-P.cr)<.01)P.cr=want;
  /* سرعت افقی */
- const walk=(keys.ShiftLeft||keys.ShiftRight)&&!P.cr?.5:1,spd=(6.5-3.4*P.cr)*walk*((P.wp||0)===1?1.1:1),tx=(-sy*f+cy*r)/L*spd,tz=(-cy*f-sy*r)/L*spd;
+ const walk=(keys.ShiftLeft||keys.ShiftRight)&&!P.cr?.5:1,spd=(6.5-3.4*P.cr)*walk*((P.wp||0)===1?1.1:1)*(P.pl>0?0:1),tx=(-sy*f+cy*r)/L*spd,tz=(-cy*f-sy*r)/L*spd;
  const k=1-Math.exp(-dt*(P.on?16:3));                 // کنترل هوایی ضعیف‌تر از زمین
  P.vx+=(tx-P.vx)*k;P.vz+=(tz-P.vz)*k;
  if(Math.abs(P.vx)<.01&&Math.abs(P.vz)<.01&&!f&&!r){P.vx=P.vz=0}
@@ -1581,10 +1796,10 @@ function playerUpdate(dt){
  if(P.vy<=0)P.jh=false;
  P.dip*=Math.exp(-dt*10);                              // ضربه‌ی فرود روی دوربین
  P.cd-=dt;
- knifeUpdate(dt);
+ knifeUpdate(dt);bombUpdate(dt);
  const ps=(P.wp||0)===2;if(ps){const pf=clickL;clickL=false;if(pf)P.pbuf=.15;P.pbuf=(P.pbuf||0)-dt}   // پیستول نیمه‌اتومات: هر کلیک یک تیر
  if(P.rl>0){P.rl-=dt;if(P.rl<=0)P.ammo=AMAX[P.wp||0]}
- else if((ps?P.pbuf>0:mouse)&&P.cd<=0&&P.ammo>0&&(P.wp||0)!==1&&!(P.arm>0)){P.cd=ps?.15:.11;P.ammo--;VM.kick=Math.min(ps?.085:.11,VM.kick+(ps?.05:.07));if(ps){P.pbuf=0;if(VM.pistolReady){PM.clip='firstperson_shoot_unsilenced_additive';PM.t=0}}const cp=Math.cos(pitch);
+ else if((ps?P.pbuf>0:mouse)&&P.cd<=0&&P.ammo>0&&(P.wp||0)!==1&&(P.wp||0)!==3&&!(P.arm>0)){P.cd=ps?.15:.11;P.ammo--;VM.kick=Math.min(ps?.085:.11,VM.kick+(ps?.05:.07));if(ps){P.pbuf=0;if(VM.pistolReady){PM.clip='firstperson_shoot_unsilenced_additive';PM.t=0}}const cp=Math.cos(pitch);
   const spd=Math.hypot(P.vx,P.vz)/6.5,sp=(.003+Math.min(1,spd)*.055+(P.on?0:.09)+(P.spray||0))*(P.cr>.5?.6:1)*(ps?.7:1);   // حرکت/پرش/شلیک پشت‌سرهم دقت رو کم می‌کنه
   let dx=-sy*cp+(R()-.5)*sp*2,dy=Math.sin(pitch)+(R()-.5)*sp*2,dz=-cy*cp+(R()-.5)*sp*2;const dn=Math.hypot(dx,dy,dz);
   fire(P,{x:dx/dn,y:dy/dn,z:dz/dn});
@@ -1596,6 +1811,7 @@ function playerUpdate(dt){
   const back=Math.min(P.recAcc||0,dt*.35);if(back>0){pitch-=back*.6;P.recAcc-=back}}}
 /* نقطه‌ی گشت: از بین چند گره‌ی تصادفی، اونی که از هدف هم‌تیمی‌ها دورتره (و کمی به سمت تیم مقابل) */
 function pickRoam(e){
+ if(SD.on&&sdPickRoam(e))return;
  const eo=SPAWN[1-e.team][0];let best=null,bs=-1e9;
  for(let k=0;k<30;k++){const n=Math.floor(R()*NN);if(ncomp[n]!==mainComp)continue;
   const x=nvx[n],z=nvz[n];if(Math.hypot(x-e.p.x,z-e.p.z)<15)continue;
@@ -1613,6 +1829,7 @@ const BOT_REACT=[.3,.65];  // تأخیر واکنش بعد از دیدن دشم�
 const BOT_AIM_ERR=.16;     // فقط وقتی کمتر از این (رادیان) تا هدف زاویه دارن شلیک می‌کنن
 const BOT_HOLD_DIST=30; // تا این فاصله بات موقع دیدن دشمن ثابت می‌ایسته و شلیک می‌کنه
 function botUpdate(e,dt){
+ e.sdHeld=false;
  let tg=null,td=1e9;for(const t of ents){if(t.dead||t.team===e.team)continue;const d=Math.hypot(t.p.x-e.p.x,t.p.z-e.p.z,(t.p.y-e.p.y)*.5);if(d<td){td=d;tg=t}}
  e.st-=dt;if(e.st<=0){e.st=1+R()*1.5;e.s=R()<.5?-1:1}
  /* تشخیص گیرکردن/سد کردن در: اگه ۲ ثانیه تقریباً جابه‌جا نشد، چند ثانیه مجبور می‌شه جلو بره و مقصد گشت جدید می‌گیره */
@@ -1641,7 +1858,7 @@ function botUpdate(e,dt){
   if(!e.rg||e.rgt<=0||Math.hypot(e.rg[0]-e.p.x,e.rg[2]-e.p.z)<4)pickRoam(e);
   let gx=e.rg[0],gy=e.rg[1],gz=e.rg[2],follow=false;
   if(e.team===0&&!P.dead){if(dP>40)e.goal=1;else if(dP<20)e.goal=0;if(e.goal===1){gx=P.p.x;gy=P.p.y;gz=P.p.z;follow=true}}
-  if(follow&&dP<5){/* کنار بازیکنه، بایسته */}
+  if((follow&&dP<5)||sdHold(e,dt)){/* کنار بازیکنه / پلنت / خنثی‌سازی: بایسته */}
   else{
    e.pt-=dt;if(!e.path||e.pt<=0){e.pt=.7+R()*.5;const p=findPath(e.p.x,e.p.y,e.p.z,gx,gy,gz);e.path=p;e.pi=0;
      if(p&&p.length>1){e.pi=1}}
@@ -1662,9 +1879,12 @@ function botUpdate(e,dt){
  {let px=0,pz=0;for(const t of ents){if(t===e||t.dead||t.team!==e.team)continue;
    const dx=e.p.x-t.p.x,dz=e.p.z-t.p.z,d=Math.hypot(dx,dz);if(d<(fw||sd?6:1.6)&&d>1e-3&&Math.abs(e.p.y-t.p.y)<2){const w=((fw||sd?6:1.6)-d)/(fw||sd?6:1.6);px+=dx/d*w;pz+=dz/d*w}}
   if(px||pz)move(e,px*2.2*dt,pz*2.2*dt)} // هل نرم از هم‌تیمی‌های نزدیک
+ if(!e.sdHeld){e.plantT=0;e.defT=0}
+ {const tp2=vis&&dir?Math.asin(Math.max(-1,Math.min(1,dir.y))):0;e.vp=(e.vp||0)+(tp2-(e.vp||0))*Math.min(1,dt*8)}   // زاویه‌ی نگاه (برای تماشاچی)
  e.cd-=dt;
  if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){e.cd=.35+R()*.3;const hs=R()<.15,j=hs?.02:.03,o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,d={x:bd.x+(R()-.5)*j*2,y:bd.y+(R()-.5)*j*2,z:bd.z+(R()-.5)*j*2},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;fire(e,d)}}
 function simulate(dt){
+ if(SD.on)sdUpdate(dt);
  for(const e of ents){
   if(e.dead){e.rt-=dt;ragStep(e,dt);
    if(e.rt<=0&&NET.mode!=='client'){spawn(e,true);
@@ -1854,6 +2074,7 @@ function ragRender(e,u,dt){const r=e.rag,m=e.mesh;
  if(!r.sleep||!r.posed){ragPose(e,u,r);r.posed=r.sleep}
  else m.updateMatrixWorld(true)}
 function render(dt){
+ const specT=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:null;
  sun.target.position.set(P.p.x,P.p.y,P.p.z);sun.position.set(P.p.x+40,P.p.y+80,P.p.z+20);
  for(const e of ents){const m=e.mesh,u=m.userData;
   m.position.set(e.p.x,e.p.y-(e.sdip||0),e.p.z);m.rotation.y=e.yaw;
@@ -1880,26 +2101,27 @@ function render(dt){
    if(u.arms){if(u.armQ){u.arms[0].quaternion.copy(u.armQ[0]);u.arms[1].quaternion.copy(u.armQ[1])}else{const hs=-KNEE_SIGN;u.arms[0].rotation.x=hs*1.15-l0*.06;u.arms[1].rotation.x=hs*1.05-l1*.06;u.arms[0].rotation.y=-.14;u.arms[1].rotation.y=.14}}}   // دست‌ها (اسلحه به دست) کم تکون می‌خورن // دست‌ها مخالف پای هم‌طرف
   if(u.gd)stepDeadGun(u.gdObj,u.gd,dt);
   u.ring.visible=!e.dead;
-  if(e.isP){ // اول‌شخص: فقط پاهای خودت دیده بشه (وقتی پایین رو نگاه می‌کنی)؛ بقیه‌ی بدن شفاف می‌شه ولی هنوز سایه می‌اندازه
-   const fp=!tp&&!e.dead&&!!u.legs;
+  if(e.isP||e===specT||u.fpOn){ // اول‌شخص (خودت یا یاری که تماشاش می‌کنی): پاها دیده بشه، سر از گردن بریده بشه
+   const isSp=e===specT,fp=e.isP?(!tp&&!e.dead&&!!u.legs):(isSp&&!e.dead&&!!u.legs);
    if(!u.fpAll){u.fpAll=[];u.fpArms=[];u.fpPlane=new THREE.Plane();
     m.traverse(o=>{if(!o.isMesh)return;
-     o.material=Array.isArray(o.material)?o.material.map(q=>q.clone()):o.material.clone();   // متریال مخصوص خودت، تا بات‌ها بریده نشن
+     o.material=Array.isArray(o.material)?o.material.map(q=>q.clone()):o.material.clone();   // متریال مخصوص خودش، تا بقیه بریده نشن
      u.fpAll.push(o);let p=o;while(p&&p!==m){if(p.name==='armL'||p.name==='armR'){u.fpArms.push(o);break}p=p.parent}})}
    if(u.fpOn!==fp){
-    for(const o of u.fpArms){if(fp){o.userData.om=o.material;o.material=GHOST}else if(o.userData.om)o.material=o.userData.om}   // دست‌های بدن مخفی (ویوومدل خودش دست داره)
+    if(e.isP)for(const o of u.fpArms){if(fp){o.userData.om=o.material;o.material=GHOST}else if(o.userData.om)o.material=o.userData.om}   // دست‌های بدن مخفی (ویوومدل خودش دست داره)
     for(const o of u.fpAll)for(const q of(Array.isArray(o.material)?o.material:[o.material]))q.clippingPlanes=fp?[u.fpPlane]:null;
     u.fpOn=fp}
    m.rotation.order='YXZ';m.rotation.x=0;
-   if(fp){const df=Math.max(0,Math.min(1,-pitch/1.0)),sh=-FP_LEG_BACK+FP_LEG_FWD*df;   // هرچی بیشتر پایین رو نگاه کنی، بدن به عقب خم می‌شه و پاها جلوتر میان (مثل CS)
-    m.position.x-=Math.sin(e.yaw)*sh;m.position.z-=Math.cos(e.yaw)*sh;m.rotation.x=FP_LEG_TILT*df;u.ring.visible=false;
+   if(fp){const df=e.isP?Math.max(0,Math.min(1,-pitch/1.0)):0,sh=e.isP?-FP_LEG_BACK+FP_LEG_FWD*df:0;   // هرچی بیشتر پایین رو نگاه کنی، بدن به عقب خم می‌شه و پاها جلوتر میان (مثل CS)
+    m.position.x-=Math.sin(e.yaw)*sh;m.position.z-=Math.cos(e.yaw)*sh;m.rotation.x=e.isP?FP_LEG_TILT*df:0;u.ring.visible=false;
     const up=_dv.set(0,1,0).applyQuaternion(m.quaternion),nh=CHAR_H*FP_NECK*(1-.26*e.cr);   // سر رو از گردن می‌بُریم تا دوربین توی سر نیفته
     u.fpPlane.setFromNormalAndCoplanarPoint(up.clone().negate(),new THREE.Vector3(m.position.x+up.x*nh,m.position.y+up.y*nh,m.position.z+up.z*nh))}
-   if(u.botGun)u.botGun.visible=!fp;
-   m.visible=fp||tp||e.dead}
+   if(e.isP&&u.botGun)u.botGun.visible=!fp;
+   m.visible=e.isP?(fp||tp||e.dead):true}
   else m.visible=true}
  const ey=P.p.y+1.6-CROUCH_D*P.cr-P.dip-(P.sdip||0),sy=Math.sin(P.yaw),cy=Math.cos(P.yaw),cp=Math.cos(pitch),spch=Math.sin(pitch);
- if(P.dead||tp){ // دید سوم‌شخص (موقع مرگ: نگاه به جسد خودت)
+ if(specT){cam.position.set(specT.p.x,specT.p.y+1.6-CROUCH_D*(specT.cr||0)-(specT.sdip||0),specT.p.z);cam.rotation.set(specT.vp||0,specT.yaw,0)}   // تماشا از دید یار
+ else if(P.dead||tp){ // دید سوم‌شخص (موقع مرگ: نگاه به جسد خودت)
   let dx,dy,dz,L;
   if(P.dead){dx=sy*.8;dy=.55;dz=cy*.8;L=3;}else{dx=sy*cp;dy=-spch+.12;dz=cy*cp;L=3.2}
   const n=Math.hypot(dx,dy,dz);dx/=n;dy/=n;dz/=n;
@@ -1907,6 +2129,7 @@ function render(dt){
   cam.position.set(P.p.x+dx*use,oy+dy*use,P.p.z+dz*use);
   if(P.dead){cam.lookAt(P.p.x,P.p.y+.35,P.p.z)}else cam.rotation.set(pitch,P.yaw,0);
  }else{cam.position.set(P.p.x,ey,P.p.z);cam.rotation.set(pitch,P.yaw,0)}
+ if(SD.shake>0){const a=SD.shake*.06;cam.position.x+=(R()-.5)*a;cam.position.y+=(R()-.5)*a;cam.position.z+=(R()-.5)*a;cam.rotation.z=(R()-.5)*a*.5}
  vmUpdate(dt);
  bloodUpdate(dt);
  for(let i=tr.length-1;i>=0;i--){tr[i].t-=dt;if(tr[i].t<=0){scene.remove(tr[i].l);tr[i].l.geometry.dispose();tr.splice(i,1)}}
@@ -1914,9 +2137,9 @@ function render(dt){
  hm-=dt;if(hm<=0)$('cross').style.borderColor='#3f3';
  $('dmg').style.opacity=0;if(P.hp<35&&!P.dead)$('dmg').style.opacity=.6;
  $('hpv').textContent=Math.max(0,Math.ceil(P.hp));
- $('ammo').textContent=(P.wp||0)===1?'KNIFE':P.rl>0?'RELOAD':P.ammo+' / ∞';
- $('score').textContent=`تیم تو ${score[0]}  —  ${score[1]} دشمن`;
- $('msg').textContent=P.dead?`مُردی! ریسپاون تا ${Math.ceil(P.rt)} ثانیه`:'';
+ $('ammo').textContent=(P.wp||0)===1?'KNIFE':(P.wp||0)===3?'C4':P.rl>0?'RELOAD':P.ammo+' / ∞';
+ if(SD.on)sdHud();else{$('score').textContent=`تیم تو ${score[0]}  —  ${score[1]} دشمن`;
+  $('msg').textContent=P.dead?`مُردی! ریسپاون تا ${Math.ceil(P.rt)} ثانیه`:''}
  renderWithViewmodel()}
 
 let last=performance.now();
@@ -1997,10 +2220,10 @@ async function boot(){
   st('در حال ساخت برخورد و مسیرها...');await new Promise(r=>setTimeout(r,30));
   buildCol(pv);
   const info=buildNav();console.log('nav',info);
-  pickSpawns();
+  pickSpawns();pickSites();bombLoad();
   initBall();   // توپ فوتبال وسط مپ
   window.__g={ents,get P(){return P},get BALL(){return BALL},info,scene,cam,castRay,findPath,nearestNode,nav:()=>({NN,nvx,nvy,nvz,ncF,ncN,NGX,NGZ,GX0,GZ0,ncomp,mainComp,adjS,adjT}),SPAWN:()=>SPAWN,simulate,render,
-   setLock:v=>{locked=v},setTp:v=>{tp=v},setPitch:v=>{pitch=v},tris:()=>NT};
+   setLock:v=>{locked=v},setTp:v=>{tp=v},setPitch:v=>{pitch=v},tris:()=>NT,SD,sdSetSite};
   READY=true;st('آماده‌ایم!');lobbyEnter();
  }catch(err){console.error(err);st('خطا در لود '+err.message+' — فایل‌های GLB باید کنار HTML باشن و با سرور محلی باز بشه (نه file://)')}}
 
