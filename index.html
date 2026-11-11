@@ -1271,6 +1271,7 @@ document.addEventListener('click',e=>{if(!inLobby)return;const t=e.target,b=t.cl
    - هاست روم می‌سازه (کد ۵ کاراکتری) و مرجع اصلیه: بات‌ها، دمیج و امتیاز روی دستگاه هاست شبیه‌سازی می‌شن.
    - کلاینت‌ها حرکت خودشون رو محلی اجرا می‌کنن و ۲۰ بار در ثانیه می‌فرستن؛ اسنپ‌شات ۱۵ هرتزی هاست همه‌چیز رو می‌ره.
    - درخواست دوستی واقعی: هر بازیکن یه «حضوری» ثابت با اسم خودش داره؛ ادد کردن با اسم، مستقیم P2P می‌ره. */
+const NET_VER='v9';
 const PEER_OPTS={debug:0,config:{iceServers:[
  {urls:'stun:stun.l.google.com:19302'},
  {urls:'stun:stun.relay.metered.ca:80'},
@@ -1353,7 +1354,7 @@ function netHostRoom(cb){if(NET.on){cb&&cb();return}
     netUpdateChip();lbRenderUI();lbMsg('روم ساخته شد — کد رو برای دوستات بفرست: '+code,'check');cb&&cb()});
    p.on('error',e=>{if(e.type==='unavailable-id'){try{p.destroy()}catch(x){}tryMk()}else console.warn('[net]',e.type)});
    p.on('disconnected',()=>{setTimeout(()=>{if(NET.peer===p&&!p.destroyed)try{p.reconnect()}catch(x){}},1500)});   // کد روم زنده بمونه تا دوستت دوباره بیاد
-   p.on('connection',conn=>{conn.on('data',m=>netRoomMsg(conn,m));conn.on('close',()=>netDropConn(conn))})};
+   p.on('connection',conn=>{lbMsg('درخواست اتصال رسید…','info');conn.on('open',()=>lbMsg('کانال با یه بازیکن باز شد','info'));conn.on('data',m=>netRoomMsg(conn,m));conn.on('close',()=>netDropConn(conn))})};
   tryMk()})}
 function netJoinRoom(codeIn){const code=String(codeIn||'').trim().toUpperCase();if(code.length<4){lbMsg('کد روم رو درست بنویس','alert');return}
  if(NET.joinT&&Date.now()-NET.joinT<9000)return;NET.joinT=Date.now();   // جلوگیری از دابل‌کلیک: فقط یک اتصال همزمان
@@ -1361,7 +1362,7 @@ function netJoinRoom(codeIn){const code=String(codeIn||'').trim().toUpperCase();
  netEnsurePresence(ok=>{if(!ok)return;
   const p=new Peer(PEER_OPTS);NET.peer=p;NET.room=code;let jto=null;
   p.on('open',()=>{const conn=p.connect('ms25r-'+code,{reliable:true});NET.hostConn=conn;
-   const to=jto=setTimeout(()=>{if(!NET.on){NET.joinT=0;lbMsg('اتصال به هاست برقرار نشد (احتمالاً مشکل شبکه/NAT یا هاست جواب نمی‌ده)','alert');try{p.destroy()}catch(e){}NET.hostConn=null}},20000);
+   const to=jto=setTimeout(()=>{if(!NET.on){NET.joinT=0;{let st='?';try{st=conn.peerConnection.iceConnectionState}catch(x){}lbMsg('اتصال به هاست برقرار نشد (ICE: '+st+(conn.open?'، کانال باز ولی هاست جواب نداد':'')+')','alert')}try{p.destroy()}catch(e){}NET.hostConn=null}},20000);
    conn.on('open',()=>{try{conn.send({t:'join',name:NET.myName})}catch(e){}});
    conn.on('data',m=>netClientMsg(conn,m));
    conn.on('close',()=>{clearTimeout(to);NET.hostConn=null;
@@ -1459,7 +1460,7 @@ function netInvite(n){netEnsurePresence(ok=>{if(!ok)return;
 /* ---- UI پنل آنلاین ---- */
 function netUpdateChip(){const b=$('netNameBtn');if(!b)return;
  b.textContent=NET.myName||'انتخاب اسم…';
- $('netStat').textContent=NET.presOK?(NET.on?(NET.mode==='host'?'(هاست)':'(مهمان)'):'(آنلاین)'):'';
+ $('netStat').textContent=(NET.presOK?(NET.on?(NET.mode==='host'?'(هاست)':'(مهمان)'):'(آنلاین)'):'')+' ['+NET_VER+']';
  const rr=$('netRoomRow'),hr=$('netHostRow');
  if(NET.on){rr.style.display='flex';hr.style.display='none';{const cr=$('netCodeRow');if(cr)cr.style.display='none'}
   $('netCode').textContent=NET.members.length?NET.members.join('، '):'-';$('netRoomCode').textContent=NET.room||'-'}
