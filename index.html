@@ -115,7 +115,7 @@ canvas{display:block}
 <div id="menu"><h1>Mini Strike</h1>
 <div id="load">در حال لود مپ و کاراکترها...</div>
 <div id="pause"><button class="lbb g" id="lbresume" style="font-size:22px;padding:10px 40px">ادامه بازی</button><br><br><button class="lbb r" id="lbleave" style="font-size:16px">بازگشت به لابی</button></div>
-<div>حرکت: WASD &nbsp;|&nbsp; نگاه: ماوس &nbsp;|&nbsp; شلیک: کلیک چپ &nbsp;|&nbsp; پرش: Space &nbsp;|&nbsp; آهسته‌راه رفتن: Shift &nbsp;|&nbsp; نشستن: C &nbsp;|&nbsp; ریلود: R &nbsp;|&nbsp; تفنگ: ۱ &nbsp;|&nbsp; پیستول: ۲ (هر کلیک یک تیر) &nbsp;|&nbsp; چاقو: ۳ (کلیک چپ: ضربه، راست: ضربهٔ سنگین) &nbsp;|&nbsp; Q = سلاح قبلی &nbsp;|&nbsp; دید سوم‌شخص: V &nbsp;|&nbsp; نارنجک: ۵ HE ، ۶ اسموک ، ۷ فلش (کلیک چپ پرتاب محکم، کلیک راست آروم)</div>
+<div>حرکت: WASD &nbsp;|&nbsp; نگاه: ماوس &nbsp;|&nbsp; شلیک: کلیک چپ &nbsp;|&nbsp; پرش: Space &nbsp;|&nbsp; آهسته‌راه رفتن: Shift &nbsp;|&nbsp; نشستن: C &nbsp;|&nbsp; ریلود: R &nbsp;|&nbsp; تفنگ: ۱ &nbsp;|&nbsp; پیستول: ۲ (هر کلیک یک تیر) &nbsp;|&nbsp; چاقو: ۳ (کلیک چپ: ضربه، راست: ضربهٔ سنگین) &nbsp;|&nbsp; Q = سلاح قبلی &nbsp;|&nbsp; دید سوم‌شخص: V &nbsp;|&nbsp; نارنجک: ۵ HE ، ۶ اسموک ، ۷ فلش ، ۸ مولوتف (کلیک چپ پرتاب محکم، کلیک راست آروم)</div>
 <div>تو و ۴ یار (حلقه‌ی آبی) در برابر ۵ دشمن (حلقه‌ی قرمز). Esc برای توقف.</div></div>
 <div id="lb"><div id="lbvig"></div><div id="lbcards"></div>
 <div id="lbtop" class="pe"><div class="ic"><button class="ib" data-a="tab" data-n="HOME" title="خانه" data-ic="home"></button><button class="ib" data-a="settings" title="تنظیمات" data-ic="gear"></button></div>
@@ -145,6 +145,7 @@ const ICON={
 nade:`<svg ${IC_ATTR}><path d="M12 8.2a6.3 6.3 0 1 0 0 12.6 6.3 6.3 0 0 0 0-12.6zM10.3 3h3.4v3.4h-3.4zM14.6 4.2l5.2-1.6.6 1.7-5.3 1.9z"/></svg>`,
 smoke:`<svg ${IC_ATTR}><path d="M7.2 18.5a4.2 4.2 0 0 1-.9-8.3 5.8 5.8 0 0 1 11-.9 4.6 4.6 0 0 1-.4 9.2z"/></svg>`,
 flash:`<svg ${IC_ATTR}><path d="M13.4 2 5.5 13.2h5.1L9.6 22l8.9-12.2h-5.3z"/></svg>`,
+fire:`<svg ${IC_ATTR}><path d="M12.5 2c.6 3.2-1.2 4.6-2.6 6.4C8.6 10 7.5 11.6 7.5 14a5 5 0 0 0 10 0c0-2-.9-3.4-1.9-4.6-.2 1.2-.8 2-1.7 2.4.6-3.6-.3-7-1.4-9.8z"/></svg>`,
 eye:`<svg ${IC_ATTR}><path d="M12 5C6.5 5 2.3 9 1 12c1.3 3 5.5 7 11 7s9.7-4 11-7c-1.3-3-5.5-7-11-7zm0 11.2a4.2 4.2 0 1 1 0-8.4 4.2 4.2 0 0 1 0 8.4zm0-6.4a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4z"/></svg>`,
 home:`<svg ${IC_ATTR}><path d="M12 2.6 1.8 11.4h2.7V20a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-8.6h2.7zM9.8 21v-5a2.2 2.2 0 0 1 4.4 0v5z"/></svg>`,
 gear:`<svg ${IC_ATTR}><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>`,
@@ -989,7 +990,7 @@ function spawn(e,scatter){const L=SPAWN[e.team],o=SPAWN[1-e.team];
   const dx=nvx[pa[k]]-s[0],dz=nvz[pa[k]]-s[2];if(Math.hypot(dx,dz)>.5)e.yaw=Math.atan2(-dx,-dz)}}
  {const u=e.mesh&&e.mesh.userData;if(u&&u.gd){if(u.gdObj&&u.gdObj.parent)u.gdObj.parent.remove(u.gdObj);u.gdObj=null;u.body.add(u.botGun);if(u.gunHold){u.botGun.scale.setScalar(u.gunHold.s);u.botGun.position.copy(u.gunHold.p);u.botGun.quaternion.copy(u.gunHold.q)}else{u.botGun.scale.setScalar(.8);u.botGun.position.set(.08,1.12,-.45);u.botGun.rotation.set(0,0,0)}u.gd=null}}
  e.lx=e.p.x;e.lz=e.p.z;e.sx=undefined;
- if(e.isP){if((e.wp||0)>=4)e.wp=0;e.wAmmo={0:30,2:12};e.ammo=AMAX[e.wp||0];e.rl=0;e.gn={4:1,5:1,6:2};e.ntw=0;e.nsw=0;e.fl=0}}
+ if(e.isP){if((e.wp||0)>=4)e.wp=0;e.wAmmo={0:30,2:12};e.ammo=AMAX[e.wp||0];e.rl=0;e.gn={4:1,5:1,6:2,7:1};e.ntw=0;e.nsw=0;e.fl=0}}
 let P,pitch=0;
 
 /* ================= COMBAT ================= */
@@ -1138,7 +1139,7 @@ let hm=0;
 const NAMES=[['تو','آرش','بابک','سینا','داریوش'],['Viper','Ghost','Wolf','Raven','Falcon']];
 function killFeed(by,t,hs,wb){const f=$('kf'),r=document.createElement('div');r.className='kfr'+(by.isP||t.isP?' me':'');
  const nm=e=>`<span class="${e.team?'b':'a'}">${e.name}</span>`;
- r.innerHTML=`${nm(by)}<span class="w">${hs?'<span class="hs">'+ICON.headshot+' </span>':''}${wb?'<span class="hs">'+ICON.wall+' </span>':''}${by.wp===3?ICON.nade:by.wp===1?ICON.knife:by.wp>=4?ICON.nade:ICON.gun}</span>${nm(t)}`;
+ r.innerHTML=`${nm(by)}<span class="w">${hs?'<span class="hs">'+ICON.headshot+' </span>':''}${wb?'<span class="hs">'+ICON.wall+' </span>':''}${by.wp===3?ICON.nade:by.wp===1?ICON.knife:by.wp===7?ICON.fire:by.wp>=4?ICON.nade:ICON.gun}</span>${nm(t)}`;
  f.appendChild(r);while(f.children.length>5)f.removeChild(f.firstChild);
  setTimeout(()=>{r.style.opacity=0;setTimeout(()=>r.remove(),500)},4500)}
 function damage(t,a,by,zone,wb){t.hp-=a;if(!t.isP&&!t.dead&&by&&by.p){t.mem=Math.max(t.mem||0,2);t.lk=[by.p.x,by.p.z]}   // ازش تیر خورده → به سمت تیرانداز می‌چرخه
@@ -1415,7 +1416,7 @@ function bombUpdate(dt){
 
 /* ================= INPUT ================= */
 const keys={};let locked=false,mouse=false,mouse2=false,clickL=false,clickR=false,READY=false;
-addEventListener('keydown',e=>{if(!inMatch)return;if(locked&&(e.code==='Space'||e.ctrlKey))e.preventDefault();keys[e.code]=1;if(e.code==='Space'&&!e.repeat&&P)P.jb=.12;if(e.code==='KeyR')reload();if(e.code==='Digit1')setWeapon(0);if(e.code==='Digit2')setWeapon(2);if(e.code==='Digit3')setWeapon(1);if(e.code==='Digit4')setWeapon(3);if(e.code==='Digit5')setWeapon(4);if(e.code==='Digit6')setWeapon(5);if(e.code==='Digit7')setWeapon(6);if(SD.on&&P&&!P.dead){if(e.code==='F7'||e.code==='F8'||e.code==='F9')e.preventDefault();if(e.code==='F7')sdSetSite(0);if(e.code==='F8')sdSetSite(1);if(e.code==='F9')sdResetSites()}if(e.code==='KeyQ'&&P)setWeapon(P.pw!==undefined?P.pw:1);if(e.code==='KeyV'&&locked)tp=!tp});addEventListener('keyup',e=>keys[e.code]=0);addEventListener('blur',()=>{for(const k in keys)keys[k]=0});
+addEventListener('keydown',e=>{if(!inMatch)return;if(locked&&(e.code==='Space'||e.ctrlKey))e.preventDefault();keys[e.code]=1;if(e.code==='Space'&&!e.repeat&&P)P.jb=.12;if(e.code==='KeyR')reload();if(e.code==='Digit1')setWeapon(0);if(e.code==='Digit2')setWeapon(2);if(e.code==='Digit3')setWeapon(1);if(e.code==='Digit4')setWeapon(3);if(e.code==='Digit5')setWeapon(4);if(e.code==='Digit6')setWeapon(5);if(e.code==='Digit7')setWeapon(6);if(e.code==='Digit8')setWeapon(7);if(SD.on&&P&&!P.dead){if(e.code==='F7'||e.code==='F8'||e.code==='F9')e.preventDefault();if(e.code==='F7')sdSetSite(0);if(e.code==='F8')sdSetSite(1);if(e.code==='F9')sdResetSites()}if(e.code==='KeyQ'&&P)setWeapon(P.pw!==undefined?P.pw:1);if(e.code==='KeyV'&&locked)tp=!tp});addEventListener('keyup',e=>keys[e.code]=0);addEventListener('blur',()=>{for(const k in keys)keys[k]=0});
 addEventListener('mousedown',e=>{if(!locked)return;if(e.button===0){mouse=true;clickL=true}if(e.button===2){mouse2=true;clickR=true}});addEventListener('mouseup',e=>{if(e.button===0)mouse=false;if(e.button===2)mouse2=false});
 addEventListener('contextmenu',e=>{if(locked)e.preventDefault()});
 addEventListener('mousemove',e=>{if(!locked||P.dead)return;P.yaw-=e.movementX*SENS;pitch=Math.max(-1.5,Math.min(1.5,pitch-e.movementY*SENS))});
@@ -2149,18 +2150,20 @@ function mmDraw(){
    کلید ۵ = HE | ۶ = اسموک | ۷ = فلش. کلیک چپ = پرتاب محکم، کلیک راست = پرتاب آروم.
    هر نارنجک با فیزیک واقعی (جاذبه + برخورد و پرش از دیوار/زمین) حرکت می‌کنه.
    HE: آسیب با فاصله کم می‌شه و از پشت دیوار رد نمی‌شه | اسموک: ۱۸ ثانیه دید (بات‌ها، رادار) رو می‌بُره | فلش: بسته به فاصله و زاویه‌ی نگاه کور می‌کنه */
-const NK={4:{n:'HE',fuse:1.6},5:{n:'SMOKE',fuse:2.4},6:{n:'FLASH',fuse:1.4}},NR=.09;
-const NADES=[],SMK=[],NFX=[],NADE_BY={isP:true,team:0,name:'',p:{x:0,y:0,z:0},wp:4};
+const NK={4:{n:'HE',fuse:1.6},5:{n:'SMOKE',fuse:2.4},6:{n:'FLASH',fuse:1.4},7:{n:'MOLOTOV',fuse:2.2}},NR=.09;
+const NADES=[],SMK=[],NFX=[],FIRES=[],NADE_BY={isP:true,team:0,name:'',p:{x:0,y:0,z:0},wp:4};
 let SMK_TEX=null;
 function nadesClear(){try{for(const g of NADES){scene.remove(g.m)}NADES.length=0;
  for(const s of SMK){for(const q of s.sp){scene.remove(q);q.material.dispose()}}SMK.length=0;
  for(const f of NFX){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose()}NFX.length=0;
+ for(const f of FIRES){for(const q of f.sp){scene.remove(q);q.material.dispose()}scene.remove(f.glow);f.glow.geometry.dispose();f.glow.material.dispose()}FIRES.length=0;
  if(P){P.fl=0;P.ntw=0;P.nsw=0}}catch(e){}}
 function mkNade(k){const g=new THREE.Group(),M=c=>new THREE.MeshLambertMaterial({color:c}),add=(geo,c,x,y,z)=>{const m=new THREE.Mesh(geo,M(c));m.position.set(x,y,z);g.add(m);return m};
  if(k===4){const b=add(new THREE.SphereGeometry(.045,14,10),0x4a5d34,0,0,0);b.scale.y=1.2;
   add(new THREE.CylinderGeometry(.014,.016,.03,10),0x8a8d90,0,.06,0);
   add(new THREE.BoxGeometry(.012,.075,.02),0xa0a2a5,.03,.045,0).rotation.z=-.35;
   add(new THREE.TorusGeometry(.016,.003,6,12),0xd0b040,-.02,.075,0)}
+ else if(k===7){add(new THREE.CylinderGeometry(.034,.036,.11,14),0x3f6b3a,0,-.01,0);add(new THREE.CylinderGeometry(.013,.034,.04,12),0x3f6b3a,0,.065,0);add(new THREE.CylinderGeometry(.015,.015,.03,10),0x3f6b3a,0,.1,0);add(new THREE.CylinderGeometry(.011,.009,.06,8),0xd9d0b0,0,.14,0)}
  else{add(new THREE.CylinderGeometry(.034,.034,.13,14),k===5?0x7d848c:0x2b2d33,0,0,0);
   add(new THREE.CylinderGeometry(.022,.034,.03,14),0x555a60,0,.08,0);
   add(new THREE.CylinderGeometry(.0355,.0355,.022,14),k===5?0x2f3338:0xc8b06a,0,.02,0);
@@ -2168,7 +2171,7 @@ function mkNade(k){const g=new THREE.Group(),M=c=>new THREE.MeshLambertMaterial(
  g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.frustumCulled=false}});return g}
 /* ویومدل: نارنجک توی دست (دست و آستین ساده) */
 const nadeG=new THREE.Group(),nadeHold={};nadeG.visible=false;gun.add(nadeG);
-for(const k of[4,5,6]){const m=mkNade(k);m.visible=false;m.position.set(0,0,-.02);m.rotation.set(.35,0,0);nadeG.add(m);nadeHold[k]=m}
+for(const k of[4,5,6,7]){const m=mkNade(k);m.visible=false;m.position.set(0,0,-.02);m.rotation.set(.35,0,0);nadeG.add(m);nadeHold[k]=m}
 {const sk=new THREE.MeshLambertMaterial({color:0x2a2f38}),hand=new THREE.Mesh(new THREE.BoxGeometry(.075,.05,.085),sk);hand.position.set(0,-.045,0);nadeG.add(hand);
  const fore=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,.42,10),sk);fore.rotation.x=Math.PI/2;fore.position.set(.02,-.07,.26);nadeG.add(fore)}
 function nadeK(){let p=[0,0,0],g=[0,0,0];   // حالت آماده؛ موقع پرتاب: اول دست عقب می‌ره، بعد جلو
@@ -2177,7 +2180,7 @@ function nadeK(){let p=[0,0,0],g=[0,0,0];   // حالت آماده؛ موقع پ
   else{const u=(a-.6)/.4;p=[.03*(1-u),0,.1*(1-u)-.14*u];g=[.7*(1-u)-.5*u,0,-.2*(1-u)]}}
  return{p,g,L:[0,0,0],ld:[0,0,-1],lp:[0,1,0],R:[0,0,0],rd:[0,0,-1],rp:[0,1,0],lw:0}}
 /* پرتاب */
-function nadeUpdate(dt){const w=P.wp||0;if(w<4)return;if(!P.gn)P.gn={4:1,5:1,6:2};
+function nadeUpdate(dt){const w=P.wp||0;if(w<4)return;if(!P.gn)P.gn={4:1,5:1,6:2,7:1};
  const cl=clickL,cr=clickR;clickL=clickR=false;
  if(P.ntw>0){P.ntw-=dt;if(P.ntw<=0){P.ntw=0;nadeThrow(w,!!P.nsoft);P.nsw=.5}}
  else if(P.nsw>0){P.nsw-=dt;if(P.nsw<=0){P.nsw=0;const b=(P.pw!==undefined&&P.pw<4)?P.pw:0;setWeapon(b);if((P.wp||0)>=4)setWeapon(0)}}   // بعد از پرتاب برگرد سر اسلحه‌ی قبلی
@@ -2197,6 +2200,7 @@ function nadePhys(g,dt){if(g.rest)return;
  const dx=mx/L,dy=my/L,dz=mz/L,t=castRay(g.p.x,g.p.y,g.p.z,dx,dy,dz,L+NR,false);
  if(t<L+NR){let nx=HNX,ny=HNY,nz=HNZ;if(nx*dx+ny*dy+nz*dz>0){nx=-nx;ny=-ny;nz=-nz}
   const tt=Math.max(0,t-NR);g.p.x+=dx*tt+nx*.01;g.p.y+=dy*tt+ny*.01;g.p.z+=dz*tt+nz*.01;
+  if(g.k===7){g.t=0;return}   // مولوتف به هر سطحی بخوره همون‌جا می‌شکنه
   const vn=g.v.x*nx+g.v.y*ny+g.v.z*nz,sp0=Math.hypot(g.v.x,g.v.y,g.v.z),fl=ny>.7,e=fl?.34:.5,fr=fl?.7:.92;
   const tx=g.v.x-vn*nx,ty=g.v.y-vn*ny,tz=g.v.z-vn*nz;
   g.v.x=tx*fr-e*vn*nx;g.v.y=ty*fr-e*vn*ny;g.v.z=tz*fr-e*vn*nz;
@@ -2204,14 +2208,14 @@ function nadePhys(g,dt){if(g.rest)return;
   if(fl&&Math.hypot(g.v.x,g.v.y,g.v.z)<1.5){g.rest=true;g.v.x=g.v.y=g.v.z=0;if(g.k===5)g.t=Math.min(g.t,.35)}}   // اسموک بعد از ایستادن می‌ترکه
  else{g.p.x+=mx;g.p.y+=my;g.p.z+=mz}}
 function nadesStep(dt){
- if(P&&!P.gn)P.gn={4:1,5:1,6:2};
+ if(P&&!P.gn)P.gn={4:1,5:1,6:2,7:1};
  if(P&&P.fl>0)P.fl=Math.max(0,P.fl-dt);
  for(let i=NADES.length-1;i>=0;i--){const g=NADES[i];g.t-=dt;
   const n=Math.max(1,Math.ceil(dt/.016)),h=dt/n;for(let s=0;s<n;s++)nadePhys(g,h);
   g.m.position.set(g.p.x,g.p.y,g.p.z);if(!g.rest){g.m.rotation.x+=dt*9;g.m.rotation.z+=dt*5}
   if(g.p.y<MAPMIN-30)g.t=0;
   if(g.t<=0){scene.remove(g.m);g.m.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose()}});NADES.splice(i,1);
-   if(g.k===4)heBoom(g.p);else if(g.k===5)smokePop(g.p);else flashBoom(g.p)}}
+   if(g.k===4)heBoom(g.p);else if(g.k===5)smokePop(g.p);else if(g.k===7)molotovBoom(g.p);else flashBoom(g.p)}}
  for(let i=NFX.length-1;i>=0;i--){const f=NFX[i];f.t+=dt;const u=Math.min(1,f.t/f.d),sc=f.s0+(f.s1-f.s0)*(1-(1-u)*(1-u));
   f.m.scale.setScalar(sc);f.m.material.opacity=f.op*(1-u);if(f.rise)f.m.position.y=f.y0+f.rise*u;
   if(u>=1){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose();NFX.splice(i,1)}}
@@ -2219,7 +2223,8 @@ function nadesStep(dt){
   for(const q of s.sp){const u=q.userData,k=.3+.7*gr,sc=u.sc*(.45+.55*gr);
    q.position.set(s.x+u.ox*k,s.y+u.oy*k+Math.sin(s.age*.5+u.ph)*.08,s.z+u.oz*k);q.scale.set(sc,sc,1);
    q.material.opacity=.72*fo*Math.min(1,s.age/.4);q.material.rotation+=dt*.05}
-  if(s.age>=s.life){for(const q of s.sp){scene.remove(q);q.material.dispose()}SMK.splice(i,1)}}}
+  if(s.age>=s.life){for(const q of s.sp){scene.remove(q);q.material.dispose()}SMK.splice(i,1)}}
+ fireStep(dt)}
 function nfx(c,geo,col,op,d,s0,s1,rise){const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false}));m.position.set(c.x,c.y,c.z);scene.add(m);NFX.push({m,t:0,d,s0,s1,op,rise:rise||0,y0:c.y})}
 /* اسموک: توپ‌های نرم (اسپرایت) که کم‌کم باز می‌شن؛ دید بات‌ها و رادار از توی کره‌ی نامرئی‌ش بریده می‌شه */
 function smokeBlocks(o,d,L){for(const s of SMK){if(s.age<.25||s.age>s.life-.6)continue;
@@ -2231,8 +2236,30 @@ function smokePop(p){let y=p.y;const t=castRay(p.x,p.y+.1,p.z,0,-1,0,5,false);if
  const sp=[];for(let i=0;i<22;i++){const m=new THREE.SpriteMaterial({map:SMK_TEX,color:new THREE.Color().setHSL(0,0,.6+R()*.14),transparent:true,depthWrite:false,fog:false,opacity:0,rotation:R()*6.28}),q=new THREE.Sprite(m),a=R()*6.28,rr=Math.sqrt(R())*2.3;
   q.userData={ox:Math.cos(a)*rr,oy:.5+R()*2.6,oz:Math.sin(a)*rr,sc:3.4+R()*1.6,ph:R()*6.28};q.position.set(p.x,y+.5,p.z);scene.add(q);sp.push(q)}
  SMK.push({x:p.x,y,z:p.z,age:0,life:18,sp});beep(240,.2,.07);beep(150,.35,.05)}
+/* مولوتف: بطری به هر سطحی بخوره می‌شکنه و ۷ ثانیه روی زمین آتیش می‌مونه (شعاع ~۳ متر)؛ دشمن توی آتیش هر ۰٫۴ ثانیه آسیب می‌بینه و بات‌ها فرار می‌کنن */
+let FIRE_TEX=null;
+function molotovBoom(p){let y=p.y;const t=castRay(p.x,p.y+.3,p.z,0,-1,0,6,false);if(t<6)y=p.y+.3-t;
+ if(!FIRE_TEX){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,2,32,32,30);
+  gr.addColorStop(0,'rgba(255,236,150,1)');gr.addColorStop(.45,'rgba(255,130,30,.75)');gr.addColorStop(1,'rgba(255,60,0,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);FIRE_TEX=new THREE.CanvasTexture(c)}
+ const sp=[];for(let i=0;i<18;i++){const m=new THREE.SpriteMaterial({map:FIRE_TEX,transparent:true,depthWrite:false,fog:false,opacity:0,blending:THREE.AdditiveBlending}),q=new THREE.Sprite(m),a=R()*6.28,rr=Math.sqrt(R())*2.6;
+  q.userData={ox:Math.cos(a)*rr,oz:Math.sin(a)*rr,sc:1.1+R()*.9,ph:R()*6.28};q.position.set(p.x+q.userData.ox,y+.5,p.z+q.userData.oz);scene.add(q);sp.push(q)}
+ const glow=new THREE.Mesh(new THREE.CircleGeometry(2.9,28),new THREE.MeshBasicMaterial({color:0xff6a10,transparent:true,opacity:.0,depthWrite:false,blending:THREE.AdditiveBlending}));
+ glow.rotation.x=-Math.PI/2;glow.position.set(p.x,y+.06,p.z);scene.add(glow);
+ FIRES.push({x:p.x,y,z:p.z,age:0,life:7,tk:0,sp,glow});beep(1100,.05,.06);beep(320,.25,.05)}
+function fireStep(dt){for(let i=FIRES.length-1;i>=0;i--){const f=FIRES[i];f.age+=dt;
+  const fo=Math.min(1,f.age/.35)*(f.age>f.life-1?Math.max(0,f.life-f.age):1);
+  for(const q of f.sp){const u=q.userData,w=.75+.25*Math.sin(f.age*9+u.ph),sc=u.sc*(.8+.3*Math.sin(f.age*7+u.ph*2))*(.6+.4*fo);
+   q.position.set(f.x+u.ox,f.y+.45+.3*Math.abs(Math.sin(f.age*4+u.ph)),f.z+u.oz);q.scale.set(sc,sc*1.5,1);q.material.opacity=.8*fo*w}
+  f.glow.material.opacity=.3*fo;
+  f.tk-=dt;if(f.tk<=0&&f.age<f.life){f.tk=.4;
+   NADE_BY.wp=7;NADE_BY.name=(P&&P.name)||'تو';NADE_BY.team=(P&&P.team)||0;NADE_BY.p.x=f.x;NADE_BY.p.y=f.y;NADE_BY.p.z=f.z;
+   for(const e of ents){if(e.dead||e.team===NADE_BY.team||e.net)continue;
+    if(Math.abs(e.p.y-f.y)>1.6||Math.hypot(e.p.x-f.x,e.p.z-f.z)>3)continue;
+    if(!e.isP){e.unst=Math.max(e.unst||0,1.2);e.rgt=0}   // بات از آتیش فرار می‌کنه
+    if(NET.mode!=='client')damage(e,7,NADE_BY,'legs',false)}}
+  if(f.age>=f.life){for(const q of f.sp){scene.remove(q);q.material.dispose()}scene.remove(f.glow);f.glow.geometry.dispose();f.glow.material.dispose();FIRES.splice(i,1)}}}
 /* HE */
-function heBoom(p){const c={x:p.x,y:p.y+.12,z:p.z};NADE_BY.name=(P&&P.name)||'تو';NADE_BY.team=(P&&P.team)||0;NADE_BY.p.x=c.x;NADE_BY.p.y=c.y;NADE_BY.p.z=c.z;
+function heBoom(p){const c={x:p.x,y:p.y+.12,z:p.z};NADE_BY.wp=4;NADE_BY.name=(P&&P.name)||'تو';NADE_BY.team=(P&&P.team)||0;NADE_BY.p.x=c.x;NADE_BY.p.y=c.y;NADE_BY.p.z=c.z;
  if(NET.mode!=='client')for(const e of ents){if(e.dead||e.team===NADE_BY.team)continue;
   const ok=hy=>{const dx=e.p.x-c.x,dy=e.p.y+hy-c.y,dz=e.p.z-c.z,d=Math.hypot(dx,dy,dz);return d<.6||castRay(c.x,c.y,c.z,dx/d,dy/d,dz/d,d,false)>=d-.5},
    dd=Math.hypot(e.p.x-c.x,e.p.y+1-c.y,e.p.z-c.z);if(dd>10)continue;
@@ -2253,7 +2280,7 @@ function flashBoom(p){const c={x:p.x,y:p.y+.15,z:p.z};
   if(du>.2&&sees(o)){e.fl=Math.max(e.fl||0,du);e.mem=0}}}
 let _ngS='';
 function nadesHud(){const el=$('nades');if(!el)return;const w=P.wp||0,g=P.gn||{};
- const h=P.dead?'':[[4,'nade','5'],[5,'smoke','6'],[6,'flash','7']].map(a=>'<span class="ng'+(w===a[0]?' on':'')+((g[a[0]]|0)?'':' no')+'">'+ICON[a[1]]+'<b>'+(g[a[0]]|0)+'</b><i>'+a[2]+'</i></span>').join('');
+ const h=P.dead?'':[[4,'nade','5'],[5,'smoke','6'],[6,'flash','7'],[7,'fire','8']].map(a=>'<span class="ng'+(w===a[0]?' on':'')+((g[a[0]]|0)?'':' no')+'">'+ICON[a[1]]+'<b>'+(g[a[0]]|0)+'</b><i>'+a[2]+'</i></span>').join('');
  if(h!==_ngS){_ngS=h;el.innerHTML=h}}
 let POSV=true;   // نمایش مختصات (F6 = روشن/خاموش)
 addEventListener('keydown',e=>{if(e.code==='F6'){e.preventDefault();POSV=!POSV;const q=$('pos');if(q)q.style.display=POSV?'block':'none'}});
