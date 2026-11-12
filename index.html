@@ -142,6 +142,32 @@ canvas{display:block}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
+/* ===== کش فایل‌های سنگین (GLB/FBX/MP3) توی IndexedDB مرورگر =====
+   بار اول از سرور دانلود می‌شه و ذخیره می‌شه؛ دفعه‌های بعد مستقیم از دیسک لود می‌شه.
+   با یه درخواست HEAD (فقط هدر، چند بایت) چک می‌کنیم فایل عوض نشده باشه؛ اگه عوض شده بود، دوباره دانلود می‌شه. */
+(function(){
+ const DB='mini-strike-cache',ST='files';let dbp=null;
+ const db=()=>dbp||(dbp=new Promise(r=>{try{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore(ST);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null);q.onblocked=()=>r(null)}catch(e){r(null)}}));
+ const idb=(mode,fn)=>db().then(d=>d?new Promise(r=>{try{const q=fn(d.transaction(ST,mode).objectStore(ST));q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}}):null);
+ const sig=u=>fetch(u,{method:'HEAD'}).then(r=>r.ok?(r.headers.get('etag')||'')+'|'+(r.headers.get('last-modified')||'')+'|'+(r.headers.get('content-length')||''):null).catch(()=>null);
+ window.cachedBuf=async function(url){
+  const [rec,sg]=await Promise.all([idb('readonly',s=>s.get(url)),sig(url)]);
+  if(rec&&rec.buf&&(sg===null||rec.sig===sg)){console.log('[cache] از کش:',url);return rec.buf}
+  const r=await fetch(url);if(!r.ok)throw new Error(r.status+' '+url);
+  const buf=await r.arrayBuffer();
+  idb('readwrite',s=>s.put({buf,sig:sg||''},url));   // ذخیره در پس‌زمینه؛ اگه شکست بخوره مهم نیست
+  return buf};
+ const FL=THREE.FileLoader.prototype,orig=FL.load;
+ FL.load=function(url,onLoad,onProgress,onError){
+  if(this.responseType!=='arraybuffer'||typeof url!=='string'||/^(data|blob):/.test(url))return orig.apply(this,arguments);
+  const u=this.manager.resolveURL((this.path||'')+url);
+  try{if(new URL(u,location.href).origin!==location.origin)return orig.apply(this,arguments)}catch(e){return orig.apply(this,arguments)}
+  const m=this.manager;m.itemStart(u);
+  cachedBuf(u).then(buf=>setTimeout(()=>{onLoad&&onLoad(buf);m.itemEnd(u)},0),err=>{onError&&onError(err);m.itemError(u);m.itemEnd(u)});
+ };
+})();
+</script>
+<script>
 const $=id=>document.getElementById(id),R=Math.random;
 const IC_ATTR='class="svgi" viewBox="0 0 24 24" aria-hidden="true"';
 const ICON={
@@ -200,6 +226,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(500,32,16),new THREE.ShaderMat
  fragmentShader:'varying vec3 vP;void main(){float h=normalize(vP).y;vec3 hor=vec3(.78,.86,.95),top=vec3(.26,.50,.85);vec3 c=mix(hor,top,pow(clamp(h,0.,1.),.5));c=mix(c,vec3(.72,.70,.64),smoothstep(0.,-.25,h));float s=pow(max(dot(normalize(vP),normalize(vec3(60.,120.,30.))),0.),180.);c+=vec3(1.,.9,.7)*s*.8;gl_FragColor=vec4(c,1.);}'}));
 sky.renderOrder=-10;sky.frustumCulled=false;scene.add(sky);
 const mflash=new THREE.PointLight(0xffb04a,0,14,2);scene.add(mflash);let mfT=0;
+const exL=new THREE.PointLight(0xff8a2a,0,28,2);scene.add(exL);let exI=0,exT=0;   // نور انفجار HE؛ آروم‌آروم خاموش می‌شه
 const sun=new THREE.DirectionalLight(0xfff0d0,1.05);sun.position.set(60,120,30);scene.add(sun,sun.target);
 sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);sun.shadow.bias=-.0008;sun.shadow.normalBias=.04;
 {const sc=sun.shadow.camera;sc.left=sc.bottom=-100;sc.right=sc.top=100;sc.near=1;sc.far=450;sc.updateProjectionMatrix()}   // پوشش سایه برای مپ ~۱۰۶ متری
@@ -626,7 +653,7 @@ function vmArms(k){const A=VM.arms;if(!A)return;
   const r=ik2(S,Wt,a.l1*f,a.l2*f,POLE[sd]);
   const kl=!!VM.kn&&sd==='L',hs=kl?KNIFE_LH_SCALE:1;   // دست چپ موقع چاقو: درشت‌تر + ساعد هم‌جهت با کف دست برعکس
   a.upper.scale.set(1,f,1);a.fore.scale.set(1+(hs-1)*.4,f,1+(hs-1)*.4);a.hand.scale.setScalar(hs);
-  const cu=a.curl;if(cu){const tg=sd==='R'?(VM.kn?1:VM.bm?.5:0):(VM.lc||0);if(cu.k!==tg){if(sd==='L')cu.k=tg;else{cu.k+=Math.max(-.25,Math.min(.25,tg-cu.k));if(Math.abs(tg-cu.k)<.01)cu.k=tg}   // انگشت‌ها نرم بسته/باز می‌شن
+  const cu=a.curl;if(cu){const tg=sd==='R'?(VM.kn?1:VM.bm?.5:VM.nd?.55:0):(VM.lc||0);if(cu.k!==tg){if(sd==='L')cu.k=tg;else{cu.k+=Math.max(-.25,Math.min(.25,tg-cu.k));if(Math.abs(tg-cu.k)<.01)cu.k=tg}   // انگشت‌ها نرم بسته/باز می‌شن
    const hp=a.hand.geometry.attributes.position,hn=a.hand.geometry.attributes.normal,m=cu.k*cu.k*(3-2*cu.k);
    for(let i=0;i<hp.array.length;i++){hp.array[i]=cu.base[i]+(cu.cp[i]-cu.base[i])*m;hn.array[i]=cu.bn[i]+(cu.cn[i]-cu.bn[i])*m}
    hp.needsUpdate=hn.needsUpdate=true}}
@@ -643,13 +670,13 @@ function vmArms(k){const A=VM.arms;if(!A)return;
     fp.setXYZ(fj,_wv1.x,_wv1.y,_wv1.z);hp.setXYZ(hj,_wv2.x,_wv2.y,_wv2.z)}
    fp.needsUpdate=hp.needsUpdate=true}}}
 function vmUpdate(dt){
- const spc=!!(SD.on&&P.dead&&SD.spec&&!SD.spec.dead),vis=(!P.dead&&!tp)||spc;gun.visible=vis;if(VM.arms)VM.arms.group.visible=vis&&!(!spc&&(P.wp||0)>=4);
+ const spc=!!(SD.on&&P.dead&&SD.spec&&!SD.spec.dead),vis=(!P.dead&&!tp)||spc;gun.visible=vis;if(VM.arms)VM.arms.group.visible=vis;
  if(spc){P.wp=0;P.rl=0;P.arm=0;P.dr=0;P.sl=0;P.pl=0}   // تماشا از دید یار: ویومدل AK بدون ریلود/چاقو/بمب (بات‌ها فقط AK دارن)
  VM.kick+=(0-VM.kick)*Math.min(1,dt*11);   // بازگشت نرم‌تر → لگد دیده می‌شه
  const u=(TUNE.on&&TUNE.h==='M'&&(P.wp||0)!==2)?.22:P.rl>0?Math.min(1,Math.max(0,1-P.rl/(P.rlT||RELOAD_T))):0;
  if(P.rl<=0)VM.snd=0;else{const SN=(P.wp||0)===2?PSND:SND;while(VM.snd<SN.length&&u>=SN[VM.snd][0]){if((P.wp||0)===2||!SFX.out)beep(SN[VM.snd][1],.06,.06);else if(VM.snd<2)sfx(VM.snd?'in':'out',.6);VM.snd++}}
  const kn=(P.wp||0)===1&&!!VM.knifeReady,pi=(P.wp||0)===2&&!!VM.pistolReady,bm=(P.wp||0)===3,nd=(P.wp||0)>=4,k=nd?nadeK():bm?bombPose():pi?pistolPose():samplePose(kn||pi?0:u);VM.pi=pi;VM.kn=kn;VM.bm=bm;VM.nd=nd;
- if(VM.model)VM.model.visible=!kn&&!pi&&!bm&&!nd;knifeG.visible=kn;pistolG.visible=pi;bombG.visible=bm;nadeG.visible=nd&&!(P.nsw>0);if(nd){for(const q in nadeHold)nadeHold[q].visible=(+q===(P.wp||0))}
+ if(VM.model)VM.model.visible=!kn&&!pi&&!bm&&!nd;knifeG.visible=kn;pistolG.visible=pi;bombG.visible=bm;nadeG.visible=nd&&!(P.nsw>0);if(VM.arms)VM.arms.group.visible=vis&&!(nd&&P.nsw>0);if(nd){for(const q in nadeHold)nadeHold[q].visible=(+q===(P.wp||0))}
  if(pi)pistolAnim(dt);else{VM.pWas=false;fallMag.visible=false}
  VM.lc=0;
  if(!kn&&!bm&&P.arm>0){P.arm=Math.max(0,P.arm-dt);const t=1-P.arm/P.armD,sm=_sm;   // مسلح کردن: گان کج می‌شه، دست چپ از روی گان می‌ره سمت دسته‌ی اسلحه‌کش، می‌گیره، عقب می‌کشه و ول می‌کنه
@@ -687,11 +714,15 @@ function vmUpdate(dt){
  if(pi&&k.lw>0){const inv=gun.matrix.clone().invert(),pt=a=>{_gv.set(a[0],a[1],a[2]).applyMatrix4(inv);return[_gv.x,_gv.y,_gv.z]},dr=a=>{_gv.set(a[0],a[1],a[2]).normalize().transformDirection(inv);return[_gv.x,_gv.y,_gv.z]},w=k.lw;
   k.L=_lr(k.L,pt(PLH.p),w);k.ld=_lr(k.ld,dr(PLH.d),w);k.lp=_lr(k.lp,dr(PLH.n),w)}   // دست چپ وقتی ریلود نمی‌کنی توی فضای دوربین می‌مونه
  if(bm){const inv=gun.matrix.clone().invert(),dr=a=>{_gv.set(a[0],a[1],a[2]).normalize().transformDirection(inv);return[_gv.x,_gv.y,_gv.z]};k.rd=dr(BH.rd);k.ld=dr(BH.ld);k.rp=dr(BH.rn);k.lp=dr(BH.ln);VM.lc=.5}   // بمب: دو دست دو طرف
+ if(nd){const nt=(NADE_GLB[P.wp||4]||[0,.14])[1],rad=nt*.36,Y=V.norm(NADE_RH.d),X0=V.norm(NADE_RH.n),X=V.norm(V.sub(X0,V.mul(Y,V.dot(X0,Y)))),AR=VM.arms&&VM.arms.R,cu=AR&&AR.curl;
+  if(cu)k.R=V.sub(V.sub(V.sub(NADE_C,V.mul(X,cu.xk+cu.R)),V.mul(Y,cu.yk-AR.hl*HAND_CENTER)),V.mul(X,Math.max(0,rad-cu.R)*NADE_FIT));
+  else k.R=V.sub(NADE_C,V.mul(X,rad));
+  k.rd=Y;k.rp=X}   // نارنجک: مشت نیمه‌بسته دور نارنجک
  const M=VM.mag;if(M&&(kn||pi||bm||nd))M.visible=false;else if(M){let show,follow;
   if(VM.magReal){show=!(u>=.36&&u<.44);follow=(u>=.22&&u<.36)||(u>=.44&&u<.66)}   // خشاب قدیمی دست رو دنبال می‌کنه، می‌افته، بعد خشاب نو برمی‌گرده
   else{show=u>=.44&&u<.66;follow=true}                                              // فقط خشاب نو (جعبه‌ای)
   M.visible=show;const o=follow?V.sub(k.L,MAG_GRAB):[0,0,0],r=VM.magRest;M.position.set(r[0]+o[0],r[1]+o[1],r[2]+o[2])}
- if(vis&&!nd)vmArms(k);
+ if(vis){vmArms(k);if(VM.arms){const LA=VM.arms.L;LA.upper.visible=LA.fore.visible=LA.hand.visible=!nd}}   // نارنجک: فقط دست راست دیده می‌شه
  $('tune').textContent=TUNE.on&&pi?PTXT():TUNE.on?`TUNE  hand=${TUNE.h}  (G خاموش | T دست | ←→↑↓ PgUp/PgDn | I K J L جهت | U O رول)\nGRIP_L=[${GRIP_L.join(', ')}]\nGRIP_R=[${GRIP_R.join(', ')}]\nMAG_GRAB=[${MAG_GRAB.join(', ')}]  خشاب=${VM.magReal?'جدا (واقعی)':'جدا نشد (جعبه)'}\nld(L)=[${IDLE.ld.join(', ')}]  rd(R)=[${IDLE.rd.join(', ')}]\nROLL L=${ROLL.L} R=${ROLL.R}\nreach L=${(VM.reach.L||0).toFixed(2)} R=${(VM.reach.R||0).toFixed(2)} (>1 = بازو کوتاهه)`:''}
 
 /* ================= LOAD HELPERS ================= */
@@ -1125,7 +1156,7 @@ function fire(e,d){let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z}
   if(ex===Infinity||ex>=PEN_THICK||Math.abs(HNY)>.7){L=trav+wd;break}
   const adv=.03+ex;ox=px+d.x*adv;oy=py+d.y*adv;oz=pz+d.z*adv;trav+=wd+adv;mul*=PEN_DMG;walls++}
  L=Math.min(L,100);const end={x:o0.x+d.x*L,y:o0.y+d.y*L,z:o0.z+d.z*L},o=o0;
- tracer(e.isP?muzzlePos():{x:o.x,y:o.y-.15,z:o.z},end);
+ tracer(e.isP?muzzlePos():{x:o.x,y:o.y-.15,z:o.z},end);smokeShot(o0,end);
  {const mp=e.isP?muzzlePos():{x:o.x,y:o.y-.15,z:o.z};mflash.position.set(mp.x,mp.y,mp.z);mflash.intensity=e.isP?4:2;mfT=.05}   // برای بازیکن: از سر لوله
  if(!e.isP&&SD.on&&P.dead&&SD.spec===e)VM.kick=Math.min(.11,VM.kick+.07);   // لگد گان موقع تماشا
  const dist=Math.hypot(e.p.x-P.p.x,e.p.z-P.p.z);if(!((!e.isP||(e.wp||0)!==2)&&sfx('shot',e.isP?.75:.6/(1+dist/8),.96+R()*.08)))beep(e.isP?((e.wp||0)===2?230:180):140,e.isP?.05:.05/(1+dist/6));
@@ -1311,7 +1342,7 @@ function sdClearMarkers(){if(SD.mk){scene.remove(SD.mk);SD.mk=null}}
 /* ---- صدای C4 (c4_bomb.mp3): بوق‌های پلنت [۰–۳.۲۷] ← «بمب پلنت شد» و تیک‌تاک [۳.۲۷–۴۴.۲۷] ← انفجار [۴۴.۲۷–۴۸.۸] ---- */
 const C4S={raw:null,buf:null,dec:false,plantH:null,tickH:null,tickWant:false};
 const C4S_PLANT=[0,3.27],C4S_TICK=[3.27,44.27],C4S_BOOM=[44.27,48.8],C4S_TICKS=[1.99, 2.95, 3.89, 4.81, 5.7, 6.59, 7.43, 8.27, 9.09, 9.88, 10.66, 11.43, 12.17, 12.9, 13.61, 14.31, 14.98, 15.65, 16.3, 16.94, 17.56, 18.17, 18.78, 19.36, 19.91, 20.46, 21.02, 21.54, 22.06, 22.56, 23.05, 23.54, 24.01, 24.48, 24.92, 25.37, 25.8, 26.22, 26.63, 27.04, 27.42, 27.82, 28.19, 28.56, 28.92, 29.28, 29.62, 29.95, 30.29, 30.61, 30.92, 31.23, 31.53, 31.82, 32.11, 32.39, 32.67, 32.93, 33.19, 33.45, 33.71, 33.95, 34.18, 34.43, 34.65, 34.87, 35.09, 35.31, 35.52, 35.73, 35.92, 36.49, 39.19];
-function sndLoad(){fetch(FILES.c4snd).then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()}).then(b=>{C4S.raw=b}).catch(e=>console.warn('[c4 sound]',FILES.c4snd,e))}
+function sndLoad(){cachedBuf(FILES.c4snd).then(b=>{C4S.raw=b;sndReady()}).catch(e=>console.warn('[c4 sound]',FILES.c4snd,e))}
 function sndReady(){if(C4S.buf)return true;if(C4S.raw&&AC&&!C4S.dec){C4S.dec=true;AC.decodeAudioData(C4S.raw.slice(0)).then(b=>{C4S.buf=b}).catch(e=>console.warn('[c4 sound]',e))}return false}
 function sndPlay(clip,off,gain){if(!C4S.buf||!AC)return null;const o=clip[0]+off,d=clip[1]-o;if(d<=.02)return null;
  const s=AC.createBufferSource(),g=AC.createGain();s.buffer=C4S.buf;g.gain.value=gain;s.connect(g);g.connect(AC.destination);s.start(0,o,d);return{s,g,t0:AC.currentTime-off}}
@@ -1355,7 +1386,7 @@ function sdPlant(x,y,z,by){if(SD.state!=='live')return;
  SD.bomb={x,y:fy,z,g:bm.g,lcd:bm.lcd,site:Math.max(0,sdSiteAt(x,fy,z))};SD.state='planted';SD.bt=BOMB_T;SD.beepT=0;SD.bi=0;C4S.plantH=null;C4S.tickWant=true;SD.hasBomb=false;SD.carrier=null;SD.fetcher=null;SD.defT=0;SD.defuser=null;
  for(const e of ents){e.rg=null;e.path=null;e.plantT=0;e.defT=0}
  if(by&&by.isP){P.pl=0;setWeapon(0)}
- sdMsg('💣 '+SITE_NAME[SD.bomb.site],2);if(!sndReady())for(let i=0;i<3;i++)setTimeout(()=>beep(700+i*250,.08,.12),i*140)}
+ if(!sndReady())for(let i=0;i<3;i++)setTimeout(()=>beep(700+i*250,.08,.12),i*140)}
 function sdBombTick(dt){const b=SD.bomb;if(!b)return;const pos=BOMB_T-SD.bt;
  while(SD.bi<C4S_TICKS.length&&C4S_TICKS[SD.bi]<=pos){SD.ledA=1;SD.bi++;if(!C4S.buf){const d=Math.hypot(P.p.x-b.x,P.p.z-b.z);beep(1175,Math.min(.12,.5/(1+d/10)),.08)}}
  if(pos>40)SD.ledA=1;SD.ledA=Math.max(0,SD.ledA-dt*6);if(SD.led)SD.led.material.opacity=.15+.85*SD.ledA;
@@ -1449,7 +1480,7 @@ function applySet(save){SENS=.0022*SET.sens;const d=devicePixelRatio||1;
  if(inMatch){cam.fov=SET.fov;cam.updateProjectionMatrix()}
  if(save){try{localStorage.setItem('ms_set',JSON.stringify(SET))}catch(e){}}}
 applySet(false);
-const lockIn=()=>{AC=AC||new (window.AudioContext||window.webkitAudioContext)();sfxLoad();ren.domElement.requestPointerLock()};
+const lockIn=()=>{AC=AC||new (window.AudioContext||window.webkitAudioContext)();sfxLoad();sndReady();nsDecode();ren.domElement.requestPointerLock()};
 const showMenu=()=>{const lob=READY&&!inMatch;$('menu').style.display=lob?'none':'flex';$('lb').style.display=lob?'block':'none';$('pause').style.display=inMatch?'block':'none';$('hud').style.display=inMatch?'':'none';$('load').style.display=READY?'none':''};
 $('lbresume').onclick=()=>{if(READY&&inMatch)lockIn()};
 $('lbleave').onclick=()=>leaveMatch();
@@ -1668,7 +1699,7 @@ function netClientMsg(conn,m){
   return}
  if(m.t==='shot'){if(m.by===NET.myName)return;
   const o={x:m.o[0],y:m.o[1],z:m.o[2]},d={x:m.d[0],y:m.d[1],z:m.d[2]},end={x:m.end[0],y:m.end[1],z:m.end[2]};
-  tracer(o,end);mflash.position.set(o.x,o.y,o.z);mflash.intensity=2;mfT=.05;
+  tracer(o,end);smokeShot(o,end);mflash.position.set(o.x,o.y,o.z);mflash.intensity=2;mfT=.05;
   const dist=P?Math.hypot(P.p.x-o.x,P.p.z-o.z):50;
   if(!sfx('shot',.6/(1+dist/8),.96+R()*.08))beep(140,.05/(1+dist/6));
   const t=ents.find(x=>x.name===m.hit);if(t&&!t.isP&&!t.dead)bloodHit(end,d,m.zone);
@@ -1775,10 +1806,13 @@ function lbfGunObj(){const g=new THREE.Group();
  if(typeof AKW!=='undefined'&&AKW){const k=AKW.clone(true);k.traverse(x=>{x.castShadow=false;x.frustumCulled=false});g.add(k)}
  else{const b=makeBotGun();b.position.set(0,0,.15);b.scale.setScalar(1);g.add(b)}
  return g}
-function lbfLoad(){return new Promise(res=>{
- if(!THREE.FBXLoader||!THREE.SkeletonUtils||typeof fflate==='undefined'){console.warn('[lobby] FBXLoader/SkeletonUtils/fflate لود نشدن → لابی قدیمی');return res(false)}
- new THREE.FBXLoader().load(FILES.lobby,o=>{try{lbfPrep(o);LBF.ok=true;console.log('[lobby] مدل FBX آماده شد؛ مدت انیمیشن',LBF.clip.duration.toFixed(2),'ثانیه');res(true)}catch(err){console.warn('[lobby] آماده‌سازی FBX شکست خورد → لابی قدیمی:',err);res(false)}},
-  undefined,e=>{console.warn('[lobby] فایل '+FILES.lobby+' لود نشد (باید کنار index.html باشه) → لابی قدیمی');res(false)})})}
+let LBF_RAW=null;   // دانلود+پارس FBX لابی؛ از اول boot شروع می‌شه تا هم‌زمان با مپ دانلود بشه
+function lbfFetch(){if(LBF_RAW)return LBF_RAW;
+ return LBF_RAW=new Promise(res=>{
+  if(!THREE.FBXLoader||!THREE.SkeletonUtils||typeof fflate==='undefined'){console.warn('[lobby] FBXLoader/SkeletonUtils/fflate لود نشدن → لابی قدیمی');return res(null)}
+  new THREE.FBXLoader().load(FILES.lobby,o=>res(o),undefined,e=>{console.warn('[lobby] فایل '+FILES.lobby+' لود نشد (باید کنار index.html باشه) → لابی قدیمی');res(null)})})}
+function lbfLoad(){return lbfFetch().then(o=>{if(!o)return false;
+ try{lbfPrep(o);LBF.ok=true;console.log('[lobby] مدل FBX آماده شد؛ مدت انیمیشن',LBF.clip.duration.toFixed(2),'ثانیه');return true}catch(err){console.warn('[lobby] آماده‌سازی FBX شکست خورد → لابی قدیمی:',err);return false}})}
 function lbfPrep(o){
  let mesh=null;o.traverse(x=>{if(x.isSkinnedMesh&&!mesh)mesh=x});
  if(!mesh)throw new Error('SkinnedMesh توی FBX نبود');
@@ -2250,6 +2284,7 @@ function mmDraw(){
 const NK={4:{n:'HE',fuse:1.6},5:{n:'SMOKE',fuse:2.4},6:{n:'FLASH',fuse:1.4},7:{n:'MOLOTOV',fuse:2.2}},NR=.09;
 const NADES=[],SMK=[],NFX=[],FIRES=[],NADE_BY={isP:true,team:0,name:'',p:{x:0,y:0,z:0},wp:4};
 let SMK_TEX=null;
+const PFX=[],SCORCH=[];let PUFF_TEX=null,SPARK_TEX=null,SCORCH_TEX=null;
 function nadesClear(){try{for(const g of NADES){scene.remove(g.m)}NADES.length=0;
  for(const s of SMK){for(const q of s.sp){scene.remove(q);q.material.dispose()}}SMK.length=0;
  for(const f of NFX){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose()}NFX.length=0;
@@ -2290,8 +2325,9 @@ function mkNade(k){if(NMODEL[k]){const g=NMODEL[k].clone(true);g.traverse(o=>{if
 /* ویومدل: نارنجک توی دست (دست و آستین ساده) */
 const nadeG=new THREE.Group(),nadeHold={};nadeG.visible=false;gun.add(nadeG);
 for(const k of[4,5,6,7]){const m=mkNade(k);m.visible=false;m.position.set(0,0,-.02);m.rotation.set(.35,0,0);nadeG.add(m);nadeHold[k]=m}
-{const sk=new THREE.MeshLambertMaterial({color:0x2a2f38}),hand=new THREE.Mesh(new THREE.BoxGeometry(.075,.05,.085),sk);hand.position.set(0,-.045,0);nadeG.add(hand);
- const fore=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,.42,10),sk);fore.rotation.x=Math.PI/2;fore.position.set(.02,-.07,.26);nadeG.add(fore)}
+/* جای نارنجک و گرفتن دست راست (فضای گان). اگه دست جای درستی نبود فقط این سه تا رو عوض کن:
+   NADE_C = مرکز نارنجک | NADE_RH.d = جهت دست (مچ→نوک انگشت‌ها) | NADE_RH.n = جهتی که کف دست بهش نگاه می‌کنه | NADE_FIT = چقدر دست از نارنجک دور باشه (بزرگ‌تر = دورتر) */
+const NADE_C=[0,0,-.02],NADE_RH={d:[-.2,.45,-.87],n:[-.7,.55,.3]},NADE_FIT=.7;
 function nadeK(){let p=[0,0,0],g=[0,0,0];   // حالت آماده؛ موقع پرتاب: اول دست عقب می‌ره، بعد جلو
  if(P.ntw>0){const a=1-P.ntw/.38;
   if(a<.6){const u=a/.6;p=[.03*u,-.01*u,.1*u];g=[.7*u,0,-.2*u]}
@@ -2302,14 +2338,15 @@ function nadeUpdate(dt){const w=P.wp||0;if(w<4)return;if(!P.gn)P.gn={4:1,5:1,6:2
  const cl=clickL,cr=clickR;clickL=clickR=false;
  if(P.ntw>0){P.ntw-=dt;if(P.ntw<=0){P.ntw=0;nadeThrow(w,!!P.nsoft);P.nsw=.5}}
  else if(P.nsw>0){P.nsw-=dt;if(P.nsw<=0){P.nsw=0;const b=(P.pw!==undefined&&P.pw<4)?P.pw:0;setWeapon(b);if((P.wp||0)>=4)setWeapon(0)}}   // بعد از پرتاب برگرد سر اسلحه‌ی قبلی
- else if((cl||cr)&&!(P.dr>0)&&(P.gn[w]|0)>0){P.ntw=.38;P.nsoft=cr&&!cl;beep(520,.03,.05)}}
+ else if((cl||cr)&&!(P.dr>0)&&(P.gn[w]|0)>0){P.ntw=.38;P.nsoft=cr&&!cl;if(!nsPlay(w,'pin',.8))beep(520,.03,.05)}}
 function nadeThrow(k,soft){
  const cp=Math.cos(pitch),sn=Math.sin(pitch),yy=Math.sin(P.yaw),yc=Math.cos(P.yaw);
  let fx=-yy*cp,fy=sn+(soft?.14:.2),fz=-yc*cp;const fl=Math.hypot(fx,fy,fz);fx/=fl;fy/=fl;fz/=fl;
  const o=eye(P);let sx=o.x+fx*.5+yc*.12,sy=o.y+fy*.5-.1,sz=o.z+fz*.5-yy*.12;
  {const dx=sx-o.x,dy=sy-o.y,dz=sz-o.z,L=Math.hypot(dx,dy,dz),t=castRay(o.x,o.y,o.z,dx/L,dy/L,dz/L,L+.1,false);   // جلوی دیوار نزدیک، توی دیوار شروع نکنه
   if(t<L+.1){const u=Math.max(.05,t-.15);sx=o.x+dx/L*u;sy=o.y+dy/L*u;sz=o.z+dz/L*u}}
- const spd=soft?8.5:18.5,m=mkNade(k);m.position.set(sx,sy,sz);scene.add(m);
+ const spd=soft?14:28,m=mkNade(k);   // سرعت پرتاب: کلیک چپ = پرتاب کامل، کلیک راست = پرتاب نرم
+ m.position.set(sx,sy,sz);scene.add(m);
  NADES.push({k,p:{x:sx,y:sy,z:sz},v:{x:fx*spd+(P.vx||0)*.6,y:fy*spd,z:fz*spd+(P.vz||0)*.6},t:NK[k].fuse,m,rest:false});
  P.gn[k]--;beep(200,.04,.06)}
 /* فیزیک نارنجک */
@@ -2338,11 +2375,14 @@ function nadesStep(dt){
   f.m.scale.setScalar(sc);f.m.material.opacity=f.op*(1-u);if(f.rise)f.m.position.y=f.y0+f.rise*u;
   if(u>=1){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose();NFX.splice(i,1)}}
  for(let i=SMK.length-1;i>=0;i--){const s=SMK[i];s.age+=dt;const gr=Math.min(1,s.age/1.1),fo=s.age>s.life-3?Math.max(0,(s.life-s.age)/3):1;
-  for(const q of s.sp){const u=q.userData,k=.3+.7*gr,sc=u.sc*(.45+.55*gr);
-   q.position.set(s.x+u.ox*k,s.y+u.oy*k+Math.sin(s.age*.5+u.ph)*.08,s.z+u.oz*k);q.scale.set(sc,sc,1);
-   q.material.opacity=.72*fo*Math.min(1,s.age/.4);q.material.rotation+=dt*.05}
+  const H=s.holes;for(let j=H.length-1;j>=0;j--){H[j].age+=dt;if(H[j].age>=H[j].life)H.splice(j,1)}
+   for(const q of s.sp){const u=q.userData,k=.3+.7*gr,sc=u.sc*(.45+.55*gr);
+    q.position.set(s.x+u.ox*k,s.y+u.oy*k+Math.sin(s.age*.5+u.ph)*.08,s.z+u.oz*k);q.scale.set(sc,sc,1);
+    let vis=1;if(H.length){const px=q.position.x,py=q.position.y,pz=q.position.z;for(const h of H){const st=h.age<h.life*.4?1:1-smkSS((h.age-h.life*.4)/(h.life*.6));if(st<=0)continue;vis*=1-st*(1-smkSS((segDist(px,py,pz,h)-.4)/(.5*sc)))}}
+    u.hf+=(vis-u.hf)*Math.min(1,dt*(vis<u.hf?14:2.2));   // سریع باز می‌شه، آروم بسته می‌شه
+    q.material.opacity=.62*fo*Math.min(1,s.age/.4)*u.hf;q.material.rotation+=dt*.05}
   if(s.age>=s.life){for(const q of s.sp){scene.remove(q);q.material.dispose()}SMK.splice(i,1)}}
- fireStep(dt)}
+ pfxStep(dt);fireStep(dt)}
 function nfx(c,geo,col,op,d,s0,s1,rise){const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false}));m.position.set(c.x,c.y,c.z);scene.add(m);NFX.push({m,t:0,d,s0,s1,op,rise:rise||0,y0:c.y})}
 /* اسموک: توپ‌های نرم (اسپرایت) که کم‌کم باز می‌شن؛ دید بات‌ها و رادار از توی کره‌ی نامرئی‌ش بریده می‌شه */
 function smokeBlocks(o,d,L){for(const s of SMK){if(s.age<.25||s.age>s.life-.6)continue;
@@ -2351,9 +2391,9 @@ function smokeBlocks(o,d,L){for(const s of SMK){if(s.age<.25||s.age>s.life-.6)co
 function smokePop(p){let y=p.y;const t=castRay(p.x,p.y+.1,p.z,0,-1,0,5,false);if(t<5)y=p.y+.1-t;   // سطح زمین زیر نارنجک
  if(!SMK_TEX){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),gr=x.createRadialGradient(64,64,4,64,64,62);
   gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.55,'rgba(255,255,255,.75)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,128,128);SMK_TEX=new THREE.CanvasTexture(c)}
- const sp=[];for(let i=0;i<22;i++){const m=new THREE.SpriteMaterial({map:SMK_TEX,color:new THREE.Color().setHSL(0,0,.6+R()*.14),transparent:true,depthWrite:false,fog:false,opacity:0,rotation:R()*6.28}),q=new THREE.Sprite(m),a=R()*6.28,rr=Math.sqrt(R())*2.3;
-  q.userData={ox:Math.cos(a)*rr,oy:.5+R()*2.6,oz:Math.sin(a)*rr,sc:3.4+R()*1.6,ph:R()*6.28};q.position.set(p.x,y+.5,p.z);scene.add(q);sp.push(q)}
- SMK.push({x:p.x,y,z:p.z,age:0,life:18,sp});beep(240,.2,.07);beep(150,.35,.05)}
+ const sp=[];for(let i=0;i<56;i++){const m=new THREE.SpriteMaterial({map:SMK_TEX,color:new THREE.Color().setHSL(0,0,.6+R()*.14),transparent:true,depthWrite:false,fog:false,opacity:0,rotation:R()*6.28}),q=new THREE.Sprite(m),a=R()*6.28,rr=Math.sqrt(R())*2.3;
+  q.userData={ox:Math.cos(a)*rr,oy:.5+R()*2.6,oz:Math.sin(a)*rr,sc:2.4+R()*1.2,ph:R()*6.28,hf:1};q.position.set(p.x,y+.5,p.z);scene.add(q);sp.push(q)}   // توپ‌های کوچیک‌تر ولی بیشتر، تا سوراخ گلوله جزئیات داشته باشه
+ SMK.push({x:p.x,y,z:p.z,age:0,life:18,sp,holes:[]});if(!nsPlay(5,'boom',nsVol(p))){beep(240,.2,.07);beep(150,.35,.05)}}
 /* مولوتف: بطری به هر سطحی بخوره می‌شکنه و ۷ ثانیه روی زمین آتیش می‌مونه (شعاع ~۳ متر)؛ دشمن توی آتیش هر ۰٫۴ ثانیه آسیب می‌بینه و بات‌ها فرار می‌کنن */
 let FIRE_TEX=null;
 function molotovBoom(p){let y=p.y;const t=castRay(p.x,p.y+.3,p.z,0,-1,0,6,false);if(t<6)y=p.y+.3-t;
@@ -2363,7 +2403,7 @@ function molotovBoom(p){let y=p.y;const t=castRay(p.x,p.y+.3,p.z,0,-1,0,6,false)
   q.userData={ox:Math.cos(a)*rr,oz:Math.sin(a)*rr,sc:1.1+R()*.9,ph:R()*6.28};q.position.set(p.x+q.userData.ox,y+.5,p.z+q.userData.oz);scene.add(q);sp.push(q)}
  const glow=new THREE.Mesh(new THREE.CircleGeometry(2.9,28),new THREE.MeshBasicMaterial({color:0xff6a10,transparent:true,opacity:.0,depthWrite:false,blending:THREE.AdditiveBlending}));
  glow.rotation.x=-Math.PI/2;glow.position.set(p.x,y+.06,p.z);scene.add(glow);
- FIRES.push({x:p.x,y,z:p.z,age:0,life:7,tk:0,sp,glow});beep(1100,.05,.06);beep(320,.25,.05)}
+ FIRES.push({x:p.x,y,z:p.z,age:0,life:7,tk:0,sp,glow});if(!nsPlay(7,'boom',nsVol(p))){beep(1100,.05,.06);beep(320,.25,.05)}}
 function fireStep(dt){for(let i=FIRES.length-1;i>=0;i--){const f=FIRES[i];f.age+=dt;
   const fo=Math.min(1,f.age/.35)*(f.age>f.life-1?Math.max(0,f.life-f.age):1);
   for(const q of f.sp){const u=q.userData,w=.75+.25*Math.sin(f.age*9+u.ph),sc=u.sc*(.8+.3*Math.sin(f.age*7+u.ph*2))*(.6+.4*fo);
@@ -2376,6 +2416,71 @@ function fireStep(dt){for(let i=FIRES.length-1;i>=0;i--){const f=FIRES[i];f.age+
     if(!e.isP){e.unst=Math.max(e.unst||0,1.2);e.rgt=0}   // بات از آتیش فرار می‌کنه
     if(NET.mode!=='client')damage(e,7,NADE_BY,'legs',false)}}
   if(f.age>=f.life){for(const q of f.sp){scene.remove(q);q.material.dispose()}scene.remove(f.glow);f.glow.geometry.dispose();f.glow.material.dispose();FIRES.splice(i,1)}}}
+
+/* ================= جلوه‌ی انفجار HE (ذره‌ای) ================= */
+function mkPuffTex(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
+ for(let i=0;i<7;i++){const a=R()*6.28,r=i?R()*22:0,cx=64+Math.cos(a)*r,cy=64+Math.sin(a)*r,rr=38+R()*20,g=x.createRadialGradient(cx,cy,2,cx,cy,rr);
+  g.addColorStop(0,'rgba(255,255,255,.55)');g.addColorStop(.6,'rgba(255,255,255,.22)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128)}
+ return new THREE.CanvasTexture(c)}
+function mkSparkTex(){const c=document.createElement('canvas');c.width=c.height=32;const x=c.getContext('2d'),g=x.createRadialGradient(16,16,0,16,16,15);
+ g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.35,'rgba(255,255,255,.8)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,32,32);return new THREE.CanvasTexture(c)}
+function mkScorchTex(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
+ for(let i=0;i<6;i++){const a=R()*6.28,r=i?R()*16:0,cx=64+Math.cos(a)*r,cy=64+Math.sin(a)*r,g=x.createRadialGradient(cx,cy,2,cx,cy,44+R()*16);
+  g.addColorStop(0,'rgba(0,0,0,.55)');g.addColorStop(.6,'rgba(0,0,0,.28)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,128,128)}
+ return new THREE.CanvasTexture(c)}
+function pfx(tex,x,y,z,vx,vy,vz,o){const q=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,fog:false,opacity:0,rotation:R()*6.28,blending:o.add?THREE.AdditiveBlending:THREE.NormalBlending}));
+ q.position.set(x,y,z);q.scale.set(o.s0,o.s0,1);scene.add(q);
+ PFX.push({q,vx,vy,vz,age:-(o.delay||0),life:o.life,s0:o.s0,s1:o.s1,op:o.op,c0:o.c0,c1:o.c1,drag:o.drag||0,grav:o.grav||0,gy:o.gy,fp:o.fp||1,rs:(R()-.5)*(o.rot===undefined?.7:o.rot)})}
+function pfxStep(dt){
+ for(let i=PFX.length-1;i>=0;i--){const f=PFX[i];f.age+=dt;if(f.age<0)continue;const u=f.age/f.life;
+  if(u>=1){scene.remove(f.q);f.q.material.dispose();PFX.splice(i,1);continue}
+  const dm=Math.exp(-f.drag*dt),p=f.q.position;f.vx*=dm;f.vz*=dm;f.vy=f.vy*dm-f.grav*dt;p.x+=f.vx*dt;p.y+=f.vy*dt;p.z+=f.vz*dt;
+  if(f.gy!==undefined&&f.gy!==null&&p.y<f.gy){p.y=f.gy;f.vy=Math.abs(f.vy)*.35;f.vx*=.55;f.vz*=.55}
+  const sc=f.s0+(f.s1-f.s0)*(1-Math.pow(1-u,2.2)),m=f.q.material,t=Math.min(1,u*1.6);f.q.scale.set(sc,sc,1);
+  m.opacity=f.op*Math.pow(1-u,f.fp)*Math.min(1,f.age/.03);m.color.setRGB(f.c0[0]+(f.c1[0]-f.c0[0])*t,f.c0[1]+(f.c1[1]-f.c0[1])*t,f.c0[2]+(f.c1[2]-f.c0[2])*t);m.rotation+=f.rs*dt}
+ if(exI>0){exT+=dt;const k=Math.max(0,1-exT/.6);exL.intensity=exI*k*k;if(k<=0){exI=0;exL.intensity=0}}
+ for(let i=SCORCH.length-1;i>=0;i--){const c=SCORCH[i];c.age+=dt;c.m.material.opacity=c.op*(c.age>c.life-6?Math.max(0,(c.life-c.age)/6):1);
+  if(c.age>=c.life){scene.remove(c.m);c.m.geometry.dispose();c.m.material.dispose();SCORCH.splice(i,1)}}}
+function heFx(c){
+ const gt=castRay(c.x,c.y+.4,c.z,0,-1,0,4,false),gy=gt<4?c.y+.4-gt:null,gny=HNY;   // سطح زمین زیر انفجار
+ if(!PUFF_TEX)PUFF_TEX=mkPuffTex();if(!SPARK_TEX)SPARK_TEX=mkSparkTex();
+ const rs=()=>{let x,y,z,l;do{x=R()*2-1;y=R()*2-1;z=R()*2-1;l=x*x+y*y+z*z}while(l>1||l<.05);l=Math.sqrt(l);return[x/l,y/l,z/l]},cy=c.y+.2,gc=gy===null?undefined:gy+.15;
+ pfx(PUFF_TEX,c.x,cy+.3,c.z,0,0,0,{c0:[1,.97,.85],c1:[1,.8,.45],s0:3,s1:8,op:1,life:.17,add:true,fp:1.5,rot:0});   // درخشش مرکز
+ for(let i=0;i<18;i++){const d=rs(),sp=3+R()*6;pfx(PUFF_TEX,c.x+d[0]*.4,cy+Math.abs(d[1])*.3,c.z+d[2]*.4,d[0]*sp,d[1]*sp*.8+1.5,d[2]*sp,   // گلوله‌ی آتش
+   {c0:[1,.93,.62],c1:[.62,.14,.03],s0:1.1+R()*.6,s1:3.4+R()*2,op:.95,life:.4+R()*.45,drag:3.2,add:true,fp:1.3,gy:gc})}
+ for(let i=0;i<22;i++){const a=R()*6.28,h=1+R()*3.2,up=1.2+R()*3.6,g=.12+R()*.1;   // دود تیره‌ی بالارونده
+  pfx(PUFF_TEX,c.x+Math.cos(a)*.3,cy+.1,c.z+Math.sin(a)*.3,Math.cos(a)*h,up,Math.sin(a)*h,{c0:[.14,.13,.12],c1:[.5,.48,.46],s0:1.4,s1:4.4+R()*2.2,op:.62,life:2.4+R()*1.8,drag:1.5,grav:-.45,fp:1.15,delay:R()*.12,rot:.5})}
+ if(gy!==null)for(let i=0;i<14;i++){const a=R()*6.28,h=5+R()*5;   // حلقه‌ی گرد و خاک روی زمین
+  pfx(PUFF_TEX,c.x,gy+.2,c.z,Math.cos(a)*h,.5+R()*.6,Math.sin(a)*h,{c0:[.6,.5,.37],c1:[.52,.48,.43],s0:.9,s1:3.2+R()*1.4,op:.5,life:.9+R()*.6,drag:3,fp:1.4,rot:.4})}
+ for(let i=0;i<38;i++){const d=rs(),sp=8+R()*16;   // جرقه‌ها
+  pfx(SPARK_TEX,c.x,cy+.1,c.z,d[0]*sp,Math.abs(d[1])*sp*.9+3,d[2]*sp,{c0:[1,.88,.45],c1:[1,.25,.05],s0:.26,s1:.07,op:1,life:.5+R()*.8,drag:.5,grav:22,add:true,fp:.8,gy:gc,rot:0})}
+ for(let i=0;i<10;i++){const d=rs(),sp=5+R()*9;   // تکه‌های خاک و آوار
+  pfx(SPARK_TEX,c.x,cy,c.z,d[0]*sp,Math.abs(d[1])*sp+2,d[2]*sp,{c0:[.22,.17,.12],c1:[.18,.15,.12],s0:.2,s1:.2,op:.95,life:.9+R()*.6,drag:.3,grav:24,fp:.6,gy:gc,rot:0})}
+ {const ry=(gy!==null?gy:c.y)+.06;nfx({x:c.x,y:ry,z:c.z},new THREE.RingGeometry(.82,1,44),0xffd9a0,.6,.5,.6,11);   // موج شوک روی زمین
+  const f=NFX[NFX.length-1];f.m.rotation.x=-Math.PI/2;f.m.material.side=THREE.DoubleSide;f.m.material.blending=THREE.AdditiveBlending}
+ if(gy!==null&&gny>.75){if(!SCORCH_TEX)SCORCH_TEX=mkScorchTex();   // لکه‌ی سوختگی روی زمین
+  const m=new THREE.Mesh(new THREE.CircleGeometry(1.9,28),new THREE.MeshBasicMaterial({map:SCORCH_TEX,transparent:true,opacity:.85,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+  m.rotation.x=-Math.PI/2;m.position.set(c.x,gy+.025,c.z);scene.add(m);SCORCH.push({m,age:0,life:40,op:.85});
+  if(SCORCH.length>10){const o=SCORCH.shift();scene.remove(o.m);o.m.geometry.dispose();o.m.material.dispose()}}
+ exL.position.set(c.x,c.y+.7,c.z);exI=18;exT=0;exL.intensity=exI}
+/* سوراخ گلوله توی اسموک (مثل CS2): هر گلوله‌ای که از اسموک رد بشه یه تونل باز می‌کنه که بعد از چند ثانیه آروم‌آروم پر می‌شه */
+
+/* ================= صدای نارنجک‌ها (فایل‌های nade_*.mp3 کنار index.html) =================
+   هر فایل فقط یک بار از اولِ صدا تا آخرش بریده شده. pin = صدای کشیدن/پرتاب (موقع کلیک، طوری که ویژ پرتاب با لحظه‌ی پرتاب جور باشه)
+   boom = صدای اصلی (موقع ترکیدن/باز شدن). عددها ثانیه‌ی داخل همون فایل هستن. اگه صدایی زود/دیر بود فقط همین عددها رو عوض کن. */
+const NSND={4:{f:'nade_he.mp3',pin:[1.08,1.82],boom:[1.87,6.34]},5:{f:'nade_smoke.mp3',pin:[.98,1.82],boom:[1.85,8.06]},6:{f:'nade_flash.mp3',pin:[.64,1.3],boom:[1.85,4.2]},7:{f:'nade_molotov.mp3',pin:[.44,1.16],boom:[1.2,9.22]}},NS={};
+function nsLoad(){for(const k in NSND)cachedBuf(NSND[k].f).then(b=>{NS[k]={raw:b};nsDecode()}).catch(e=>console.warn('[nade sound]',NSND[k].f,e))}
+function nsDecode(){if(!AC)return;for(const k in NS){const n=NS[k];if(n.raw&&!n.buf&&!n.dec){n.dec=true;AC.decodeAudioData(n.raw.slice(0)).then(b=>{n.buf=b}).catch(e=>console.warn('[nade sound]',e))}}}
+function nsVol(p){const d=Math.hypot(P.p.x-p.x,P.p.z-p.z);return Math.max(.12,Math.min(1,1.08-d/45))}
+function nsPlay(k,part,gain){const n=NS[k];if(!n||!n.buf||!AC)return false;const c=NSND[k][part],d=c[1]-c[0];if(d<=.05)return false;
+ const src=AC.createBufferSource(),g=AC.createGain(),t=AC.currentTime;src.buffer=n.buf;g.gain.setValueAtTime(gain,t);
+ if(part==='pin'){g.gain.setValueAtTime(gain,t+d-.08);g.gain.linearRampToValueAtTime(0,t+d)}
+ src.connect(g);g.connect(AC.destination);src.start(0,c[0],d);return true}
+const smkSS=x=>{x=x<0?0:x>1?1:x;return x*x*(3-2*x)};
+function segDist(px,py,pz,h){let t=((px-h.ax)*h.dx+(py-h.ay)*h.dy+(pz-h.az)*h.dz)/h.l2;t=t<0?0:t>1?1:t;const x=h.ax+h.dx*t-px,y=h.ay+h.dy*t-py,z=h.az+h.dz*t-pz;return Math.sqrt(x*x+y*y+z*z)}
+function smokeShot(a,b){if(!SMK.length)return;const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,l2=dx*dx+dy*dy+dz*dz;if(l2<.01)return;
+ for(const s of SMK){if(s.age<.5||s.age>s.life-1.5)continue;const h={ax:a.x,ay:a.y,az:a.z,dx,dy,dz,l2,age:0,life:5.5},r=3*Math.min(1,.3+s.age/1.2);
+  if(segDist(s.x,s.y+1.5,s.z,h)>r)continue;s.holes.push(h);if(s.holes.length>40)s.holes.shift()}}
 /* HE */
 function heBoom(p){const c={x:p.x,y:p.y+.12,z:p.z};NADE_BY.wp=4;NADE_BY.name=(P&&P.name)||'تو';NADE_BY.team=(P&&P.team)||0;NADE_BY.p.x=c.x;NADE_BY.p.y=c.y;NADE_BY.p.z=c.z;
  if(NET.mode!=='client')for(const e of ents){if(e.dead||e.team===NADE_BY.team)continue;
@@ -2383,13 +2488,12 @@ function heBoom(p){const c={x:p.x,y:p.y+.12,z:p.z};NADE_BY.wp=4;NADE_BY.name=(P&
    dd=Math.hypot(e.p.x-c.x,e.p.y+1-c.y,e.p.z-c.z);if(dd>10)continue;
   if(!(ok(1.0)||ok(.3)))continue;   // از پشت دیوار آسیب نمی‌زنه
   const dmg=Math.round(98*Math.pow(1-dd/10,1.15));if(dmg>=1)damage(e,dmg,NADE_BY,'body',false)}
- nfx(c,new THREE.SphereGeometry(1,16,12),0xff9a2e,.9,.45,.5,3.4);nfx(c,new THREE.SphereGeometry(1,12,10),0xfff0b8,1,.25,.3,2.1);nfx(c,new THREE.SphereGeometry(1,12,10),0x2b2724,.5,1.1,1,3.2,1.6);
- mflash.position.set(c.x,c.y+.3,c.z);mflash.intensity=9;mfT=.14;
- const dp=Math.hypot(P.p.x-c.x,P.p.z-c.z),k=Math.max(0,1-dp/40);boomSound(k*.8);if(SD.on)SD.shake=Math.max(SD.shake||0,k*.9);
+ heFx(c);
+ const dp=Math.hypot(P.p.x-c.x,P.p.z-c.z),k=Math.max(0,1-dp/40);if(!nsPlay(4,'boom',nsVol(c))){if(sndReady())sndPlay(C4S_BOOM,0,Math.min(.9,.28+k*.72));else boomSound(k*.8)}   // صدای واقعی انفجار (همون فایل C4)؛ اگه لود نشده بود صدای ساختگیif(SD.on)SD.shake=Math.max(SD.shake||0,k*.9);
  if(typeof BALL!=='undefined'&&BALL){const bx=BALL.p.x-c.x,bz=BALL.p.z-c.z,bd=Math.hypot(bx,bz,BALL.p.y-c.y);if(bd<9&&bd>.1)ballImpulse(bx/bd*14*(1-bd/9),3.5,bz/bd*14*(1-bd/9))}}
 /* فلش‌بنگ: مدت کوری = فاصله × زاویه‌ی نگاه (رو به فلش = کامل، پشت به فلش = کم)؛ بات‌ها هم کور می‌شن */
 function flashBoom(p){const c={x:p.x,y:p.y+.15,z:p.z};
- mflash.position.set(c.x,c.y,c.z);mflash.intensity=14;mfT=.1;nfx(c,new THREE.SphereGeometry(1,12,10),0xffffff,.9,.18,.3,1.6);
+ mflash.position.set(c.x,c.y,c.z);mflash.intensity=14;mfT=.1;nsPlay(6,'boom',nsVol(c));nfx(c,new THREE.SphereGeometry(1,12,10),0xffffff,.9,.18,.3,1.6);
  const sees=o=>{const dx=o.x-c.x,dy=o.y-c.y,dz=o.z-c.z,d=Math.hypot(dx,dy,dz);return d<.4||(castRay(c.x,c.y,c.z,dx/d,dy/d,dz/d,d,false)>=d-.3&&!smokeBlocks(c,{x:dx/d,y:dy/d,z:dz/d},d))},
   dur=(o,fx,fy,fz,mx)=>{const dx=c.x-o.x,dy=c.y-o.y,dz=c.z-o.z,d=Math.hypot(dx,dy,dz)||1;if(d>40)return 0;const dot=(dx*fx+dy*fy+dz*fz)/d,ang=dot>.5?1:dot>-.1?.55:.22,df=d<6?1:Math.max(0,1-(d-6)/34);return mx*ang*df};
  if(!P.dead){const o=eye(P),cp=Math.cos(pitch),du=dur(o,-Math.sin(P.yaw)*cp,Math.sin(pitch),-Math.cos(P.yaw)*cp,4.8);
@@ -2542,19 +2646,23 @@ async function boot(){
  const st=t=>$('load').textContent=t;
  try{
   st('در حال لود مپ...');
-  const map=await loadGLB(FILES.map);
+  // همه‌ی دانلودها هم‌زمان شروع می‌شن (قبلاً پشت‌سرهم بودن)؛ پردازششون همون ترتیب قبلی رو داره
+  const pMap=loadGLB(FILES.map),pCh=[[FILES.ally,'ally'],[FILES.enemy,'enemy']].map(([f,k])=>[f,k,loadGLB(f)]);
+  pMap.catch(()=>{});pCh.forEach(c=>c[2].catch(()=>{}));
+  lbfFetch();bombLoad();sndLoad();nsLoad();nadeModelsLoad();
+  const map=await pMap;
   SD.markMeshes=sdCollectMarks(map);simplify(map,0xd9d2c0);
   const pv=new THREE.Group();map.rotation.set(0,0,0);pv.add(map);pv.scale.setScalar(MAP_SCALE);   // خروجی Sketchfab Y-up هست ولی فشرده → با MAP_SCALE=1.5 به مقیاس واقعی dust2 نزدیک می‌شه
   scene.add(pv);pv.updateMatrixWorld(true);
   const bb=new THREE.Box3().setFromObject(pv),cc=bb.getCenter(new THREE.Vector3());
   pv.position.set(-cc.x,-bb.min.y,-cc.z);pv.updateMatrixWorld(true);
   st('در حال لود کاراکترها...');
-  await Promise.all([[FILES.ally,'ally'],[FILES.enemy,'enemy']].map(([f,k])=>loadGLB(f).then(normChar).then(r=>{const o=fitChar(r,k);TMPL[k]=o;if(k==='ally'){try{buildViewArms(r,o.userData.s)}catch(err){console.warn('دست‌های ویوومدل ساخته نشد:',err)}}}).catch(e=>console.warn('کاراکتر لود نشد:',e.message))));
+  await Promise.all(pCh.map(([f,k,pr])=>pr.then(normChar).then(r=>{const o=fitChar(r,k);TMPL[k]=o;if(k==='ally'){try{buildViewArms(r,o.userData.s)}catch(err){console.warn('دست‌های ویوومدل ساخته نشد:',err)}}}).catch(e=>console.warn('کاراکتر لود نشد:',e.message))));
   st('در حال لود انیمیشن لابی...');await lbfLoad();{let k=0;while(typeof AKW!=='undefined'&&!AKW&&k++<40)await new Promise(r=>setTimeout(r,50))}   // گان AK باید آماده باشه تا بدیم دست کاراکترها
   st('در حال ساخت برخورد و مسیرها...');await new Promise(r=>setTimeout(r,30));
   buildCol(pv);
   const info=buildNav();console.log('nav',info);
-  pickSpawns();pickSites();bombLoad();sndLoad();nadeModelsLoad();
+  pickSpawns();pickSites();
   initBall();   // توپ فوتبال وسط مپ
   window.__g={ents,get P(){return P},get BALL(){return BALL},info,scene,cam,castRay,findPath,nearestNode,nav:()=>({NN,nvx,nvy,nvz,ncF,ncN,NGX,NGZ,GX0,GZ0,ncomp,mainComp,adjS,adjT}),SPAWN:()=>SPAWN,simulate,render,
    setLock:v=>{locked=v},setTp:v=>{tp=v},setPitch:v=>{pitch=v},tris:()=>NT,SD,sdSetSite};
