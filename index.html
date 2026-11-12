@@ -256,11 +256,15 @@ const KNIFE_S=.11,KNIFE_ROLL=-.35,KNIFE_HANDLE=[-.7,-.05];   // مقیاس | ک�
 const KNIFE_POSE={p:[-.05,.12,-.04],g:[.75,.85,0]};          // مثل CS: چاقو مورب، نوک به بالا-چپ (جابه‌جایی و چرخش کل گان)
 const KNIFE_LH={p:[-.24,-.30,-.55],d:[.8,.5,-.3],n:[0,-.8,-.55]};   // دست چپِ آزاد: کف دست رو به پایین (نه حالت دعا!)، انگشت‌ها به سمت راست، کمی جلوتر و کامل توی دید
 const KNIFE_PALM=[0,0,-1];                                            // کف دست راست موقع گرفتن چاقو به کدوم سمت (فضای دوربین) نگاه کنه؛ فقط x و z استفاده می‌شه
-const KNIFE_FIST_OFF=[0,0,-.03];                                      // مشت روی دسته چقدر به سمت گارد/تیغه جابه‌جا بشه (فضای گان؛ منفی = به سمت تیغه)
+const KNIFE_FIST_OFF=[0,0,0];                                      // مشت روی دسته چقدر به سمت گارد/تیغه جابه‌جا بشه (فضای گان؛ منفی = به سمت تیغه)
 const FIST_R=.026;                                                    // شعاع حلقه‌ی انگشت‌ها دور دسته‌ی چاقو (شعاع دسته + نصف ضخامت انگشت)؛ کمتر = مشت محکم‌تر
 const KNIFE_LH_SCALE=1.25;                                             // دست چپ موقع چاقو درشت‌تر (۱ = اندازه‌ی عادی)
 const KNIFE_RH={d:[-.5,.8,-.3],n:[-.72,-.18,.42]};                 // جهت انگشت‌ها و کف دست راست هنگام گرفتن دسته‌ی چاقو
-const KNIFE_GRIP=[-.005,-.06,.10];                           // جای دسته توی فضای گان (همون جای دست راست)
+const KNIFE_GRIP=[-.005,-.06,.10];
+const KNIFE_PIVOT=.65,KNIFE_YAW=.75;   // ۱ = چاقو دقیقاً دور مچ می‌چرخه (دست جابه‌جا نمی‌شه) | ضریب دامنه‌ی چرخش افقی ضربه
+const _pe=new THREE.Euler(),_pm=new THREE.Matrix4(),_pa=new THREE.Vector3(),_pb=new THREE.Vector3();
+function knifePivot(k,g0){const G=KNIFE_GRIP;_pa.set(G[0],G[1],G[2]).applyMatrix4(_pm.makeRotationFromEuler(_pe.set(g0[0],g0[1],g0[2])));_pb.set(G[0],G[1],G[2]).applyMatrix4(_pm.makeRotationFromEuler(_pe.set(k.g[0],k.g[1],k.g[2])));
+ k.p[0]+=(_pa.x-_pb.x)*KNIFE_PIVOT;k.p[1]+=(_pa.y-_pb.y)*KNIFE_PIVOT;k.p[2]+=(_pa.z-_pb.z)*KNIFE_PIVOT}                           // جای دسته توی فضای گان (همون جای دست راست)
 new THREE.GLTFLoader().load(FILES.knife,g=>{
  const m=g.scene;
  /* بعضی GLBها کنار چاقو، غلاف (Scabbard) یا یه نسخه‌ی دوم هم دارن که جای جدا افتادن؛
@@ -424,7 +428,7 @@ function bombPose(){
  return k}
 
 /* ================= ویوومدل: دست‌های کاراکتر روی گان + انیمیشن ریلود ================= */
-const RELOAD_T=2.1;                                   // مدت ریلود (ثانیه)
+const RELOAD_T=1.6;                                   // مدت ریلود (ثانیه)
 const GUN_BASE=[.17,-.2,-.385];                       // جای گان در فضای دوربین
 const ARM_SCALE=.78;                                 // دست‌ها کمی درشت‌تر از واقعی تا به گان برسن (مثل اکثر FPSها)
 const SHOULDER={R:[.26,-.32,.12],L:[-.18,-.30,.02]};  // شونه‌های مجازی (فضای دوربین)
@@ -469,9 +473,6 @@ const KEYS=(()=>{const raw=[
  [.66,{L:MAG_GRAB,g:[.28,.12,-.45],p:[-.03,-.015,.07]}],                                      // جا می‌زنه
  [.72,{L:[-.02,-.13,.04],g:[.2,.1,-.38],p:[-.03,-.015,.05],ld:[.3,.4,-.7]}],
  [.78,{L:GRIP_L,ld:IDLE.ld,lp:IDLE.lp,g:[.14,.07,-.2],p:[-.015,-.008,.03]}],                  // دست چپ برمی‌گرده جلودستی
- [.84,{R:[.04,.045,-.03],rd:[-.3,0,-.95],rp:[-1,.3,0],g:[.1,.05,-.12],p:[0,0,.01]}],          // دست راست می‌ره سمت اسلحه‌کش
- [.91,{R:[.04,.045,.08],g:[.08,.04,-.08]}],                                                   // اسلحه‌کش رو عقب می‌کشه
- [.96,{R:[.04,.045,-.03]}],                                                                   // رها می‌کنه
  [1,{R:GRIP_R,rd:IDLE.rd,rp:IDLE.rp,g:[0,0,0],p:[0,0,0]}]];
  let cur=IDLE;return raw.map(([t,o])=>{cur=Object.assign({},cur,o);return Object.assign({t},cur)})})();
 const CH=['g','p','L','R','ld','rd','lp','rp'];
@@ -486,7 +487,7 @@ const ARM_KEYS=[[.26,[.015,.10,-.07],[.6,-.55,-.5],[.1,-.9,.3],.15],      // د�
  [.62,[.05,.058,.09],[.8,-.5,-.3],[.15,-.85,.35],1],                    // عقب می‌کشه
  [.68,[.05,.062,.075],[.8,-.5,-.3],[.15,-.85,.35],.15],                 // ول می‌کنه
  [.82,[.015,.10,-.03],[.6,-.55,-.5],[.1,-.9,.3],0]];                    // دست از روی گان برمی‌گرده
-const SND=[[.30,140],[.66,230],[.90,330]];   // صدای خشاب‌درآوردن / جاانداختن / اسلحه‌کش
+const SND=[[.30,140],[.66,230]];   // صدای خشاب‌درآوردن / جاانداختن / اسلحه‌کش
 /* حالت تنظیم زنده‌ی جای دست‌ها: G روشن/خاموش | T عوض کردن دست چپ/راست | ↑↓ جلو-عقب | ←→ چپ-راست | PageUp/PageDown بالا-پایین
    مقدار نهایی روی صفحه نوشته می‌شه؛ همون رو جایگزین GRIP_L / GRIP_R کن. */
 const TUNE={on:false,h:'L'};
@@ -657,8 +658,11 @@ const g2d=a=>{_gv.set(a[0],a[1],a[2]).transformDirection(gun.matrix);return[_gv.
 function setBone(m,p,f){m.position.set(p[0],p[1],p[2]);_bm.makeBasis(_b1.set(f[0][0],f[0][1],f[0][2]),_b2.set(f[1][0],f[1][1],f[1][2]),_b3.set(f[2][0],f[2][1],f[2][2]));m.quaternion.setFromRotationMatrix(_bm)}
 function vmArms(k){const A=VM.arms;if(!A)return;
  for(const sd of['R','L']){const a=A[sd],tc=g2c(k[sd]),hd=V.norm(g2d(sd==='R'?k.rd:k.ld),[0,0,-1]),pn=g2d(sd==='R'?k.rp:k.lp);
-  const Wt=V.sub(tc,V.mul(hd,a.hl*HAND_CENTER));let S=SHOULDER[sd];
-  const dv=V.sub(Wt,S),D=V.len(dv),mx=(a.l1+a.l2)*.97;VM.reach[sd]=D/(a.l1+a.l2);   // >1 یعنی بازو کوتاه‌تر از فاصله‌ی شونه تا گریپ
+  let Wt=V.sub(tc,V.mul(hd,a.hl*HAND_CENTER));let S=SHOULDER[sd];
+  let dv=V.sub(Wt,S),D=V.len(dv);const mx=(a.l1+a.l2)*.97;
+   if(VM.kn&&sd==='R'){if(!(P.sl>0))VM.krest=D;const lim=Math.max(mx*1.3,VM.krest||0);   // چاقو: دست از حد دسترسی بازو بیرون نره؛ کل گان (و چاقو) با دست به عقب کشیده می‌شه
+    if(D>lim){const u=V.mul(dv,(D-lim)/D);gun.position.x-=u[0];gun.position.y-=u[1];gun.position.z-=u[2];gun.updateMatrix();Wt=V.sub(Wt,u);dv=V.sub(Wt,S);D=V.len(dv)}}
+   VM.reach[sd]=D/(a.l1+a.l2);   // >1 یعنی بازو کوتاه‌تر از فاصله‌ی شونه تا گریپ
   const f=Math.min(1.4,Math.max(1,D/mx));                                          // اول خود بازو رو (تا ۴۰٪) دراز می‌کنیم تا به گریپ برسه؛ شونه سر جاش می‌مونه و لبه‌ی پاره‌ی شونه توی دید نمیاد
   if(D>mx*f)S=V.sub(Wt,V.mul(dv,mx*f/D));                                         // فقط اگه بازم نرسید، شونه‌ی مجازی جلو می‌آد
   const r=ik2(S,Wt,a.l1*f,a.l2*f,POLE[sd]);
@@ -699,10 +703,11 @@ function vmUpdate(dt){
  if(kn){for(let i=0;i<3;i++){k.p[i]+=KNIFE_POSE.p[i];k.g[i]+=KNIFE_POSE.g[i]}}
  if(pi){for(let i=0;i<3;i++){k.p[i]+=PISTOL_POSE.p[i];k.g[i]+=PISTOL_POSE.g[i]}k.g[0]+=VM.kick*2.5}   // لگد پیستول: لوله کمی بالا می‌ره
  if(P.dr>0){P.dr=Math.max(0,P.dr-dt);const dd=P.dr/.3;k.p[1]-=.3*dd*dd;k.g[0]-=.8*dd}   // درآوردن سلاح
- if(kn&&P.sl>0){const t=1-P.sl/P.sd,dir=P.sdir||1;
+ if(kn&&P.sl>0){const t=1-P.sl/P.sd,dir=P.sdir||1,g0=k.g.slice();
   if(P.sk===1){const z=t<.3?.06*(t/.3):t<.55?.06-.42*((t-.3)/.25):-.36*(1-(t-.55)/.45);k.p[2]+=z;k.p[1]+=.02*Math.sin(Math.PI*t);k.g[0]+=-.12*Math.sin(Math.PI*t)}
   else{const y=t<.25?-dir*.5*(t/.25):t<.6?-dir*.5+dir*1.5*((t-.25)/.35):dir*(1-(t-.6)/.4),e=Math.sin(Math.PI*t);
-   k.g[1]+=y;k.g[2]+=-dir*.5*e;k.g[0]+=.3*e;k.p[0]+=dir*.06*e;k.p[2]-=.1*e}}
+   k.g[1]+=y*KNIFE_YAW;k.g[2]+=-dir*.5*e;k.g[0]+=.3*e;k.p[0]+=dir*.06*e;k.p[2]-=.1*e}
+  knifePivot(k,g0)}
  /* حرکت گان موقع راه رفتن (bob): فاز با سرعت واقعی بازیکن جلو می‌ره، فقط روی زمین؛ دست‌ها خودشون با گان می‌آن چون IK از روی گان حساب می‌شه */
  {const S=spc?SD.spec:P,sp=Math.min(8,Math.hypot(S.p.x-(VM.bx===undefined?S.p.x:VM.bx),S.p.z-(VM.bz===undefined?S.p.z:VM.bz))/Math.max(dt,1e-3));VM.bx=S.p.x;VM.bz=S.p.z;
   const mv=(spc?!!S.on:(!P.dead&&P.on))&&sp>.8&&!TUNE.on,tg=mv?Math.min(1,sp/6.5):0;
@@ -1964,8 +1969,8 @@ function playerUpdate(dt){
  P.cd-=dt;
  knifeUpdate(dt);bombUpdate(dt);nadeUpdate(dt);
  const ps=(P.wp||0)===2;if(ps){const pf=clickL;clickL=false;if(pf)P.pbuf=.15;P.pbuf=(P.pbuf||0)-dt}   // پیستول نیمه‌اتومات: هر کلیک یک تیر
- if(P.rl>0){P.rl-=dt;if(P.rl<=0)P.ammo=AMAX[P.wp||0]}
- else if((ps?P.pbuf>0:mouse)&&P.cd<=0&&P.ammo>0&&(P.wp||0)!==1&&(P.wp||0)!==3&&(P.wp||0)<4&&!(P.arm>0)){P.cd=ps?.15:.11;P.ammo--;VM.kick=Math.min(ps?.085:.11,VM.kick+(ps?.05:.07));if(ps){P.pbuf=0;if(VM.pistolReady){PM.clip='firstperson_shoot_unsilenced_additive';PM.t=0}}const cp=Math.cos(pitch);
+ if(P.rl>0){P.rl-=dt;if(P.rl<=0){P.ammo=AMAX[P.wp||0];if((P.wp||0)===0){P.arm=P.armD=.55;P.s1=P.s2=0}}}   // بعد از ریلود AK: همون انیمیشن مسلح‌کردن، ولی سریع‌تر
+ else if((ps?P.pbuf>0:mouse)&&P.cd<=0&&P.ammo>0&&(P.wp||0)!==1&&(P.wp||0)!==3&&(P.wp||0)<4&&!(P.arm>.32*P.armD)){P.cd=ps?.15:.11;P.ammo--;VM.kick=Math.min(ps?.085:.11,VM.kick+(ps?.05:.07));if(ps){P.pbuf=0;if(VM.pistolReady){PM.clip='firstperson_shoot_unsilenced_additive';PM.t=0}}const cp=Math.cos(pitch);
   const spd=Math.hypot(P.vx,P.vz)/6.5,sp=(.003+Math.min(1,spd)*.055+(P.on?0:.09)+(P.spray||0))*(P.cr>.5?.6:1)*(ps?.7:1);   // حرکت/پرش/شلیک پشت‌سرهم دقت رو کم می‌کنه
   let dx=-sy*cp+(R()-.5)*sp*2,dy=Math.sin(pitch)+(R()-.5)*sp*2,dz=-cy*cp+(R()-.5)*sp*2;const dn=Math.hypot(dx,dy,dz);
   fire(P,{x:dx/dn,y:dy/dn,z:dz/dn});
