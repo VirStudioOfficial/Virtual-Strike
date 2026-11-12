@@ -2068,7 +2068,7 @@ function lbfPrep(o){
  LBF.src=o;LBF.clip=clip;LBF.sc=sc;LBF.he={x:hips.x,z:hips.z};LBF.off=LBF_FACE-headYaw;LBF.gP=gP;LBF.gQ=gQ;LBF.gS=gS}
 /* ================= تنظیم دقیق زنده‌ی گان توی دست کاراکترهای لابی (G توی لابی) =================
    جابه‌جایی نسبت به جای پیش‌فرض (LBF.gP/gQ/gS) اعمال می‌شه؛ مقدار نهایی روی صفحه نوشته می‌شه و با C کپی می‌شه. توی localStorage هم ذخیره می‌شه. */
-const LBT_DEF={p:[0,0,0],r:[0,0,0],s:1};   // ← مقدار نهایی رو اینجا بذار تا همیشگی بشه
+const LBT_DEF={p:[0.08,0.1,0],r:[-1,-5.5,-0.5],s:1};   // ← مقدار نهایی رو اینجا بذار تا همیشگی بشه
 const LBT={on:false,st:.005,...(()=>{try{const v=JSON.parse(localStorage.getItem('ms_gunadj')||'null');if(v&&v.p&&v.r&&isFinite(v.s))return{p:v.p.slice(),r:v.r.slice(),s:v.s}}catch(e){}return{p:LBT_DEF.p.slice(),r:LBT_DEF.r.slice(),s:LBT_DEF.s}})()};
 const LBT_ST=[.02,.01,.005,.002,.001,.0005];
 function lbtApply(g){const D=Math.PI/180;g.position.set(LBF.gP.x+LBT.p[0],LBF.gP.y+LBT.p[1],LBF.gP.z+LBT.p[2]);
@@ -2124,11 +2124,18 @@ const lbNames=me=>ENDS?ENDS.names:[me,...LB.squad.filter(x=>x!==me)];
 function lbCard(n,i){
  if(ENDS){const r=ENDS.rows[i]||{k:0,d:0};return `<div class="pc"><div class="pcb" style="background:${avBg(n)}">${i===0?'<span class="crown">'+ICON.crown+'</span>':''}${ini(n)}</div><div class="pcn">${esc(n)}</div><div class="pck"><b>${r.k}</b><small>کیل</small><span>${r.d} دث</span></div></div>`}
  return `<div class="pc"><div class="pcb" style="background:${avBg(n)}">${i===0?'<span class="crown">'+ICON.crown+'</span>':''}${ini(n)}</div><div class="pcn">${esc(n)}${i===0?' <small style="opacity:.65">(لیدر)</small>':''}</div></div>`}
+/* کاراکتر لابی/ویکتوری نباید توی دیوار بره: از موقعیت، ۸ جهت رو چک می‌کنیم و اگه دیوار نزدیک‌تر از شعاع بود، به عقب هلش می‌دیم */
+function lbClear(x,z,y){const R0=.75;
+ for(let pass=0;pass<4;pass++){let px=0,pz=0;
+  for(let k=0;k<8;k++){const a=k*Math.PI/4,dx=Math.cos(a),dz=Math.sin(a);
+   for(const h of [.4,1.0,1.6]){const t=castRay(x,y+h,z,dx,0,dz,R0,true);if(t<R0){px-=dx*(R0-t);pz-=dz*(R0-t)}}}
+  if(!px&&!pz)break;x+=px*.5;z+=pz*.5}
+ return[x,z]}
 function lbBuildChars(){
  if(!LBF.ok)return lbBuildCharsOld();
  const s=LB3.spot;if(!s)return;
  const me=NET.myName||'تو',names=lbNames(me),cx=s.x-LB3.f.x*LB3.D,cz=s.z-LB3.f.z*LB3.D,old=LB3.byName,keep={};let cards='';
- names.forEach((n,i)=>{const[sx,sd]=LB_SLOTS[i],x=s.x+LB3.r.x*sx+LB3.f.x*sd,z=s.z+LB3.r.z*sx+LB3.f.z*sd,t=castRay(x,s.y+1.5,z,0,-1,0,4,false),gy=t<4?s.y+1.5-t:s.y;
+ names.forEach((n,i)=>{const[sx,sd]=LB_SLOTS[i];let x=s.x+LB3.r.x*sx+LB3.f.x*sd,z=s.z+LB3.r.z*sx+LB3.f.z*sd;{const q=lbClear(x,z,s.y);x=q[0];z=q[1]}const t=castRay(x,s.y+1.5,z,0,-1,0,4,false),gy=t<4?s.y+1.5-t:s.y;
   let m=old[n];
   if(!m)m=lbfMake(i);   // عضو جدید: خودش راه می‌یاد تو
   else if(m.userData.slot!==i){m.userData.ac.time=LBF.clip.duration;m.userData.mx.update(0)}   // جاش عوض شده (کسی رفته): بدون راه‌رفتن مجدد می‌پره روی جای جدید
@@ -2329,8 +2336,12 @@ function botUpdate(e,dt){
   e.stuck=m<.7?(e.stuck||0)+1:0;e.kx=e.p.x;e.kz=e.p.z;
   e.slow=m<.7;e.pstuck=(m<.7&&e._rm)?(e.pstuck||0)+1:0;e._rm=0;   // pstuck: وسط مسیریابی ۵ ثانیه تکون نخورده
   if(e.pstuck>=5){unstuckBot(e,false);return}
-  if(e.stuck>=2){e.unst=2.5;e.stuck=0;e.rgt=0}}
- e.unst=Math.max(0,(e.unst||0)-dt);
+  if(e.stuck>=2){e.unst=2.5;e.stuck=0;e.rgt=0;e.jumpTry=1}
+  /* نوسان چپ/راست: ۴ ثانیه که می‌خواسته جلو بره ولی جابه‌جایی خالصش کمتر از ~۲ متر بوده → گیر کرده */
+  const H=e.hist||(e.hist=[]);H.push([e.p.x,e.p.z,e.fwT||0]);e.fwT=0;if(H.length>5)H.shift();
+  if(H.length===5){const a=H[0],tw=H[1][2]+H[2][2]+H[3][2]+H[4][2];
+   if(tw>3&&Math.hypot(e.p.x-a[0],e.p.z-a[1])<2.2){e.unst=2.5;e.rgt=0;e.jumpTry=1;H.length=0}}}
+ e.unst=Math.max(0,(e.unst||0)-dt);e._jc=Math.max(0,(e._jc||0)-dt);
  let fw=0,sd=0,vis=false,dir=null;
  if(tg){const o=eye(e),dx=tg.p.x-e.p.x,dy=tg.p.y+1.1-o.y,dz=tg.p.z-e.p.z,Ln=Math.hypot(dx,dy,dz);dir={x:dx/Ln,y:dy/Ln,z:dz/Ln};vis=Ln<70&&!(e.fl>0)&&wallDist(o,dir)>Ln&&!smokeBlocks(o,dir,Ln)}
  const dP=(e.team===0&&!P.dead)?Math.hypot(P.p.x-e.p.x,P.p.z-e.p.z):0;
@@ -2360,13 +2371,15 @@ function botUpdate(e,dt){
     while(e.pi<e.path.length-1&&Math.hypot(nvx[n]-e.p.x,nvz[n]-e.p.z)<.75){e.pi++;n=e.path[e.pi]}
     const prev=e.path[Math.max(0,e.pi-1)],edgeKey=prev+':'+n;
     const dx=nvx[n]-e.p.x,dz=nvz[n]-e.p.z,dist=Math.hypot(dx,dz);
-    if(navJumpEdge(prev,n)&&nvy[n]>e.p.y+.25&&dist<1.25&&dist>.2&&e.on&&e._jumpEdge!==edgeKey){
-     e.vy=JUMP;e.on=false;e._jumpEdge=edgeKey;
+    if(navJumpEdge(prev,n)&&nvy[n]>e.p.y+.25&&dist<1.25&&dist>.2&&e.on&&(e._jumpEdge!==edgeKey||e._jc<=0)){
+     e.vy=JUMP;e.on=false;e._jumpEdge=edgeKey;e._jc=1.2;
     }
     if(dist>.2){const want=Math.atan2(-dx,-dz);let d=want-e.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));{const st=BOT_TURN_ROAM*dt;e.yaw+=Math.max(-st,Math.min(st,d*Math.min(1,dt*10)))}fw=1;e._rm=1}
    }else e.rgt=0; // مسیر پیدا نشد: نقطه‌ی گشت جدید انتخاب کن
   }
  }
+ if(e.unst>0&&!e.sdHeld){sd=e.s;if(e.on&&e.jumpTry){e.vy=JUMP;e.on=false;e.jumpTry=0}}
+ if(fw)e.fwT=(e.fwT||0)+dt;
  const sy=Math.sin(e.yaw),cy=Math.cos(e.yaw),sp=4.2*dt*(e.team===1?EN.spd:1);
  if(fw||sd)move(e,(-sy*fw+cy*sd)*sp,(-cy*fw-sy*sd)*sp);
  if(!e.sdHeld){let px=0,pz=0;for(const t of ents){if(t===e||t.dead||t.team!==e.team)continue;
