@@ -187,14 +187,26 @@ canvas{display:block}
    با یه درخواست HEAD (فقط هدر، چند بایت) چک می‌کنیم فایل عوض نشده باشه؛ اگه عوض شده بود، دوباره دانلود می‌شه. */
 (function(){
  const DB='mini-strike-cache',ST='files';let dbp=null;
- const db=()=>dbp||(dbp=new Promise(r=>{try{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore(ST);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null);q.onblocked=()=>r(null)}catch(e){r(null)}}));
+ const db=()=>dbp||(dbp=new Promise(r=>{setTimeout(()=>r(null),4000);try{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore(ST);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null);q.onblocked=()=>r(null)}catch(e){r(null)}}));
  const idb=(mode,fn)=>db().then(d=>d?new Promise(r=>{try{const q=fn(d.transaction(ST,mode).objectStore(ST));q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}}):null);
- const sig=u=>fetch(u,{method:'HEAD'}).then(r=>r.ok?(r.headers.get('etag')||'')+'|'+(r.headers.get('last-modified')||'')+'|'+(r.headers.get('content-length')||''):null).catch(()=>null);
+ const sig=u=>Promise.race([new Promise(r=>setTimeout(()=>r(null),6000)),fetch(u,{method:'HEAD'})]).then(r=>r.ok?(r.headers.get('etag')||'')+'|'+(r.headers.get('last-modified')||'')+'|'+(r.headers.get('content-length')||''):null).catch(()=>null);
+ const PR={};
+ const showProg=()=>{const el=document.getElementById('load');if(!el||!el.dataset.b)return;let l=0,t=0;for(const k in PR){l+=PR[k][0];t+=PR[k][1]}
+  if(t>0)el.textContent=el.dataset.b+'  ('+(l/1048576).toFixed(1)+' / '+(t/1048576).toFixed(1)+' MB)'};
+ async function dlOnce(url){   // دانلود استریمی با نمایش پیشرفت + ددلاین «بدون داده»: اگه ۲۰ ثانیه هیچ بایتی نیومد، قطع و دوباره
+  const ac=new AbortController();let tm;const kick=()=>{clearTimeout(tm);tm=setTimeout(()=>ac.abort(),20000)};kick();
+  try{const r=await fetch(url,{signal:ac.signal});if(!r.ok)throw new Error(r.status+' '+url);
+   const tot=+r.headers.get('content-length')||0;PR[url]=[0,tot];
+   if(!r.body||!r.body.getReader){const b=await r.arrayBuffer();PR[url]=[b.byteLength,b.byteLength];showProg();return b}
+   const rd=r.body.getReader(),parts=[];let ld=0;
+   for(;;){const{done,value}=await rd.read();if(done)break;kick();parts.push(value);ld+=value.length;PR[url][0]=ld;if(!tot)PR[url][1]=ld;showProg()}
+   const out=new Uint8Array(ld);let o=0;for(const c of parts){out.set(c,o);o+=c.length}return out.buffer}
+  finally{clearTimeout(tm)}}
+ async function dlProg(url){let err;for(let i=0;i<3;i++){try{return await dlOnce(url)}catch(e){err=e;console.warn('[dl] تلاش '+(i+1)+' ناموفق:',url,e.message);await new Promise(r=>setTimeout(r,800))}}throw err}
  window.cachedBuf=async function(url){
   const [rec,sg]=await Promise.all([idb('readonly',s=>s.get(url)),sig(url)]);
   if(rec&&rec.buf&&(sg===null||rec.sig===sg)){console.log('[cache] از کش:',url);return rec.buf}
-  const r=await fetch(url);if(!r.ok)throw new Error(r.status+' '+url);
-  const buf=await r.arrayBuffer();
+  const buf=await dlProg(url);
   idb('readwrite',s=>s.put({buf,sig:sg||''},url));   // ذخیره در پس‌زمینه؛ اگه شکست بخوره مهم نیست
   return buf};
  const FL=THREE.FileLoader.prototype,orig=FL.load;
@@ -3093,7 +3105,7 @@ function fitChar(root,kind){
  return out
 }
 async function boot(){
- const st=t=>$('load').textContent=t;
+ const st=t=>{$('load').dataset.b=t;$('load').textContent=t};
  try{
   st('در حال لود مپ...');
   // همه‌ی دانلودها هم‌زمان شروع می‌شن (قبلاً پشت‌سرهم بودن)؛ پردازششون همون ترتیب قبلی رو داره
