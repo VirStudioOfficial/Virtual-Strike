@@ -137,6 +137,9 @@ canvas{display:block}
 <button class="lbb" data-a="setclose">بستن</button></div></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 const $=id=>document.getElementById(id),R=Math.random;
@@ -161,7 +164,7 @@ alert:`<svg ${IC_ATTR}><path d="M12 2.5 1.8 20.2a.8.8 0 0 0 .7 1.3h19a.8.8 0 0 0
 };
 document.querySelectorAll('[data-ic]').forEach(e=>{e.innerHTML=ICON[e.dataset.ic]});
 /* فایل‌هایی که باید کنار همین HTML باشن (و با یه سرور محلی باز بشه، نه file://) */
-const FILES={map:'de_dust2_-_cs_map.glb',ally:'model.glb',enemy:'char_t.glb',gun:'ak47_cs2.glb',knife:'m9_bayonet_knife.glb',pistol:'pistol__usp_no_silencer_weapon_model_cs2.glb',ball:'soccer_ball.glb',bomb:'bomb__c4_explosive_model_cs2.glb'};
+const FILES={map:'de_dust2_-_cs_map.glb',ally:'model.glb',enemy:'char_t.glb',gun:'ak47_cs2.glb',knife:'m9_bayonet_knife.glb',pistol:'pistol__usp_no_silencer_weapon_model_cs2.glb',ball:'soccer_ball.glb',bomb:'bomb__c4_explosive_model_cs2.glb',lobby:'Stop%20Walking%20With%20Rifle.fbx'};
 const IN=39.37; // تبدیل اینچ مدل‌های قدیمی به متر
 const CHARS={
  ally:{arms:true,armPitch:[.88,.84],armRoll:.79,center:[0,0]},
@@ -1719,16 +1722,23 @@ function netLeaveRoom(silent){if(NET.mode==='host')netBroadcast({t:'roomend'});
  NET.on=false;NET.mode=null;NET.room='';NET.members=[];NET.conns=new Map();NET.hostConn=null;LB.squad=[];
  if(!silent){netUpdateChip();lbRenderUI();lbMsg('از روم خارج شدی','info')}};
 /* ---- صحنه‌ی سه‌بعدی لابی: همون مپ، دوربین سینمایی، کاراکترها ردیف ---- */
-const LB3={meshes:[],spot:null,f:null,r:null,D:4.6,t:0},LB_SLOTS=[[0,-.5],[-1.3,.3],[1.3,.3],[-2.5,.95],[2.5,.95]],_lv=new THREE.Vector3();
-function lbFindSpot(){ // بهترین نقطه/زاویه: فضای باز، پشت دوربین جا داشته باشه، جلو عمق داشته باشه
- const o0=SPAWN[0][0],cands=SPAWN[0].slice(0,12).map(c=>c.slice());
- for(let k=0;k<80&&cands.length<26;k++){const n=Math.floor(R()*NN);if(ncomp[n]!==mainComp)continue;if(Math.hypot(nvx[n]-o0[0],nvz[n]-o0[2])>32)continue;cands.push([nvx[n],nvy[n],nvz[n]])}
+const LB3={meshes:[],mix:[],byName:{},spot:null,f:null,r:null,D:4.6,t:0},LB_SLOTS=[[0,-.5],[-1.3,.3],[1.3,.3],[-2.5,.95],[2.5,.95]],_lv=new THREE.Vector3();
+function lbFindSpot(){ // مکان «ثابت»: بدون هیچ رندومی؛ هر بار همون بازترین نقطه‌ی نزدیک اسپاون (جای ۵ نفر + مسیر راه‌رفتن + دوربین)
+ const o0=SPAWN[0][0],seen=new Set(),cands=[],add=(x,y,z)=>{const k=Math.round(x*2)+','+Math.round(z*2)+','+Math.round(y);if(seen.has(k))return;seen.add(k);cands.push([x,y,z])};
+ for(const c of SPAWN[0])add(c[0],c[1],c[2]);
+ {const near=[];for(let n=0;n<NN;n++){if(ncomp[n]!==mainComp)continue;if(Math.hypot(nvx[n]-o0[0],nvz[n]-o0[2])>36)continue;near.push(n)}
+  const st=Math.max(1,Math.floor(near.length/58));for(let k=0;k<near.length;k+=st){const n=near[k];add(nvx[n],nvy[n],nvz[n])}}
  let best=null,bs=-1e9;
- for(const c of cands){if(!clearOK(c,.8))continue;
-  for(let k=0;k<12;k++){const a=k/12*Math.PI*2,fx=Math.cos(a),fz=Math.sin(a),o={x:c[0],y:c[1]+1.4,z:c[2]},wd=(dx,dz)=>wallDist(o,{x:dx,y:0,z:dz});
-   const back=wd(-fx,-fz),fwd=wd(fx,fz),sl=wd(-fz,fx),sr=wd(fz,-fx),up=castRay(o.x,o.y,o.z,0,1,0,6,false);
-   let sc=Math.min(back,7)*4+Math.min(fwd,25)+Math.min(sl,4)*3+Math.min(sr,4)*3+Math.min(up,6)*1.5-Math.hypot(c[0]-o0[0],c[2]-o0[2])*.15;
-   if(back<5.8)sc-=200;if(sl<3.2||sr<3.2)sc-=60;
+ for(const c of cands){if(!clearOK(c,1.0))continue;
+  for(let k=0;k<12;k++){const a=k/12*Math.PI*2,fx=Math.cos(a),fz=Math.sin(a),rx=-fz,rz=fx,o={x:c[0],y:c[1]+1.4,z:c[2]},wd=(dx,dz)=>wallDist(o,{x:dx,y:0,z:dz});
+   const back=wd(-fx,-fz),fwd=wd(fx,fz),sl=wd(rx,rz),sr=wd(-rx,-rz),up=castRay(o.x,o.y,o.z,0,1,0,6,false);
+   let sc=Math.min(back,7)*4+Math.min(fwd,25)+Math.min(sl,4.5)*3+Math.min(sr,4.5)*3+Math.min(up,6)*1.5-Math.hypot(c[0]-o0[0],c[2]-o0[2])*.15;
+   if(back<6)sc-=200;if(sl<3.4||sr<3.4)sc-=150;if(fwd<9)sc-=100;   // دوربین پشت، ۵ نفر کنار هم، و جلو برای راه‌رفتن جا لازمه
+   if(sc<=bs)continue;
+   let bad=0;   // زمین زیر ۵ نفر و نقطه‌ی شروع راه‌رفتنشون باید صاف باشه
+   for(const[sx,sd]of LB_SLOTS)for(const bk of[0,1.8]){const x=c[0]+rx*sx+fx*(sd+bk),z=c[2]+rz*sx+fz*(sd+bk),t=castRay(x,c[1]+1.5,z,0,-1,0,4,false);
+    if(!(t<4)||Math.abs(c[1]+1.5-t-c[1])>.25)bad++}
+   sc-=bad*40;
    if(sc>bs){bs=sc;best={c,fx,fz}}}}
  if(!best){const a=Math.PI/4;best={c:o0,fx:Math.cos(a),fz:Math.sin(a)}}
  return best}
@@ -1737,8 +1747,77 @@ addEventListener('resize',()=>{if(inLobby)lbLayout()});
 function lbPose(m){const u=m.userData,g=n=>u.body.getObjectByName(n),kl=g('kneeL'),kr=g('kneeR');
  if(kl&&kr){kl.rotation.x=kr.rotation.x=KNEE_SIGN*.07}
  u.ring.visible=false;u.botGun.visible=true}
-function lbClearChars(){for(const m of LB3.meshes)scene.remove(m);LB3.meshes=[];$('lbcards').innerHTML=''}
-function lbBuildChars(){lbClearChars();const s=LB3.spot;if(!s)return;
+/* ================= لابی با مدل FBX (Stop_Walking_With_Rifle.fbx): کاراکترها راه می‌یان تو، می‌ایستن، و گان توی دستشونه ================= */
+const LBF={ok:false,src:null,clip:null,sc:1,he:{x:0,z:0},off:0,gP:null,gQ:null,gS:null};
+const LBF_TEX=true;   // true = تکسچر کاراکتر اصلی (ally) روی مدل FBX؛ false = رنگ‌آمیزی ساده
+const LBF_GUN={scale:1.0,anchor:[0,.07,-.10],pitch:.07};   // اندازه‌ی گان (۱ = ۸۸ سانت) | نقطه‌ای از مدل گان که وسط دو دست می‌شینه (x,y,z؛ z منفی = سمت لوله)
+const LBF_FACE=.10;                                // سر آخر کاراکتر چقدر (رادیان) از دوربین کج باشه
+const lbfKey=b=>b.name.replace(/^mixamorig:?/,'');
+function lbfBones(o){const r={};o.traverse(b=>{if(b.isBone)r[lbfKey(b)]=b});return r}
+function lbfGunObj(){const g=new THREE.Group();
+ if(typeof AKW!=='undefined'&&AKW){const k=AKW.clone(true);k.traverse(x=>{x.castShadow=false;x.frustumCulled=false});g.add(k)}
+ else{const b=makeBotGun();b.position.set(0,0,.15);b.scale.setScalar(1);g.add(b)}
+ return g}
+function lbfLoad(){return new Promise(res=>{
+ if(!THREE.FBXLoader||!THREE.SkeletonUtils||typeof fflate==='undefined'){console.warn('[lobby] FBXLoader/SkeletonUtils/fflate لود نشدن → لابی قدیمی');return res(false)}
+ new THREE.FBXLoader().load(FILES.lobby,o=>{try{lbfPrep(o);LBF.ok=true;console.log('[lobby] مدل FBX آماده شد؛ مدت انیمیشن',LBF.clip.duration.toFixed(2),'ثانیه');res(true)}catch(err){console.warn('[lobby] آماده‌سازی FBX شکست خورد → لابی قدیمی:',err);res(false)}},
+  undefined,e=>{console.warn('[lobby] فایل '+FILES.lobby+' لود نشد (باید کنار index.html باشه) → لابی قدیمی');res(false)})})}
+function lbfPrep(o){
+ let mesh=null;o.traverse(x=>{if(x.isSkinnedMesh&&!mesh)mesh=x});
+ if(!mesh)throw new Error('SkinnedMesh توی FBX نبود');
+ const clip=(o.animations||[])[0];if(!clip)throw new Error('انیمیشنی توی FBX نبود');
+ o.updateMatrixWorld(true);
+ const bb=new THREE.Box3().setFromObject(mesh),sc=CHAR_H/Math.max(.01,bb.max.y-bb.min.y);
+ /* رنگ‌آمیزی بدون تکسچر: بر اساس استخونی که هر رأس بهش وصله (دست‌کش/بوت/کلاه/جلیقه/لباس) */
+ {const geo=mesh.geometry,si=geo.attributes.skinIndex,sw=geo.attributes.skinWeight,bones=mesh.skeleton.bones;
+  if(si&&sw){const grp=bones.map(b=>{const k=lbfKey(b);return /Hand/.test(k)?1:/Foot|Toe/.test(k)?2:/Head|Neck/.test(k)?3:/Spine|Hips|Shoulder/.test(k)?4:0});
+   const COL=[[.24,.28,.37],[.34,.36,.37],[.24,.26,.29],[.15,.16,.18],[.27,.30,.21]],col=new Float32Array(si.array.length/4*3);
+   for(let i=0;i<si.array.length/4;i++){let r=0,g=0,b=0,ws=0;for(let k=0;k<4;k++){const w=sw.array[i*4+k];if(!w)continue;const c=COL[grp[si.array[i*4+k]]||0];r+=c[0]*w;g+=c[1]*w;b+=c[2]*w;ws+=w}
+    ws=ws||1;col[i*3]=r/ws;col[i*3+1]=g/ws;col[i*3+2]=b/ws}
+   geo.setAttribute('color',new THREE.BufferAttribute(col,3))}
+  let tex=null;   // تکسچر اصلی: از مش اصلیِ کاراکتر ally (همون مدلِ لابی قدیمی) برمی‌داریم؛ UVهای FBX هم از همون مدله
+  if(LBF_TEX&&typeof TMPL!=='undefined'&&TMPL.ally){let bv=0;TMPL.ally.traverse(x=>{if(x.isMesh&&x.material){for(const q of(Array.isArray(x.material)?x.material:[x.material]))if(q.map&&q.map.image){const v=x.geometry.attributes.position.count;if(v>bv){bv=v;tex=q.map}}}})}
+  if(tex&&geo.attributes.uv&&tex.flipY===false){const u=geo.attributes.uv.array;for(let i=1;i<u.length;i+=2)u[i]=1-u[i]}   // FBX: v از پایین؛ glTF: v از بالا
+  console.log('[lobby] تکسچر کاراکتر:',tex?'پیدا شد':'پیدا نشد → رنگ‌آمیزی ساده');
+  const m=tex?new THREE.MeshLambertMaterial({map:tex,color:0xffffff}):new THREE.MeshLambertMaterial({vertexColors:true,color:0xffffff});m.skinning=true;mesh.material=m}
+ /* نمونه‌برداری از پوز آخر انیمیشن: جای باسن، جهت سر، و دو دست (برای گان) */
+ const tw=new THREE.Group();tw.scale.setScalar(sc);const to=THREE.SkeletonUtils.clone(o);tw.add(to);
+ const mx=new THREE.AnimationMixer(to),ac=mx.clipAction(clip);ac.play();
+ ac.time=Math.max(0,clip.duration-1e-3);mx.update(0);tw.updateMatrixWorld(true);
+ const bn=lbfBones(to),V=THREE.Vector3,wp=n=>bn[n].getWorldPosition(new V());
+ const hips=wp('Hips'),q=new THREE.Quaternion();bn.Head.getWorldQuaternion(q);
+ const hf=new V(0,0,1).applyQuaternion(q),headYaw=Math.atan2(hf.x,hf.z);
+ const Pr=wp('RightHandIndex1'),Pl=wp('LeftHandIndex1'),dh=Pl.clone().sub(Pr).normalize();dh.y-=LBF_GUN.pitch;dh.normalize();   // pitch: مثبت = لوله بیشتر رو به پایین (عقب گان بالاتر)
+ const za=dh.clone().negate(),xa=new V(0,1,0).cross(za).normalize(),ya=za.clone().cross(xa),S=LBF_GUN.scale,A=LBF_GUN.anchor;
+ const mid=Pr.clone().add(Pl).multiplyScalar(.5),pos=mid.clone().sub(xa.clone().multiplyScalar(A[0]*S)).sub(ya.clone().multiplyScalar(A[1]*S)).sub(za.clone().multiplyScalar(A[2]*S));
+ const Mg=new THREE.Matrix4().makeBasis(xa.clone().multiplyScalar(S),ya.clone().multiplyScalar(S),za.clone().multiplyScalar(S)).setPosition(pos);
+ const loc=new THREE.Matrix4().copy(bn.RightHand.matrixWorld).invert().multiply(Mg),gP=new V(),gQ=new THREE.Quaternion(),gS=new V();loc.decompose(gP,gQ,gS);
+ LBF.src=o;LBF.clip=clip;LBF.sc=sc;LBF.he={x:hips.x,z:hips.z};LBF.off=LBF_FACE-headYaw;LBF.gP=gP;LBF.gQ=gQ;LBF.gS=gS}
+function lbfMake(i){
+ const w=new THREE.Group(),inner=new THREE.Group(),o=THREE.SkeletonUtils.clone(LBF.src);
+ inner.scale.setScalar(LBF.sc);inner.add(o);w.add(inner);
+ const rh=lbfBones(o).RightHand;if(rh){const g=lbfGunObj();g.position.copy(LBF.gP);g.quaternion.copy(LBF.gQ);g.scale.copy(LBF.gS);rh.add(g)}
+ o.traverse(x=>{if(x.isSkinnedMesh){x.frustumCulled=false;x.castShadow=true;x.receiveShadow=true}});
+ const mx=new THREE.AnimationMixer(o),ac=mx.clipAction(LBF.clip);ac.setLoop(THREE.LoopOnce,1);ac.clampWhenFinished=true;ac.timeScale=.94+((i*5)%4)*.04;ac.play();
+ w.userData={body:inner,mx,ac,slot:i};scene.add(w);return w}
+function lbfPlace(w,x,y,z,cx,cz,i){   // ته مسیر راه‌رفتن دقیقاً روی جای خودش می‌شینه؛ از چند قدم عقب‌تر شروع می‌کنه
+ const a=Math.atan2(cx-x,cz-z)+LBF.off+((i%3)-1)*.03,c=Math.cos(a),s=Math.sin(a),hx=LBF.he.x,hz=LBF.he.z;
+ w.rotation.y=a;w.position.set(x-(hx*c+hz*s),y,z-(-hx*s+hz*c));w.userData.cp={x,y,z};w.userData.slot=i}
+function lbClearChars(){for(const m of LB3.meshes){scene.remove(m);if(m.userData&&m.userData.mx)m.userData.mx.stopAllAction()}LB3.meshes=[];LB3.mix=[];LB3.byName={};$('lbcards').innerHTML=''}
+function lbBuildChars(){
+ if(!LBF.ok)return lbBuildCharsOld();
+ const s=LB3.spot;if(!s)return;
+ const me=NET.myName||'تو',names=[me,...LB.squad.filter(x=>x!==me)],cx=s.x-LB3.f.x*LB3.D,cz=s.z-LB3.f.z*LB3.D,old=LB3.byName,keep={};let cards='';
+ names.forEach((n,i)=>{const[sx,sd]=LB_SLOTS[i],x=s.x+LB3.r.x*sx+LB3.f.x*sd,z=s.z+LB3.r.z*sx+LB3.f.z*sd,t=castRay(x,s.y+1.5,z,0,-1,0,4,false),gy=t<4?s.y+1.5-t:s.y;
+  let m=old[n];
+  if(!m)m=lbfMake(i);   // عضو جدید: خودش راه می‌یاد تو
+  else if(m.userData.slot!==i){m.userData.ac.time=LBF.clip.duration;m.userData.mx.update(0)}   // جاش عوض شده (کسی رفته): بدون راه‌رفتن مجدد می‌پره روی جای جدید
+  lbfPlace(m,x,gy,z,cx,cz,i);keep[n]=m;
+  cards+=`<div class="pc"><div class="pcb" style="background:${avBg(n)}">${i===0?'<span class="crown">'+ICON.crown+'</span>':''}${ini(n)}</div><div class="pcn">${esc(n)}${i===0?' <small style="opacity:.65">(لیدر)</small>':''}</div></div>`});
+ for(const n in old)if(!keep[n]){scene.remove(old[n]);old[n].userData.mx.stopAllAction()}
+ LB3.byName=keep;LB3.meshes=names.map(n=>keep[n]);LB3.mix=LB3.meshes.map(m=>m.userData.mx);
+ $('lbcards').innerHTML=cards}
+function lbBuildCharsOld(){lbClearChars();const s=LB3.spot;if(!s)return;
  const me=NET.myName||'تو',names=[me,...LB.squad.filter(x=>x!==me)],cx=s.x-LB3.f.x*LB3.D,cz=s.z-LB3.f.z*LB3.D;let cards='';
  names.forEach((n,i)=>{const m=mkMesh(0),[sx,sd]=LB_SLOTS[i],x=s.x+LB3.r.x*sx+LB3.f.x*sd,z=s.z+LB3.r.z*sx+LB3.f.z*sd;
   const t=castRay(x,s.y+1.5,z,0,-1,0,4,false),gy=t<4?s.y+1.5-t:s.y;
@@ -1749,9 +1828,10 @@ function lobbyFrame(dt){const s=LB3.spot;if(!s)return;gun.visible=false;if(VM.ar
  sun.target.position.set(s.x,s.y,s.z);sun.position.set(s.x+40,s.y+80,s.z+20);
  const sw=Math.sin(t*.35)*.08,sh=Math.sin(t*.27)*.018;
  cam.position.set(s.x-f.x*LB3.D+r.x*sw,s.y+1.25+sh,s.z-f.z*LB3.D+r.z*sw);cam.lookAt(s.x,s.y+.85,s.z);cam.updateMatrixWorld();sky.position.copy(cam.position);
+ {const dtc=Math.min(dt,.05);for(const mx of LB3.mix)mx.update(dtc)}
  const cd=$('lbcards').children;
  LB3.meshes.forEach((m,i)=>{m.userData.body.position.y=Math.sin(t*1.5+i*1.3)*.006;
-  _lv.set(m.position.x,m.position.y,m.position.z).project(cam);
+  {const cp=m.userData.cp||m.position;_lv.set(cp.x,cp.y,cp.z).project(cam)}
   const c=cd[i];if(c)c.style.transform=`translate(${((_lv.x*.5+.5)*innerWidth).toFixed(1)}px,${((-_lv.y*.5+.5)*innerHeight+8).toFixed(1)}px) translateX(-50%)`});
  ren.render(scene,cam)}
 function lobbyEnter(){inLobby=true;inMatch=false;
@@ -2432,6 +2512,7 @@ async function boot(){
   pv.position.set(-cc.x,-bb.min.y,-cc.z);pv.updateMatrixWorld(true);
   st('در حال لود کاراکترها...');
   await Promise.all([[FILES.ally,'ally'],[FILES.enemy,'enemy']].map(([f,k])=>loadGLB(f).then(normChar).then(r=>{const o=fitChar(r,k);TMPL[k]=o;if(k==='ally'){try{buildViewArms(r,o.userData.s)}catch(err){console.warn('دست‌های ویوومدل ساخته نشد:',err)}}}).catch(e=>console.warn('کاراکتر لود نشد:',e.message))));
+  st('در حال لود انیمیشن لابی...');await lbfLoad();{let k=0;while(typeof AKW!=='undefined'&&!AKW&&k++<40)await new Promise(r=>setTimeout(r,50))}   // گان AK باید آماده باشه تا بدیم دست کاراکترها
   st('در حال ساخت برخورد و مسیرها...');await new Promise(r=>setTimeout(r,30));
   buildCol(pv);
   const info=buildNav();console.log('nav',info);
