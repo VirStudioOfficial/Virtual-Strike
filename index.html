@@ -909,14 +909,17 @@ function navJumpEdge(a,b){
 let gS,fS,par,seen,seenId=0,hpN=[],hpF=[];
 function heapPush(n,f){let i=hpN.length;hpN.push(n);hpF.push(f);while(i>0){const p=(i-1)>>1;if(hpF[p]<=hpF[i])break;[hpF[p],hpF[i]]=[hpF[i],hpF[p]];[hpN[p],hpN[i]]=[hpN[i],hpN[p]];i=p}}
 function heapPop(){const n=hpN[0],ln=hpN.pop(),lf=hpF.pop();if(hpN.length){hpN[0]=ln;hpF[0]=lf;let i=0;for(;;){let l=2*i+1,r=l+1,m=i;if(l<hpN.length&&hpF[l]<hpF[m])m=l;if(r<hpN.length&&hpF[r]<hpF[m])m=r;if(m===i)break;[hpF[m],hpF[i]]=[hpF[i],hpF[m]];[hpN[m],hpN[i]]=[hpN[i],hpN[m]];i=m}}return n}
-function findPath(sx,sy,sz,tx,ty,tz){
+/* ---- تنوع مسیر بات‌ها: هزینه‌ی هر ناحیه (سلول‌های ۱۰ متری) برای هر سفر یه ضریب تصادفی می‌گیره؛ پس بات‌ها همیشه کوتاه‌ترین (= یه) مسیر رو نمی‌رن ---- */
+const PATH_NOISE=.9,PATH_CELL=10;   // PATH_NOISE: ۰ = همه کوتاه‌ترین مسیر | بیشتر = مسیرها متنوع‌تر و طولانی‌تر
+function pnoise(x,z,seed){let h=Math.imul(Math.floor(x/PATH_CELL)|0,73856093)^Math.imul(Math.floor(z/PATH_CELL)|0,19349663)^Math.imul(seed|0,83492791);h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return(h>>>0)/4294967296}
+function findPath(sx,sy,sz,tx,ty,tz,seed){
  const s=nearestNode(sx,sy,sz),g=nearestNode(tx,ty,tz);if(s<0||g<0)return null;
  if(!gS){gS=new Float32Array(NN);par=new Int32Array(NN);seen=new Int32Array(NN)}
  seenId++;hpN.length=0;hpF.length=0;gS[s]=0;par[s]=-1;seen[s]=seenId;heapPush(s,0);
  const h=n=>Math.hypot(nvx[n]-nvx[g],nvy[n]-nvy[g],nvz[n]-nvz[g]);let found=false,it=0;
  const done=new Set();
  while(hpN.length&&it++<60000){const u=heapPop();if(done.has(u))continue;done.add(u);if(u===g){found=true;break}
-  for(let k=adjS[u];k<adjS[u+1];k++){const v=adjT[k],ng=gS[u]+adjW[k];
+  for(let k=adjS[u];k<adjS[u+1];k++){const v=adjT[k],ng=gS[u]+adjW[k]*(seed?1+PATH_NOISE*pnoise(nvx[v],nvz[v],seed):1);
    if(seen[v]!==seenId||ng<gS[v]){seen[v]=seenId;gS[v]=ng;par[v]=u;heapPush(v,ng+h(v))}}}
  if(!found)return null;const p=[];for(let n=g;n>=0;n=par[n])p.push(n);p.reverse();return p}
 
@@ -1191,6 +1194,8 @@ function bloodUpdate(dt){if(!BL.ok)return;
 
 /* ---- والبنگ: گلوله از دیوار/در نازک (ضخامت ≤ PEN_THICK متر) رد می‌شه؛ حداکثر PEN_WALLS دیوار، و هر دیوار PEN_DMG از دمیج کم می‌کنه. کف و سقف رد نمی‌شن ---- */
 const PEN_THICK=.5,PEN_WALLS=2,PEN_DMG=.6;
+/* ---- دمیج AK مثل CS2: ۳۶ پایه | سر ×۴ | شکم ×۱.۲۵ | پا ×۰.۷۵ | افت برد: ۰.۹۸ به ازای هر ۵۰۰ یونیت (= ۱۲.۷ متر) ---- */
+const AK_DMG=36,AK_HEAD=4,AK_CHEST=1,AK_STOM=1.25,AK_LEG=.75,AK_RANGE=.98,AK_RANGE_M=12.7;
 function fire(e,d){let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z}
  const o0={x:ox,y:oy,z:oz};let hit=null,zone='body',trav=0,mul=1,walls=0,L=100,bh=false;
  for(;;){
@@ -1210,7 +1215,9 @@ function fire(e,d){let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z}
  if(!e.isP&&SD.on&&P.dead&&SD.spec===e)VM.kick=Math.min(.11,VM.kick+.07);   // لگد گان موقع تماشا
  const dist=Math.hypot(e.p.x-P.p.x,e.p.z-P.p.z);if(!((!e.isP||(e.wp||0)!==2)&&sfx('shot',e.isP?.75:.6/(1+dist/8),.96+R()*.08)))beep(e.isP?((e.wp||0)===2?230:180):140,e.isP?.05:.05/(1+dist/6));
  if(hit&&!hit.isP)bloodHit(end,d,zone);   // پاشش خون
- if(hit){const pp=e.isP&&(e.wp||0)===2,D={head:e.isP?[100]:[25],body:e.isP?[pp?28:34]:[12],legs:e.isP?[pp?14:18]:[6]};if(NET.mode!=='client')damage(hit,walls?Math.max(1,Math.round(D[zone][0]*mul*(e.team===1&&!e.isP?EN.dmg:1))):Math.round(D[zone][0]*(e.team===1&&!e.isP?EN.dmg:1)),e,zone,walls>0)}   // روی کلاینت فقط پیش‌بینی بصریه؛ دمیج رو هاست اعمال می‌کنه
+ if(hit){const pp=e.isP&&(e.wp||0)===2,D={head:e.isP?[100]:[25],body:e.isP?[pp?28:34]:[12],legs:e.isP?[pp?14:18]:[6]};let base=D[zone][0];
+  if(e.isP&&(e.wp||0)===0){const bc=hit.p.y+.98-.27*(hit.cr||0),zm=zone==='head'?AK_HEAD:zone==='legs'?AK_LEG:(end.y<bc+.1?AK_STOM:AK_CHEST);base=AK_DMG*zm*Math.pow(AK_RANGE,L/AK_RANGE_M)}   // AK بازیکن: فرمول CS2 (مسافت کل مسیر گلوله)
+  if(NET.mode!=='client')damage(hit,walls?Math.max(1,Math.round(base*mul*(e.team===1&&!e.isP?EN.dmg:1))):Math.round(base*(e.team===1&&!e.isP?EN.dmg:1)),e,zone,walls>0)}   // روی کلاینت فقط پیش‌بینی بصریه؛ دمیج رو هاست اعمال می‌کنه
  if(bh&&!hit&&NET.mode!=='client'){ballImpulse(d.x*8,Math.max(d.y*8,-1)+2.2,d.z*8);if(!sfx('f0',.5/(1+dist/8),1.1))beep(150,.04,.08)}   // ضربه‌ی گلوله به توپ: لگد به سمت مسیر گلوله
  if(NET.mode==='host')NET.send({t:'shot',by:e.name,o:[+o.x.toFixed(2),+o.y.toFixed(2),+o.z.toFixed(2)],d:[+d.x.toFixed(3),+d.y.toFixed(3),+d.z.toFixed(3)],end:[+end.x.toFixed(2),+end.y.toFixed(2),+end.z.toFixed(2)],hit:hit?hit.name:null,zone,wp:e.wp||0})}
 const _mv=new THREE.Vector3(),_me=new THREE.Euler(0,0,0,'YXZ');
@@ -1570,7 +1577,8 @@ const keys={};let locked=false,mouse=false,mouse2=false,clickL=false,clickR=fals
 addEventListener('keydown',e=>{if(!inMatch)return;if(locked&&(e.code==='Space'||e.ctrlKey))e.preventDefault();keys[e.code]=1;if(e.code==='Space'&&!e.repeat&&P)P.jb=.12;if(e.code==='KeyR')reload();if(e.code==='Digit1')setWeapon(0);if(e.code==='Digit2')setWeapon(2);if(e.code==='Digit3')setWeapon(1);if(e.code==='Digit4')setWeapon(3);if(e.code==='Digit5')setWeapon(4);if(e.code==='Digit6')setWeapon(5);if(e.code==='Digit7')setWeapon(6);if(e.code==='Digit8')setWeapon(7);if(SD.on&&P&&!P.dead){if(e.code==='F7'||e.code==='F8'||e.code==='F9')e.preventDefault();if(e.code==='F7')sdSetSite(0);if(e.code==='F8')sdSetSite(1);if(e.code==='F9')sdResetSites()}if(e.code==='KeyQ'&&P)setWeapon(P.pw!==undefined?P.pw:1);if(e.code==='KeyV'&&locked)tp=!tp});addEventListener('keyup',e=>keys[e.code]=0);addEventListener('blur',()=>{for(const k in keys)keys[k]=0});
 addEventListener('mousedown',e=>{if(!locked)return;if(e.button===0){mouse=true;clickL=true}if(e.button===2){mouse2=true;clickR=true}});addEventListener('mouseup',e=>{if(e.button===0)mouse=false;if(e.button===2)mouse2=false});
 addEventListener('contextmenu',e=>{if(locked)e.preventDefault()});
-addEventListener('mousemove',e=>{if(!locked||P.dead)return;P.yaw-=e.movementX*SENS;pitch=Math.max(-1.5,Math.min(1.5,pitch-e.movementY*SENS))});
+let skipMM=0;   // رد کردن پرش‌های ناگهانی ماوس (باگ شناخته‌شده‌ی Pointer Lock در کروم/ویندوز)
+addEventListener('mousemove',e=>{if(!locked||P.dead)return;if(skipMM>0){skipMM--;return}let dx=e.movementX,dy=e.movementY;if(Math.abs(dx)>250||Math.abs(dy)>250)return;P.yaw-=dx*SENS;pitch=Math.max(-1.5,Math.min(1.5,pitch-dy*SENS))});
 let inMatch=false,inLobby=false;
 /* ---- تنظیمات (ذخیره در localStorage) ---- */
 const SET=Object.assign({sens:1,fov:75,q:'high'},(()=>{try{return JSON.parse(localStorage.getItem('ms_set')||'{}')}catch(e){return {}}})());
@@ -2066,7 +2074,7 @@ function leaveMatch(){if(NET.mode==='host')NET.send({t:'tolobby'});if(NET.mode==
 const unlockMouse=()=>{if(document.pointerLockElement)document.exitPointerLock();showMenu();locked=false;mouse=false;mouse2=false;for(const k in keys)keys[k]=0};   // رفتن به تب/پنجره‌ی دیگه: ماوس آزاد بشه
 addEventListener('blur',unlockMouse);document.addEventListener('visibilitychange',()=>{if(document.hidden)unlockMouse()});
 document.addEventListener('pointerlockerror',()=>{locked=false;showMenu()});
-document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===ren.domElement;if(locked)$('menu').style.display='none';else showMenu();if(!locked){mouse=false;mouse2=false;for(const k in keys)keys[k]=0}});
+document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===ren.domElement;skipMM=2;if(locked)$('menu').style.display='none';else showMenu();if(!locked){mouse=false;mouse2=false;for(const k in keys)keys[k]=0}});
 
 /* ================= SIMULATION ================= */
 /* ---- حرکت بازیکن: سرعت افقی با شتاب (روی زمین چابک، توی هوا تکانه حفظ می‌شه)، نشستن نرم، پرش با coyote-time و بافر ---- */
@@ -2122,13 +2130,15 @@ function playerUpdate(dt){
  P.fireT=(P.fireT||0)-dt;if(P.fireT<=0){P.spray=Math.max(0,(P.spray||0)-dt*.03);   // ول کردن ماشه: دوربین نصفه برمی‌گرده پایین
   const back=Math.min(P.recAcc||0,dt*.35);if(back>0){pitch-=back*.6;P.recAcc-=back}}}
 /* نقطه‌ی گشت: از بین چند گره‌ی تصادفی، اونی که از هدف هم‌تیمی‌ها دورتره (و کمی به سمت تیم مقابل) */
+const PICK_RND=14;   // رندوم بودن انتخاب نقطه‌ی گشت (قبلاً ۶)؛ بیشتر = پراکنده‌تر
 function pickRoam(e){
+ e.pseed=R()<.2?0:1+Math.floor(R()*1e6);   // ۲۰٪ سفرها کوتاه‌ترین مسیر (وسط)، بقیه مسیر متفاوت
  if(SD.on&&sdPickRoam(e))return;
  const eo=SPAWN[1-e.team][0];let best=null,bs=-1e9;
  for(let k=0;k<30;k++){const n=Math.floor(R()*NN);if(ncomp[n]!==mainComp)continue;
   const x=nvx[n],z=nvz[n];if(Math.hypot(x-e.p.x,z-e.p.z)<15)continue;
   let md=60;for(const t of ents){if(t===e||t.team!==e.team||!t.rg)continue;md=Math.min(md,Math.hypot(t.rg[0]-x,t.rg[2]-z))}
-  const s=(e.team===1&&P&&!P.dead&&!SD.on)?md*.4-.15*Math.hypot(x-eo[0],z-eo[2])-EN.chase*Math.hypot(x-P.p.x,z-P.p.z)+R()*6:md-.15*Math.hypot(x-eo[0],z-eo[2])+R()*6;
+  const s=(e.team===1&&P&&!P.dead&&!SD.on)?md*.4-.15*Math.hypot(x-eo[0],z-eo[2])-EN.chase*Math.hypot(x-P.p.x,z-P.p.z)+R()*PICK_RND:md-.15*Math.hypot(x-eo[0],z-eo[2])+R()*PICK_RND;
   if(s>bs){bs=s;best=[x,nvy[n],z]}}
  if(!best){const n=Math.floor(R()*NN);best=[nvx[n],nvy[n],nvz[n]]}
  e.rg=best;e.rgt=14+R()*12;e.path=null;e.pt=0}
@@ -2175,7 +2185,7 @@ function botUpdate(e,dt){
   if(e.team===0&&!P.dead){if(dP>40)e.goal=1;else if(dP<20)e.goal=0;if(e.goal===1){gx=P.p.x;gy=P.p.y;gz=P.p.z;follow=true}}
   if((follow&&dP<5)||sdHold(e,dt)){/* کنار بازیکنه / پلنت / خنثی‌سازی: بایسته */}
   else{
-   e.pt-=dt;if(!e.path||e.pt<=0){e.pt=.7+R()*.5;const p=findPath(e.p.x,e.p.y,e.p.z,gx,gy,gz);e.path=p;e.pi=0;
+   e.pt-=dt;if(!e.path||e.pt<=0){e.pt=.7+R()*.5;const p=findPath(e.p.x,e.p.y,e.p.z,gx,gy,gz,follow?0:e.pseed);e.path=p;e.pi=0;
      if(p&&p.length>1){e.pi=1}}
    if(e.path&&e.pi<e.path.length){
     let n=e.path[e.pi];
