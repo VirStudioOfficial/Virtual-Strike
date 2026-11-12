@@ -230,7 +230,7 @@ alert:`<svg ${IC_ATTR}><path d="M12 2.5 1.8 20.2a.8.8 0 0 0 .7 1.3h19a.8.8 0 0 0
 };
 document.querySelectorAll('[data-ic]').forEach(e=>{e.innerHTML=ICON[e.dataset.ic]});
 /* فایل‌هایی که باید کنار همین HTML باشن (و با یه سرور محلی باز بشه، نه file://) */
-const FILES={map:'de_dust2_-_cs_map.glb',ally:'model.glb',enemy:'char_t.glb',gun:'ak47_cs2.glb',knife:'m9_bayonet_knife.glb',pistol:'pistol__usp_no_silencer_weapon_model_cs2.glb',ball:'soccer_ball.glb',bomb:'bomb__c4_explosive_model_cs2.glb',c4snd:'c4_bomb.mp3',nHE:'granade_game_ready.glb',nSmoke:'m18_smoke_grenade.glb',nFlash:'flashbang_grenade.glb',nMolo:'molotov_cocktail_with_lighter.glb',lobby:'Stop%20Walking%20With%20Rifle.fbx'};
+const FILES={map:'de_dust2_-_cs_map.glb',ally:'model.glb',enemy:'char_t2.glb',gun:'ak47_cs2.glb',knife:'m9_bayonet_knife.glb',pistol:'pistol__usp_no_silencer_weapon_model_cs2.glb',ball:'soccer_ball.glb',bomb:'bomb__c4_explosive_model_cs2.glb',c4snd:'c4_bomb.mp3',nHE:'granade_game_ready.glb',nSmoke:'m18_smoke_grenade.glb',nFlash:'flashbang_grenade.glb',nMolo:'molotov_cocktail_with_lighter.glb',lobby:'Stop%20Walking%20With%20Rifle.fbx'};
 const IN=39.37; // تبدیل اینچ مدل‌های قدیمی به متر
 const CHARS={
  ally:{arms:true,armPitch:[.88,.84],armRoll:.79,center:[0,0]},
@@ -1876,6 +1876,7 @@ function netRoomMsg(conn,m){
   if(!LB.friends.includes(n)){LB.friends.push(n);netSaveReal(n);lbSave()}
   lbMsg(n+' به روم پیوست','check');lbRenderUI();
   const lb={t:'lobby',squad:NET.members.slice(),host:NET.myName,mode:LB.mode};try{conn.send(lb)}catch(e){}netBroadcast(lb)}
+ else if(m.t==='ack'){if(NET.acks&&conn._name)NET.acks.add(conn._name)}
  else if(m.t==='st'){const e=ents.find(x=>x.name===conn._name);
   if(e){e.tg={x:m.x,y:m.y,z:m.z,yaw:m.yaw,vp:m.vp,cr:m.cr,on:m.on}}}
  else if(m.t==='fire'){const e=ents.find(x=>x.name===conn._name);
@@ -1891,7 +1892,13 @@ function netClientMsg(conn,m){
  if(m.t==='full'){NET.joinT=0;lbMsg('روم پر است یا بازی در جریان است','alert');try{NET.peer.destroy()}catch(e){}NET.hostConn=null;return}
  if(m.t==='roomend'){NET.on=false;NET.mode=null;NET.room='';NET.members=[];LB.squad=[];if(inMatch)leaveMatchMP();netUpdateChip();lbRenderUI();lbMsg('هاست روم رو بست','alert');return}
  if(m.t==='lobby'){NET.joinT=0;NET.on=true;NET.mode='client';NET.hostMode=m.mode||'dm';NET.members=m.squad.slice();LB.squad=m.squad.slice();netUpdateChip();lbRenderUI();return}
- if(m.t==='start'){if(inMatch)leaveMatchMP();startMatchMP(m.roster,m.mode);return}
+ if(m.t==='start'){
+ NET.send({t:'ack'});
+ if(inMatch&&NET.lastStartId===m.id)return;
+ NET.lastStartId=m.id;
+ try{if(inMatch)leaveMatchMP();startMatchMP(m.roster,m.mode)}
+ catch(err){console.error('[start]',err);lbMsg('خطا در شروع: '+err.message,'alert')}
+ return}
  if(m.t==='tolobby'){if(inMatch)leaveMatchMP();return}
  if(m.t==='rsp'){const e=ents.find(x=>x.name===m.n);if(!e)return;
   else if(NET.mode==='client'){if(m.n===NET.myName){spawn(P,true);P.p.x=m.x;P.p.y=m.y;P.p.z=m.z;P.yaw=m.yaw;P.dead=false;P.rt=0;pitch=0}
@@ -2195,7 +2202,19 @@ function startMatch(){
  while(ents.filter(t=>t.team===0).length<5)addEnt(0,false,pickN([...NAMES[0].slice(1),...POOL]));
  for(let i=0;i<5;i++)addEnt(1,false,pickN([...NAMES[1],...POOL.filter(x=>/^[A-Za-z]/.test(x))]));
  $('kf').innerHTML='';inMatch=true;$('hud').style.display='';
- if(isHost)NET.send({t:'start',roster:ents.map(e=>({name:e.name,team:e.team})),mode:LB.mode});   // اول به مهمان‌ها بگو بازی شروع شد، بعد راند اول (پیام sdr) بره
+ if(isHost){
+ const msg={t:'start',roster:ents.map(e=>({name:e.name,team:e.team})),mode:LB.mode,id:Date.now()};
+ NET.startMsg=msg;NET.acks=new Set();NET.startTries=0;
+ NET.send(msg);
+ clearInterval(NET.startTimer);
+ NET.startTimer=setInterval(()=>{
+  if(!inMatch||NET.mode!=='host'){clearInterval(NET.startTimer);return}
+  const pend=[...NET.conns.keys()].filter(n=>!NET.acks.has(n));
+  if(!pend.length||++NET.startTries>15){clearInterval(NET.startTimer);return}
+  for(const n of pend){const c=NET.conns.get(n);if(c&&c.open)try{c.send(NET.startMsg)}catch(e){}}
+  lbMsg('ارسال مجدد شروع بازی برای: '+pend.join('، '),'info');
+ },2000);
+}   // اول به مهمان‌ها بگو بازی شروع شد، بعد راند اول (پیام sdr) بره
  if(LB.mode==='sd')sdStartMatch()}
 
 /* ================= ذخیره/بازیابی مچ بعد از رفرش (فقط آفلاین) ================= */
