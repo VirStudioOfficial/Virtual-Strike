@@ -1067,13 +1067,13 @@ function spawn(e,scatter){const wasDead=!!e.dead,L=SPAWN[e.team],o=SPAWN[1-e.tea
  if(scatter){const c=scatterPick(e);if(c)s=c}
  else for(let k=0;k<12;k++){const c=L[Math.floor(R()*L.length)];   // نقطه‌ای که کسی کنارش نیست
   if(clearOK(c,.9)&&!ents.some(t=>t!==e&&!t.dead&&Math.hypot(t.p.x-c[0],t.p.z-c[2])<1.1)){s=c;break}}
- e.p.x=s[0]+(R()-.5)*.2;e.p.z=s[2]+(R()-.5)*.2;e.p.y=s[1];e.vy=0;e.hp=100;e.dead=false;e.fall=0;e.rag=null;e.path=null;e.rg=null;e.on=false;e.cr=0;e.vx=e.vz=0;e.coy=e.jb=e.dip=e.sdip=0;e.jh=false;
+ e.p.x=s[0]+(R()-.5)*.2;e.p.z=s[2]+(R()-.5)*.2;e.p.y=s[1];e.vy=0;e.hp=(e.team===1&&!e.isP)?EN.hp:100;e.dead=false;e.fall=0;e.rag=null;e.path=null;e.rg=null;e.on=false;e.cr=0;e.vx=e.vz=0;e.coy=e.jb=e.dip=e.sdip=0;e.jh=false;
  const tx=o[0][0]-s[0],tz=o[0][2]-s[2];e.yaw=Math.atan2(-tx,-tz);
  {const pa=findPath(s[0],s[1],s[2],o[0][0],o[0][1],o[0][2]);if(pa&&pa.length>1){let k=1;while(k<pa.length-1&&Math.hypot(nvx[pa[k]]-s[0],nvz[pa[k]]-s[2])<4)k++;
   const dx=nvx[pa[k]]-s[0],dz=nvz[pa[k]]-s[2];if(Math.hypot(dx,dz)>.5)e.yaw=Math.atan2(-dx,-dz)}}
  {const u=e.mesh&&e.mesh.userData;if(u&&u.gd){if(u.gdObj&&u.gdObj.parent)u.gdObj.parent.remove(u.gdObj);u.gdObj=null;u.body.add(u.botGun);if(u.gunHold){u.botGun.scale.setScalar(u.gunHold.s);u.botGun.position.copy(u.gunHold.p);u.botGun.quaternion.copy(u.gunHold.q)}else{u.botGun.scale.setScalar(.8);u.botGun.position.set(.08,1.12,-.45);u.botGun.rotation.set(0,0,0)}u.gd=null}}
  e.lx=e.p.x;e.lz=e.p.z;e.sx=undefined;
- if(e.isP){if((e.wp||0)>=4)e.wp=0;e.wAmmo={0:30,2:12};e.ammo=AMAX[e.wp||0];e.rl=0;if(!e.gn||wasDead)e.gn={4:0,5:0,6:0,7:0};if(e.money===undefined)e.money=MONEY_START;e.buyT=BUY_TIME;if(buyOpen)buySet(false);e.ntw=0;e.nsw=0;e.fl=0}}
+ if(e.isP){if((e.wp||0)>=4)e.wp=0;e.wAmmo={0:30,2:12};e.ammo=AMAX[e.wp||0];e.rl=0;if(!e.gn||wasDead)e.gn={4:0,5:0,6:0,7:0};if(e.money===undefined)e.money=MONEY_START;e.buyT=BUY_TIME;e.buyX=e.p.x;e.buyZ=e.p.z;if(buyOpen)buySet(false);e.ntw=0;e.nsw=0;e.fl=0}}
 let P,pitch=0;
 
 /* ================= COMBAT ================= */
@@ -1210,7 +1210,7 @@ function fire(e,d){let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z}
  if(!e.isP&&SD.on&&P.dead&&SD.spec===e)VM.kick=Math.min(.11,VM.kick+.07);   // لگد گان موقع تماشا
  const dist=Math.hypot(e.p.x-P.p.x,e.p.z-P.p.z);if(!((!e.isP||(e.wp||0)!==2)&&sfx('shot',e.isP?.75:.6/(1+dist/8),.96+R()*.08)))beep(e.isP?((e.wp||0)===2?230:180):140,e.isP?.05:.05/(1+dist/6));
  if(hit&&!hit.isP)bloodHit(end,d,zone);   // پاشش خون
- if(hit){const pp=e.isP&&(e.wp||0)===2,D={head:e.isP?[100]:[25],body:e.isP?[pp?28:34]:[12],legs:e.isP?[pp?14:18]:[6]};if(NET.mode!=='client')damage(hit,walls?Math.max(1,Math.round(D[zone][0]*mul)):D[zone][0],e,zone,walls>0)}   // روی کلاینت فقط پیش‌بینی بصریه؛ دمیج رو هاست اعمال می‌کنه
+ if(hit){const pp=e.isP&&(e.wp||0)===2,D={head:e.isP?[100]:[25],body:e.isP?[pp?28:34]:[12],legs:e.isP?[pp?14:18]:[6]};if(NET.mode!=='client')damage(hit,walls?Math.max(1,Math.round(D[zone][0]*mul*(e.team===1&&!e.isP?EN.dmg:1))):Math.round(D[zone][0]*(e.team===1&&!e.isP?EN.dmg:1)),e,zone,walls>0)}   // روی کلاینت فقط پیش‌بینی بصریه؛ دمیج رو هاست اعمال می‌کنه
  if(bh&&!hit&&NET.mode!=='client'){ballImpulse(d.x*8,Math.max(d.y*8,-1)+2.2,d.z*8);if(!sfx('f0',.5/(1+dist/8),1.1))beep(150,.04,.08)}   // ضربه‌ی گلوله به توپ: لگد به سمت مسیر گلوله
  if(NET.mode==='host')NET.send({t:'shot',by:e.name,o:[+o.x.toFixed(2),+o.y.toFixed(2),+o.z.toFixed(2)],d:[+d.x.toFixed(3),+d.y.toFixed(3),+d.z.toFixed(3)],end:[+end.x.toFixed(2),+end.y.toFixed(2),+end.z.toFixed(2)],hit:hit?hit.name:null,zone,wp:e.wp||0})}
 const _mv=new THREE.Vector3(),_me=new THREE.Euler(0,0,0,'YXZ');
@@ -1506,12 +1506,16 @@ function sdPickRoam(e){let c=null,r=10;const pl=SD.state==='planted'&&SD.bomb;
  for(let k=0;k<14;k++){const n=L[Math.floor(R()*L.length)];let md=60;for(const t of ents){if(t===e||t.team!==e.team||!t.rg)continue;md=Math.min(md,Math.hypot(t.rg[0]-nvx[n],t.rg[2]-nvz[n]))}
   const sc=md+R()*4;if(sc>bs){bs=sc;best=[nvx[n],nvy[n],nvz[n]]}}
  e.rg=best;e.rgt=8+R()*8;e.path=null;e.pt=0;return true}
+const BOT_DEF_R=1.0,BOT_PLANT_R=1.6;   // ✦ شعاع خنثی‌سازی/پلنت بات‌ها (قبلاً ۲٫۳ و ۳٫۲)؛ باید خیلی نزدیک‌تر برن
+function sdWalkTo(e,x,z,dt){const dx=x-e.p.x,dz=z-e.p.z,d=Math.hypot(dx,dz);if(d>1e-3){e.yaw=Math.atan2(-dx,-dz);const st=Math.min(d,4.2*dt*(e.team===1?EN.spd:1));move(e,dx/d*st,dz/d*st);e._rm=1}}
 function sdHold(e,dt){   // true = بات باید ثابت بایسته (پلنت یا خنثی‌سازی)
  if(!SD.on)return false;
  if(SD.state==='live'&&e.team===0&&e===SD.carrier){const s=SD.sites[SD.target];
-  if(s&&Math.hypot(e.p.x-s.x,e.p.z-s.z)<SITE_R*.8&&Math.abs(e.p.y-s.y)<3){e.sdHeld=true;if(!e.plantT&&sndReady())e.plantH=sndPlay(C4S_PLANT,0,sndVol(e.p.x,e.p.z));e.plantT=(e.plantT||0)+dt;if(e.plantT>=PLANT_T){e.plantH=null;sdPlant(e.p.x,e.p.y,e.p.z,e)}return true}}
+  if(s&&Math.hypot(e.p.x-s.x,e.p.z-s.z)>=BOT_PLANT_R&&Math.hypot(e.p.x-s.x,e.p.z-s.z)<5&&Math.abs(e.p.y-s.y)<3){sdWalkTo(e,s.x,s.z,dt);return true}
+   if(s&&Math.hypot(e.p.x-s.x,e.p.z-s.z)<BOT_PLANT_R&&Math.abs(e.p.y-s.y)<3){e.sdHeld=true;if(!e.plantT&&sndReady())e.plantH=sndPlay(C4S_PLANT,0,sndVol(e.p.x,e.p.z));e.plantT=(e.plantT||0)+dt;if(e.plantT>=PLANT_T){e.plantH=null;sdPlant(e.p.x,e.p.y,e.p.z,e)}return true}}
  else if(SD.state==='planted'&&e.team===1&&SD.bomb){const b=SD.bomb;
-  if(Math.hypot(e.p.x-b.x,e.p.z-b.z)<2.3&&Math.abs(e.p.y-b.y)<2.2){e.sdHeld=true;e.defT=(e.defT||0)+dt;return true}}
+  if(Math.hypot(e.p.x-b.x,e.p.z-b.z)>=BOT_DEF_R&&Math.hypot(e.p.x-b.x,e.p.z-b.z)<5&&Math.abs(e.p.y-b.y)<2.2){sdWalkTo(e,b.x,b.z,dt);return true}
+   if(Math.hypot(e.p.x-b.x,e.p.z-b.z)<BOT_DEF_R&&Math.abs(e.p.y-b.y)<2.2){e.sdHeld=true;e.defT=(e.defT||0)+dt;return true}}
  return false}
 /* ---- حلقه‌ی اصلی حالت ---- */
 function sdSpecCycle(dir){const al=ents.filter(e=>!e.dead&&e.team===0&&!e.isP);if(!al.length){SD.spec=null;return}let i=al.indexOf(SD.spec);i=i<0?0:(i+dir+al.length)%al.length;SD.spec=al[i]}
@@ -2057,7 +2061,7 @@ function pickRoam(e){
  for(let k=0;k<30;k++){const n=Math.floor(R()*NN);if(ncomp[n]!==mainComp)continue;
   const x=nvx[n],z=nvz[n];if(Math.hypot(x-e.p.x,z-e.p.z)<15)continue;
   let md=60;for(const t of ents){if(t===e||t.team!==e.team||!t.rg)continue;md=Math.min(md,Math.hypot(t.rg[0]-x,t.rg[2]-z))}
-  const s=md-.15*Math.hypot(x-eo[0],z-eo[2])+R()*6;
+  const s=(e.team===1&&P&&!P.dead&&!SD.on)?md*.4-.15*Math.hypot(x-eo[0],z-eo[2])-EN.chase*Math.hypot(x-P.p.x,z-P.p.z)+R()*6:md-.15*Math.hypot(x-eo[0],z-eo[2])+R()*6;
   if(s>bs){bs=s;best=[x,nvy[n],z]}}
  if(!best){const n=Math.floor(R()*NN);best=[nvx[n],nvy[n],nvz[n]]}
  e.rg=best;e.rgt=14+R()*12;e.path=null;e.pt=0}
@@ -2068,6 +2072,7 @@ const BOT_FOV=1.15;        // نیم‌زاویه‌ی دید (رادیان؛ ۱
 const BOT_HEAR=6;          // تا این فاصله (متر) حتی پشت سر هم حس می‌کنن
 const BOT_REACT=[.3,.65];  // تأخیر واکنش بعد از دیدن دشمن، قبل از اولین شلیک (ثانیه)
 const BOT_AIM_ERR=.16;     // فقط وقتی کمتر از این (رادیان) تا هدف زاویه دارن شلیک می‌کنن
+const EN={dmg:1.5,react:.55,turn:1.5,cd:.7,hs:.28,jit:.6,spd:1.12,hp:130,chase:.12};   // ✦ ضریب‌های قوی‌تر کردن دشمن (تیم ۱)
 const BOT_HOLD_DIST=30; // تا این فاصله بات موقع دیدن دشمن ثابت می‌ایسته و شلیک می‌کنه
 function botUpdate(e,dt){
  e.sdHeld=false;if(e.fl>0)e.fl-=dt;
@@ -2088,13 +2093,13 @@ function botUpdate(e,dt){
  if(vis){da=Math.atan2(-(tg.p.x-e.p.x),-(tg.p.z-e.p.z))-e.yaw;da=Math.atan2(Math.sin(da),Math.cos(da));
   if(!(Math.abs(da)<BOT_FOV||td<BOT_HEAR||e.mem>0))vis=false}   // خارج از میدان دید (پشت سرش) و صدایی هم نبوده → ندیده
  e.mem=Math.max(0,(e.mem||0)-dt);
- if(vis){if(!e.seen){e.seen=true;e.react=BOT_REACT[0]+R()*(BOT_REACT[1]-BOT_REACT[0])}e.mem=Math.max(e.mem,1.2);e.lk=[tg.p.x,tg.p.z]}else e.seen=false;
+ if(vis){if(!e.seen){e.seen=true;e.react=(BOT_REACT[0]+R()*(BOT_REACT[1]-BOT_REACT[0]))*(e.team===1?EN.react:1)}e.mem=Math.max(e.mem,1.2);e.lk=[tg.p.x,tg.p.z]}else e.seen=false;
  if(vis){ // دشمن رو می‌بینه: بایست/نزدیک شو و استرف کن
-  {const st=BOT_TURN*dt;e.yaw+=Math.max(-st,Math.min(st,da))}   // چرخش محدود، نه یهویی
+  {const st=BOT_TURN*dt*(e.team===1?EN.turn:1);e.yaw+=Math.max(-st,Math.min(st,da))}   // چرخش محدود، نه یهویی
   e.react-=dt;
   if(td>BOT_HOLD_DIST||e.unst>0)fw=1;sd=e.unst>0?e.s:0;e.path=null; // وسط درگیری وایسه؛ فقط اگه خیلی دوره جلو بیاد یا گیر کرده باشه حرکت کنه
  }else if(e.mem>0&&e.lk){   // تازه دشمن رو گم کرده یا ازش تیر خورده: آروم به سمت آخرین جاش می‌چرخه
-  const w=Math.atan2(-(e.lk[0]-e.p.x),-(e.lk[1]-e.p.z));let d2=w-e.yaw;d2=Math.atan2(Math.sin(d2),Math.cos(d2));const st=BOT_TURN*dt;e.yaw+=Math.max(-st,Math.min(st,d2));e.path=null
+  const w=Math.atan2(-(e.lk[0]-e.p.x),-(e.lk[1]-e.p.z));let d2=w-e.yaw;d2=Math.atan2(Math.sin(d2),Math.cos(d2));const st=BOT_TURN*dt*(e.team===1?EN.turn:1);e.yaw+=Math.max(-st,Math.min(st,d2));e.path=null
  }else{
   // هدف مسیریابی: هر بات نقطه‌ی گشت مخصوص خودش رو داره (پراکنده)؛ یار فقط اگه خیلی از بازیکن دور شد برمی‌گرده
   e.rgt-=dt;
@@ -2117,7 +2122,7 @@ function botUpdate(e,dt){
    }else e.rgt=0; // مسیر پیدا نشد: نقطه‌ی گشت جدید انتخاب کن
   }
  }
- const sy=Math.sin(e.yaw),cy=Math.cos(e.yaw),sp=4.2*dt;
+ const sy=Math.sin(e.yaw),cy=Math.cos(e.yaw),sp=4.2*dt*(e.team===1?EN.spd:1);
  if(fw||sd)move(e,(-sy*fw+cy*sd)*sp,(-cy*fw-sy*sd)*sp);
  {let px=0,pz=0;for(const t of ents){if(t===e||t.dead||t.team!==e.team)continue;
    const dx=e.p.x-t.p.x,dz=e.p.z-t.p.z,d=Math.hypot(dx,dz);if(d<(fw||sd?6:1.6)&&d>1e-3&&Math.abs(e.p.y-t.p.y)<2){const w=((fw||sd?6:1.6)-d)/(fw||sd?6:1.6);px+=dx/d*w;pz+=dz/d*w}}
@@ -2127,7 +2132,7 @@ function botUpdate(e,dt){
  if(!e.sdHeld){if(e.plantH){sndStop(e.plantH);e.plantH=null}e.plantT=0;e.defT=0}
  {const tp2=vis&&dir?Math.asin(Math.max(-1,Math.min(1,dir.y))):0;e.vp=(e.vp||0)+(tp2-(e.vp||0))*Math.min(1,dt*8)}   // زاویه‌ی نگاه (برای تماشاچی)
  e.cd-=dt;
- if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){e.cd=.35+R()*.3;const hs=R()<.15,j=hs?.02:.03,o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,d={x:bd.x+(R()-.5)*j*2,y:bd.y+(R()-.5)*j*2,z:bd.z+(R()-.5)*j*2},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;fire(e,d)}}
+ if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){e.cd=(.35+R()*.3)*(e.team===1?EN.cd:1);const hs=R()<(e.team===1?EN.hs:.15),j=(hs?.02:.03)*(e.team===1?EN.jit:1),o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,d={x:bd.x+(R()-.5)*j*2,y:bd.y+(R()-.5)*j*2,z:bd.z+(R()-.5)*j*2},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;fire(e,d)}}
 function simulate(dt){
  nadesStep(dt);
  if(SD.on)sdUpdate(dt);
@@ -2619,7 +2624,9 @@ function moneyAdd(v){if(!P)return;P.money=Math.max(0,Math.min(MONEY_MAX,(P.money
  const g=$('mgain');if(g&&v>0){g.textContent='+$'+v;g.style.transition='none';g.style.opacity=1;requestAnimationFrame(()=>requestAnimationFrame(()=>{g.style.transition='opacity 1.2s';g.style.opacity=0}))}}
 function moneyKill(by,t){if(!P||!by||!by.isP||by.team===t.team)return;moneyAdd(by.wp===1?KNIFE_R:KILL_R)}
 function buyToast(m){const e=$('toast');if(!e)return;e.textContent=m;e.style.display='block';toastUntil=performance.now()+1800}
-function buyAllowed(){return !!(P&&!P.dead&&inMatch&&locked&&P.buyT>0&&(!SD.on||SD.state==='live'))}
+const BUY_RANGE=8;   // شعاع منطقه‌ی خرید (متر) دور نقطه‌ی اسپاون؛ بیرونش منو خودکار بسته میشه
+function buyInZone(){return !!P&&Math.hypot(P.p.x-(P.buyX===undefined?P.p.x:P.buyX),P.p.z-(P.buyZ===undefined?P.p.z:P.buyZ))<=BUY_RANGE}
+function buyAllowed(){return !!(P&&!P.dead&&inMatch&&locked&&P.buyT>0&&buyInZone()&&(!SD.on||SD.state==='live'))}
 function buyRender(){const g=P.gn||{};
  $('buy').innerHTML='<h4><span>خرید</span><span style="color:#8fe06b;direction:ltr">$'+(P.money|0)+'</span></h4>'+BUY_ITEMS.map((it,i)=>{const own=(g[it.k]|0)>0,no=!own&&(P.money|0)<it.p;
   return '<div class="bi'+(own?' own':no?' no':'')+'"><b>'+(i+1)+'</b>'+ICON[it.ic]+'<span>'+it.n+'</span><em>'+(own?'داری':'$'+it.p)+'</em></div>'}).join('')+'<small>شماره = خرید • B = بستن • '+Math.max(0,Math.ceil(P.buyT))+' ثانیه</small>'}
@@ -2638,7 +2645,7 @@ addEventListener('keydown',e=>{   // capture: قبل از هندلر اصلی، 
  if(e.code==='KeyB'){e.stopImmediatePropagation();if(e.repeat)return;
   if(buyOpen){buySet(false);return}
   if(P.dead)return;
-  if(buyAllowed())buySet(true);else buyToast(SD.on&&SD.state!=='live'?'الان نمی‌شه خرید کرد':'وقت خرید تموم شده');
+  if(buyAllowed())buySet(true);else buyToast(SD.on&&SD.state!=='live'?'الان نمی‌شه خرید کرد':(P&&P.buyT>0&&!buyInZone()?'از منطقه‌ی خرید خارج شدی':'وقت خرید تموم شده'));
   return}
  if(buyOpen){const m=/^Digit([1-4])$/.exec(e.code);if(m){e.stopImmediatePropagation();e.preventDefault();if(!e.repeat)buyItem(+m[1]-1)}}
 },true);
