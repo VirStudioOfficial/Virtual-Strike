@@ -731,8 +731,8 @@ function vmArms(k){const A=VM.arms;if(!A)return;
     _wv1.lerp(_wv2,w);_wv2.copy(_wv1).applyMatrix4(hi);_wv1.applyMatrix4(fi);
     fp.setXYZ(fj,_wv1.x,_wv1.y,_wv1.z);hp.setXYZ(hj,_wv2.x,_wv2.y,_wv2.z)}
    fp.needsUpdate=hp.needsUpdate=true}}}
-const VM_ENEMY_SLEEVE=[205,195,188];   // رنگ مطلوب آستین دشمن موقع تماشا (RGB ۰-۲۵۵): پیراهن روشن؛ دست‌کش‌ها تیره می‌مونن
-const VM_ENEMY_TINT=[1.9,1.7,1.45];   // اگه از روی تکسچر نشد محاسبه بشه، این ضریب (ضرب روی رنگ دست خودی) استفاده می‌شه؛ [1,1,1] = بدون تغییر
+const VM_ENEMY_SLEEVE=[205,172,152];   // رنگ مطلوب آستین دشمن موقع تماشا (RGB ۰-۲۵۵): پیراهن صورتی-بژ مثل تکسچر دشمن؛ دست‌کش‌ها تیره می‌مونن
+const VM_ENEMY_TINT=[1.95,1.57,1.22];   // اگه از روی تکسچر نشد محاسبه بشه، این ضریب (ضرب روی رنگ دست خودی) استفاده می‌شه؛ [1,1,1] = بدون تغییر
 function vmEnemyTint(){   // ضریب = رنگ مطلوب آستین ÷ میانگین رنگ واقعی آستین دست خودی (از روی تکسچر و UV بازو و ساعد)
  try{const m=VM.armMatA,tex=m&&m.map,im=tex&&tex.image,A=VM.arms;if(!im)throw 0;
   const w=im.width,h=im.height,cv=document.createElement('canvas');cv.width=w;cv.height=h;
