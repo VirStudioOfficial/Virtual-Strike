@@ -164,7 +164,7 @@ alert:`<svg ${IC_ATTR}><path d="M12 2.5 1.8 20.2a.8.8 0 0 0 .7 1.3h19a.8.8 0 0 0
 };
 document.querySelectorAll('[data-ic]').forEach(e=>{e.innerHTML=ICON[e.dataset.ic]});
 /* فایل‌هایی که باید کنار همین HTML باشن (و با یه سرور محلی باز بشه، نه file://) */
-const FILES={map:'de_dust2_-_cs_map.glb',ally:'model.glb',enemy:'char_t.glb',gun:'ak47_cs2.glb',knife:'m9_bayonet_knife.glb',pistol:'pistol__usp_no_silencer_weapon_model_cs2.glb',ball:'soccer_ball.glb',bomb:'bomb__c4_explosive_model_cs2.glb',c4snd:'c4_bomb.mp3',lobby:'Stop%20Walking%20With%20Rifle.fbx'};
+const FILES={map:'de_dust2_-_cs_map.glb',ally:'model.glb',enemy:'char_t.glb',gun:'ak47_cs2.glb',knife:'m9_bayonet_knife.glb',pistol:'pistol__usp_no_silencer_weapon_model_cs2.glb',ball:'soccer_ball.glb',bomb:'bomb__c4_explosive_model_cs2.glb',c4snd:'c4_bomb.mp3',nHE:'granade_game_ready.glb',nSmoke:'m18_smoke_grenade.glb',nFlash:'flashbang_grenade.glb',nMolo:'molotov_cocktail_with_lighter.glb',lobby:'Stop%20Walking%20With%20Rifle.fbx'};
 const IN=39.37; // تبدیل اینچ مدل‌های قدیمی به متر
 const CHARS={
  ally:{arms:true,armPitch:[.88,.84],armRoll:.79,center:[0,0]},
@@ -2255,7 +2255,28 @@ function nadesClear(){try{for(const g of NADES){scene.remove(g.m)}NADES.length=0
  for(const f of NFX){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose()}NFX.length=0;
  for(const f of FIRES){for(const q of f.sp){scene.remove(q);q.material.dispose()}scene.remove(f.glow);f.glow.geometry.dispose();f.glow.material.dispose()}FIRES.length=0;
  if(P){P.fl=0;P.ntw=0;P.nsw=0}}catch(e){}}
-function mkNade(k){const g=new THREE.Group(),M=c=>new THREE.MeshLambertMaterial({color:c}),add=(geo,c,x,y,z)=>{const m=new THREE.Mesh(geo,M(c));m.position.set(x,y,z);g.add(m);return m};
+/* ---- مدل‌های واقعی نارنجک (GLB) به‌جای مدل‌های ساده‌ی mkNade: HE / اسموک / فلش / مولوتوف ---- */
+const NMODEL={};
+const NADE_GLB={4:['nHE',.13],5:['nSmoke',.17,o=>/PainterExport_SmokeGrenade_0$/.test(o.name),true],6:['nFlash',.15],7:['nMolo',.25,o=>!!o.material&&['Glas_green','.002','.001'].includes(o.material.name)]};   // اسموک: فایل ۳ نسخه داره، فقط یکی؛ مولوتوف: بدون فندک و صفحه‌ی اضافه
+function nadePrep(root,target,keep,one){
+ const all=[];root.traverse(o=>{if(o.isMesh)all.push(o)});
+ let pick=keep?all.filter(keep):all;if(one)pick=pick.slice(0,1);if(!pick.length)pick=all;
+ for(const o of all)if(!pick.includes(o)&&o.parent)o.parent.remove(o);
+ for(const o of pick){const q=o.material,glass=!!q&&q.name==='Glas_green',
+   m=new THREE.MeshLambertMaterial({map:(q&&q.map)||null,color:glass?0x3a8a42:(q&&q.map?0xffffff:((q&&q.color)||0xcccccc)),side:glass?THREE.FrontSide:THREE.DoubleSide});
+  if(q&&q.map){q.map.encoding=THREE.LinearEncoding;q.map.needsUpdate=true;m.emissive.setScalar(.3);m.emissiveMap=q.map}
+  if(glass){m.transparent=true;m.opacity=.55;m.depthWrite=false;o.renderOrder=2}
+  o.material=m;o.castShadow=false;o.frustumCulled=false}
+ root.updateMatrixWorld(true);
+ const bb=new THREE.Box3().setFromObject(root),c=bb.getCenter(new THREE.Vector3()),sz=bb.getSize(new THREE.Vector3()),k=target/Math.max(sz.x,sz.y,sz.z),w=new THREE.Group();
+ root.scale.setScalar(k);root.position.set(-c.x*k,-c.y*k,-c.z*k);w.add(root);return w}
+function nadeHoldRebuild(k){const old=nadeHold[k],vis=old?old.visible:false;if(old)nadeG.remove(old);
+ const m=mkNade(k);m.visible=vis;m.position.set(0,0,-.02);m.rotation.set(.35,0,0);nadeG.add(m);nadeHold[k]=m}
+function nadeModelsLoad(){for(const k of[4,5,6,7]){const[f,t,keep,one]=NADE_GLB[k];
+  loadGLB(FILES[f]).then(root=>{NMODEL[k]=nadePrep(root,t,keep,one);nadeHoldRebuild(k);console.log('[nade] مدل',FILES[f],'آماده شد')})
+   .catch(e=>{console.warn('[nade]',FILES[f],e);try{lbMsg('مدل نارنجک لود نشد: '+FILES[f],'alert')}catch(x){}})}}
+function mkNade(k){if(NMODEL[k]){const g=NMODEL[k].clone(true);g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.frustumCulled=false}});return g}
+ const g=new THREE.Group(),M=c=>new THREE.MeshLambertMaterial({color:c}),add=(geo,c,x,y,z)=>{const m=new THREE.Mesh(geo,M(c));m.position.set(x,y,z);g.add(m);return m};
  if(k===4){const b=add(new THREE.SphereGeometry(.045,14,10),0x4a5d34,0,0,0);b.scale.y=1.2;
   add(new THREE.CylinderGeometry(.014,.016,.03,10),0x8a8d90,0,.06,0);
   add(new THREE.BoxGeometry(.012,.075,.02),0xa0a2a5,.03,.045,0).rotation.z=-.35;
@@ -2533,7 +2554,7 @@ async function boot(){
   st('در حال ساخت برخورد و مسیرها...');await new Promise(r=>setTimeout(r,30));
   buildCol(pv);
   const info=buildNav();console.log('nav',info);
-  pickSpawns();pickSites();bombLoad();sndLoad();
+  pickSpawns();pickSites();bombLoad();sndLoad();nadeModelsLoad();
   initBall();   // توپ فوتبال وسط مپ
   window.__g={ents,get P(){return P},get BALL(){return BALL},info,scene,cam,castRay,findPath,nearestNode,nav:()=>({NN,nvx,nvy,nvz,ncF,ncN,NGX,NGZ,GX0,GZ0,ncomp,mainComp,adjS,adjT}),SPAWN:()=>SPAWN,simulate,render,
    setLock:v=>{locked=v},setTp:v=>{tp=v},setPitch:v=>{pitch=v},tris:()=>NT,SD,sdSetSite};
