@@ -261,7 +261,7 @@ const FIST_R=.026;                                                    // شعا�
 const KNIFE_LH_SCALE=1.25;                                             // دست چپ موقع چاقو درشت‌تر (۱ = اندازه‌ی عادی)
 const KNIFE_RH={d:[-.5,.8,-.3],n:[-.72,-.18,.42]};                 // جهت انگشت‌ها و کف دست راست هنگام گرفتن دسته‌ی چاقو
 const KNIFE_GRIP=[-.005,-.06,.10];
-const KNIFE_PIVOT=.65,KNIFE_YAW=.75;   // ۱ = چاقو دقیقاً دور مچ می‌چرخه (دست جابه‌جا نمی‌شه) | ضریب دامنه‌ی چرخش افقی ضربه
+const KNIFE_PIVOT=.65,KNIFE_YAW=.45;   // ۱ = چاقو دقیقاً دور مچ می‌چرخه (دست جابه‌جا نمی‌شه) | ضریب دامنه‌ی چرخش افقی ضربه
 const _pe=new THREE.Euler(),_pm=new THREE.Matrix4(),_pa=new THREE.Vector3(),_pb=new THREE.Vector3();
 function knifePivot(k,g0){const G=KNIFE_GRIP;_pa.set(G[0],G[1],G[2]).applyMatrix4(_pm.makeRotationFromEuler(_pe.set(g0[0],g0[1],g0[2])));_pb.set(G[0],G[1],G[2]).applyMatrix4(_pm.makeRotationFromEuler(_pe.set(k.g[0],k.g[1],k.g[2])));
  k.p[0]+=(_pa.x-_pb.x)*KNIFE_PIVOT;k.p[1]+=(_pa.y-_pb.y)*KNIFE_PIVOT;k.p[2]+=(_pa.z-_pb.z)*KNIFE_PIVOT}                           // جای دسته توی فضای گان (همون جای دست راست)
