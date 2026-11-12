@@ -302,7 +302,7 @@ const PISTOL_POSE={p:[-.03,0,-.06],g:[0,.05,0]};                    // جای پ
 const PMUZ=[.004,.067,-.14];                                       // سر لوله (فضای گان)
 /* جای دست‌ها روی پیستول (فضای گان). اگه جای دستی درست نبود: وقتی پیستول دستته G بزن و با T دست رو انتخاب کن (بقیه‌ی کلیدها مثل AK) */
 const PLH={p:[-.22,-.26,-.45],d:[.25,.5,-.8],n:[.5,.8,.2]};   // دست چپ وقتی ریلود نمی‌کنی: باز، پایین-چپ صفحه (فضای دوربین، مثل چاقو)
-const PG={R:[0,-.055,.10],L:[-.045,-.06,.10],rd:[-.45,-.2,-.87],ld:[.3,-.05,-.95],rp:[-1,-.1,.1],lp:[1,-.05,.1]};
+const PG={R:[.058,-.05,.08],L:[-.052,-.06,.10],rd:[-.45,-.2,-.87],ld:[.3,-.05,-.95],rp:[-1,-.1,.1],lp:[1,-.05,.1]};
 const PROLL={R:0,L:0};
 const MAGD=[.3,.9,-.3],MAGN=[1,0,0],SLD=[.35,.1,-.9],SLN=[1,.3,0],MOFF=[.022,-.018,0];   // جهت/کف دست چپ موقع خشاب و اسلاید + فاصله‌ی دست از استخوان خشاب
 /* مسیر استخوان خشاب [t,x,y,z] و موقعیت اسلاید [t,z] توی انیمیشن ریلود (مختصات مدل؛ از خود فایل برداشته شده) */
@@ -675,7 +675,7 @@ function vmArms(k){const A=VM.arms;if(!A)return;
   const r=ik2(S,Wt,a.l1*f,a.l2*f,POLE[sd]);
   const kl=!!VM.kn&&sd==='L',hs=kl?KNIFE_LH_SCALE:1;   // دست چپ موقع چاقو: درشت‌تر + ساعد هم‌جهت با کف دست برعکس
   a.upper.scale.set(1,f,1);a.fore.scale.set(1+(hs-1)*.4,f,1+(hs-1)*.4);a.hand.scale.setScalar(hs);
-  const cu=a.curl;if(cu){const tg=sd==='R'?(VM.kn?1:VM.bm?.5:VM.nd?.55:0):(VM.lc||0);if(cu.k!==tg){if(sd==='L')cu.k=tg;else{cu.k+=Math.max(-.25,Math.min(.25,tg-cu.k));if(Math.abs(tg-cu.k)<.01)cu.k=tg}   // انگشت‌ها نرم بسته/باز می‌شن
+  const cu=a.curl;if(cu){const tg=sd==='R'?(VM.kn?1:VM.bm?.5:VM.nd?.55:VM.pi?.7:0):(VM.lc||0);if(cu.k!==tg){if(sd==='L')cu.k=tg;else{cu.k+=Math.max(-.25,Math.min(.25,tg-cu.k));if(Math.abs(tg-cu.k)<.01)cu.k=tg}   // انگشت‌ها نرم بسته/باز می‌شن
    const hp=a.hand.geometry.attributes.position,hn=a.hand.geometry.attributes.normal,m=cu.k*cu.k*(3-2*cu.k);
    for(let i=0;i<hp.array.length;i++){hp.array[i]=cu.base[i]+(cu.cp[i]-cu.base[i])*m;hn.array[i]=cu.bn[i]+(cu.cn[i]-cu.bn[i])*m}
    hp.needsUpdate=hn.needsUpdate=true}}
