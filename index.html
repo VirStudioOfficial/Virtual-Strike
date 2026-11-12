@@ -100,9 +100,10 @@ canvas{display:block}
 @keyframes sdbl{50%{opacity:.55}}
 #sdbar .sdc .sc{display:flex}
 #sdbar .sdc .sc b{flex:1;font-size:22px;padding:1px 0 2px}
-#sdbar .sdc .sc b:first-child{background:rgba(232,178,58,.3);color:#ffd36a}
-#sdbar .sdc .sc b:last-child{background:rgba(90,160,232,.3);color:#8cc4ff}
+#sdbar .sdc .sc b:first-child{background:rgba(90,160,232,.3);color:#8cc4ff}
+#sdbar .sdc .sc b:last-child{background:rgba(232,178,58,.3);color:#ffd36a}
 #sdbar .sdc .sm{font-size:10px;opacity:.7;padding:2px 0 3px;direction:rtl;background:rgba(0,0,0,.3)}
+#lbtune{position:fixed;left:12px;bottom:12px;z-index:70;display:none;margin:0;padding:10px 14px;background:rgba(8,12,18,.86);border:1px solid rgba(255,255,255,.25);border-radius:6px;color:#e8f0ff;font:12.5px/1.6 ui-monospace,Menlo,Consolas,monospace;direction:ltr;text-align:left;pointer-events:none;white-space:pre}
 #lb.ends>*:not(#lbcards):not(#lbvig){display:none!important}
 .pck{margin:4px auto 0;display:flex;gap:8px;justify-content:center;align-items:baseline;font-size:12px;background:rgba(0,0,0,.55);padding:2px 10px;border-radius:3px;direction:rtl;width:max-content}
 .pck b{font-size:17px;color:#ffd24a}.pck span{opacity:.7}
@@ -154,6 +155,7 @@ canvas{display:block}
 <div id="pause"><button class="lbb g" id="lbresume" style="font-size:22px;padding:10px 40px">ادامه بازی</button><br><br><button class="lbb r" id="lbleave" style="font-size:16px">بازگشت به لابی</button></div>
 <div>حرکت: WASD &nbsp;|&nbsp; نگاه: ماوس &nbsp;|&nbsp; شلیک: کلیک چپ &nbsp;|&nbsp; پرش: Space &nbsp;|&nbsp; آهسته‌راه رفتن: Shift &nbsp;|&nbsp; نشستن: C &nbsp;|&nbsp; ریلود: R &nbsp;|&nbsp; تفنگ: ۱ &nbsp;|&nbsp; پیستول: ۲ (هر کلیک یک تیر) &nbsp;|&nbsp; چاقو: ۳ (کلیک چپ: ضربه، راست: ضربهٔ سنگین) &nbsp;|&nbsp; Q = سلاح قبلی &nbsp;|&nbsp; دید سوم‌شخص: V &nbsp;|&nbsp; نارنجک: ۵ HE ، ۶ اسموک ، ۷ فلش ، ۸ مولوتف (کلیک چپ پرتاب محکم، کلیک راست آروم)</div>
 <div>تو و ۴ یار (حلقه‌ی آبی) در برابر ۵ دشمن (حلقه‌ی قرمز). Esc برای توقف.</div></div>
+<pre id="lbtune"></pre>
 <div id="ends"><div class="eb"><div class="et" id="etxt"></div><div class="es" id="esub"></div></div><div class="esub2" id="emvp"></div><button class="lbb g" id="endsok">ادامه</button></div>
 <div id="lb"><div id="lbvig"></div><div id="lbcards"></div>
 <div id="lbtop" class="pe"><div class="ic"><button class="ib" data-a="tab" data-n="HOME" title="خانه" data-ic="home"></button><button class="ib" data-a="settings" title="تنظیمات" data-ic="gear"></button></div>
@@ -1624,8 +1626,8 @@ function sdHud(){
   const mk=t=>ents.filter(e=>e.team===t).sort((a,b)=>(b.isP?1:0)-(a.isP?1:0)).slice(0,5).map(e=>({n:e.name,d:!!e.dead,me:!!e.isP,t,pc:Math.max(0,Math.min(100,Math.round(e.hp/((e.team===1&&!e.isP)?EN.hp:100)*10)*10))}));
   const L=mk(0),Rr=mk(1),pl=SD.state==='planted',sig=L.concat(Rr).map(a=>a.n+(a.d?'x':a.pc)).join('|')+'#'+tm+'#'+SD.wins[0]+SD.wins[1]+SD.round+SD.a0+SD.a1;
   if(sig!==SD.barSig){SD.barSig=sig;
-   const av=(a,c)=>`<div class="sda${a.d?' dead':''}${a.me?' me':''}" style="--c:${c};background:${avBg(a.n)}" title="${esc(a.n)}">${ini(a.n)}${(!a.d&&a.t===0)?`<i style="width:${a.pc}%"></i>`:''}</div>`;
-   bar.innerHTML=`<div class="sdt">${L.map(a=>av(a,'#e8b23a')).join('')}</div><div class="sdc"><div class="tm${pl?' pl':''}">${tm}</div><div class="sc"><b>${SD.wins[0]}</b><b>${SD.wins[1]}</b></div><div class="sm">راند ${SD.round} • ${SD.a0}v${SD.a1}</div></div><div class="sdt">${Rr.map(a=>av(a,'#5aa0e8')).join('')}</div>`}}
+   const av=(a,c,bg)=>`<div class="sda${a.d?' dead':''}${a.me?' me':''}" style="--c:${c};background:${bg}" title="${esc(a.n)}">${ini(a.n)}${(!a.d&&a.t===0)?`<i style="width:${a.pc}%"></i>`:''}</div>`;
+   bar.innerHTML=`<div class="sdt">${L.map(a=>av(a,'#5aa0e8','linear-gradient(145deg,#2f4d73,#1a2a40)')).join('')}</div><div class="sdc"><div class="tm${pl?' pl':''}">${tm}</div><div class="sc"><b>${SD.wins[0]}</b><b>${SD.wins[1]}</b></div><div class="sm">راند ${SD.round} • ${SD.a0}v${SD.a1}</div></div><div class="sdt">${Rr.map(a=>av(a,'#e8b23a','linear-gradient(145deg,#6e5726,#3a2f16)')).join('')}</div>`}}
  $('msg').textContent=SD.msgT>0?SD.msg:'';
  let h='',hh=false;
  if(P.dead){if(SD.spec){h=ICON.eye+' '+SD.spec.name+(SD.spec.team===1?' <span style="color:#ff6b6b">(دشمن)</span>':'');hh=true}}
@@ -2062,13 +2064,46 @@ function lbfPrep(o){
  const Mg=new THREE.Matrix4().makeBasis(xa.clone().multiplyScalar(S),ya.clone().multiplyScalar(S),za.clone().multiplyScalar(S)).setPosition(pos);
  const loc=new THREE.Matrix4().copy(bn.RightHand.matrixWorld).invert().multiply(Mg),gP=new V(),gQ=new THREE.Quaternion(),gS=new V();loc.decompose(gP,gQ,gS);
  LBF.src=o;LBF.clip=clip;LBF.sc=sc;LBF.he={x:hips.x,z:hips.z};LBF.off=LBF_FACE-headYaw;LBF.gP=gP;LBF.gQ=gQ;LBF.gS=gS}
+/* ================= تنظیم دقیق زنده‌ی گان توی دست کاراکترهای لابی (G توی لابی) =================
+   جابه‌جایی نسبت به جای پیش‌فرض (LBF.gP/gQ/gS) اعمال می‌شه؛ مقدار نهایی روی صفحه نوشته می‌شه و با C کپی می‌شه. توی localStorage هم ذخیره می‌شه. */
+const LBT_DEF={p:[0,0,0],r:[0,0,0],s:1};   // ← مقدار نهایی رو اینجا بذار تا همیشگی بشه
+const LBT={on:false,st:.005,...(()=>{try{const v=JSON.parse(localStorage.getItem('ms_gunadj')||'null');if(v&&v.p&&v.r&&isFinite(v.s))return{p:v.p.slice(),r:v.r.slice(),s:v.s}}catch(e){}return{p:LBT_DEF.p.slice(),r:LBT_DEF.r.slice(),s:LBT_DEF.s}})()};
+const LBT_ST=[.02,.01,.005,.002,.001,.0005];
+function lbtApply(g){const D=Math.PI/180;g.position.set(LBF.gP.x+LBT.p[0],LBF.gP.y+LBT.p[1],LBF.gP.z+LBT.p[2]);
+ g.quaternion.copy(LBF.gQ).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(LBT.r[0]*D,LBT.r[1]*D,LBT.r[2]*D)));g.scale.copy(LBF.gS).multiplyScalar(LBT.s)}
+function lbtText(){const f=v=>(v<0?'':' ')+v.toFixed(4),d=v=>(v<0?'':' ')+v.toFixed(2);
+ return `TUNE LOBBY GUN   قدم=${LBT.st}  (چرخش ${(LBT.st*100).toFixed(2)}°)\n`+
+ `p = [${LBT.p.map(f).join(', ')}]   X Y Z\nr = [${LBT.r.map(d).join(', ')}]   درجه\ns = ${LBT.s.toFixed(3)}\n\n`+
+ `G خاموش | ←→ X | ↑↓ Y | PgUp/PgDn Z | I K / J L / U O چرخش | [ ] اندازه\n, . قدم کوچک/بزرگ | wheel زوم | R ریست | C کپی`}
+function lbtRefresh(){const t=$('lbtune');t.style.display=LBT.on&&inLobby?'block':'none';if(!LBT.on)return;t.textContent=lbtText();
+ for(const m of LB3.meshes){const g=m.userData&&m.userData.gun;if(g)lbtApply(g)}
+ try{localStorage.setItem('ms_gunadj',JSON.stringify({p:LBT.p,r:LBT.r,s:LBT.s}))}catch(e){}}
+function lbtCode(){const a=v=>+v.toFixed(4);return `const LBT_DEF={p:[${LBT.p.map(a).join(',')}],r:[${LBT.r.map(a).join(',')}],s:${a(LBT.s)}};`}
+addEventListener('keydown',e=>{if(!inLobby||(e.target&&/^(INPUT|TEXTAREA)$/.test(e.target.tagName)))return;
+ if(e.code==='KeyG'){LBT.on=!LBT.on;lbtRefresh();$('lbtune').style.display=LBT.on?'block':'none';if(LBT.on)$('lbtune').textContent=lbtText();e.preventDefault();return}
+ if(!LBT.on)return;const st=LBT.st,rs=st*100;let h=true;
+ switch(e.code){
+  case'ArrowLeft':LBT.p[0]-=st;break;case'ArrowRight':LBT.p[0]+=st;break;
+  case'ArrowUp':LBT.p[1]+=st;break;case'ArrowDown':LBT.p[1]-=st;break;
+  case'PageUp':LBT.p[2]+=st;break;case'PageDown':LBT.p[2]-=st;break;
+  case'KeyI':LBT.r[0]+=rs;break;case'KeyK':LBT.r[0]-=rs;break;
+  case'KeyJ':LBT.r[1]+=rs;break;case'KeyL':LBT.r[1]-=rs;break;
+  case'KeyU':LBT.r[2]+=rs;break;case'KeyO':LBT.r[2]-=rs;break;
+  case'BracketRight':LBT.s*=1+st;break;case'BracketLeft':LBT.s/=1+st;break;
+  case'Period':{const i=LBT_ST.indexOf(LBT.st);LBT.st=LBT_ST[Math.max(0,i-1)]||LBT.st}break;
+  case'Comma':{const i=LBT_ST.indexOf(LBT.st);LBT.st=LBT_ST[Math.min(LBT_ST.length-1,i+1)]||LBT.st}break;
+  case'KeyR':LBT.p=[0,0,0];LBT.r=[0,0,0];LBT.s=1;break;
+  case'KeyC':{const c=lbtCode();console.log(c);try{navigator.clipboard.writeText(c)}catch(_){}lbMsg('کپی شد: '+c);break}
+  default:h=false}
+ if(h){e.preventDefault();lbtRefresh()}});
+addEventListener('wheel',e=>{if(!inLobby||!LBT.on)return;LB3.D=Math.max(1.1,Math.min(8,LB3.D+e.deltaY*.003));e.preventDefault()},{passive:false});
 function lbfMake(i){
  const w=new THREE.Group(),inner=new THREE.Group(),o=THREE.SkeletonUtils.clone(LBF.src);
  inner.scale.setScalar(LBF.sc);inner.add(o);w.add(inner);
- const rh=lbfBones(o).RightHand;if(rh){const g=lbfGunObj();g.position.copy(LBF.gP);g.quaternion.copy(LBF.gQ);g.scale.copy(LBF.gS);rh.add(g)}
+ let gunO=null;const rh=lbfBones(o).RightHand;if(rh){const g=lbfGunObj();lbtApply(g);rh.add(g);gunO=g}
  o.traverse(x=>{if(x.isSkinnedMesh){x.frustumCulled=false;x.castShadow=true;x.receiveShadow=true}});
  const mx=new THREE.AnimationMixer(o),ac=mx.clipAction(LBF.clip);ac.setLoop(THREE.LoopOnce,1);ac.clampWhenFinished=true;ac.timeScale=.94+((i*5)%4)*.04;ac.play();
- w.userData={body:inner,mx,ac,slot:i};scene.add(w);return w}
+ w.userData={body:inner,mx,ac,slot:i,gun:gunO};scene.add(w);return w}
 function lbfPlace(w,x,y,z,cx,cz,i){   // ته مسیر راه‌رفتن دقیقاً روی جای خودش می‌شینه؛ از چند قدم عقب‌تر شروع می‌کنه
  const a=Math.atan2(cx-x,cz-z)+LBF.off+((i%3)-1)*.03,c=Math.cos(a),s=Math.sin(a),hx=LBF.he.x,hz=LBF.he.z;
  w.rotation.y=a;w.position.set(x-(hx*c+hz*s),y,z-(-hx*s+hz*c));w.userData.cp={x,y,z};w.userData.slot=i}
@@ -2119,8 +2154,8 @@ function lobbyFrame(dt){const s=LB3.spot;if(!s)return;gun.visible=false;if(VM.ar
  ren.render(scene,cam)}
 function lobbyEnter(){inLobby=true;inMatch=false;
  if(!LB3.spot){const b=lbFindSpot(),c=b.c;LB3.spot={x:c[0],y:c[1],z:c[2]};LB3.f={x:b.fx,z:b.fz};LB3.r={x:-b.fz,z:b.fx}}
- lbLayout();showMenu();lbRenderUI()}
-function lobbyExit(){endsClose(true);inLobby=false;lbClearChars();$('lb').style.display='none';$('lbmenu').style.display='none';$('lbaddp').style.display='none';$('lbset').style.display='none';cam.fov=SET.fov;cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}
+ lbLayout();showMenu();lbRenderUI();if(LBT.on)lbtRefresh()}
+function lobbyExit(){endsClose(true);inLobby=false;$('lbtune').style.display='none';lbClearChars();$('lb').style.display='none';$('lbmenu').style.display='none';$('lbaddp').style.display='none';$('lbset').style.display='none';cam.fov=SET.fov;cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}
 function startMatch(){
  if(inMatch)return;   // دبل‌کلیک/اسپم روی شروع نباید دوباره بازی بسازه
  lobbyExit();bloodClear();
