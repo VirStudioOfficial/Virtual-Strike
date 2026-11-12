@@ -164,7 +164,7 @@ alert:`<svg ${IC_ATTR}><path d="M12 2.5 1.8 20.2a.8.8 0 0 0 .7 1.3h19a.8.8 0 0 0
 };
 document.querySelectorAll('[data-ic]').forEach(e=>{e.innerHTML=ICON[e.dataset.ic]});
 /* فایل‌هایی که باید کنار همین HTML باشن (و با یه سرور محلی باز بشه، نه file://) */
-const FILES={map:'de_dust2_-_cs_map.glb',ally:'model.glb',enemy:'char_t.glb',gun:'ak47_cs2.glb',knife:'m9_bayonet_knife.glb',pistol:'pistol__usp_no_silencer_weapon_model_cs2.glb',ball:'soccer_ball.glb',bomb:'bomb__c4_explosive_model_cs2.glb',lobby:'Stop%20Walking%20With%20Rifle.fbx'};
+const FILES={map:'de_dust2_-_cs_map.glb',ally:'model.glb',enemy:'char_t.glb',gun:'ak47_cs2.glb',knife:'m9_bayonet_knife.glb',pistol:'pistol__usp_no_silencer_weapon_model_cs2.glb',ball:'soccer_ball.glb',bomb:'bomb__c4_explosive_model_cs2.glb',c4snd:'c4_bomb.mp3',lobby:'Stop%20Walking%20With%20Rifle.fbx'};
 const IN=39.37; // تبدیل اینچ مدل‌های قدیمی به متر
 const CHARS={
  ally:{arms:true,armPitch:[.88,.84],armRoll:.79,center:[0,0]},
@@ -1267,7 +1267,7 @@ function stepBall(dt){
 /* ================= حالت «گشتن و نابود کردن» (Search & Destroy) =================
    تو و تیمت مهاجمین (بمب پیش توئه، کلید ۴)؛ دشمن‌ها مدافع. بدون ریسپاون؛ بعد از مرگ از دید یارت تماشا می‌کنی.
    مهاجم‌ها برن → اگه همه‌ی دشمن‌ها بمیرن یا بمب منفجر بشه می‌برن؛ اگه همه‌ی خودی‌ها بمیرن (قبل از پلنت)، زمان تموم بشه یا بمب خنثی بشه می‌بازن. */
-const PLANT_T=3.2,DEFUSE_T=5,BOMB_T=40,SD_ROUND_T=120,SD_WIN=3,SITE_R=6,SD_OVER_T=5.5,SITE_NAME=['A','B'];
+const PLANT_T=3.27,DEFUSE_T=5,BOMB_T=41,SD_ROUND_T=120,SD_WIN=3,SITE_R=6,SD_OVER_T=5.5,SITE_NAME=['A','B'];
 const SD={on:false,round:0,wins:[0,0],state:'idle',rt:0,bt:0,hasBomb:false,bomb:null,carrier:null,defuser:null,target:0,spec:null,msg:'',msgT:0,overT:0,defT:0,sites:[],mk:null,fx:[],shake:0,beepT:0,ledA:0,led:null,a0:0,a1:0,final:false,drop:null,fetcher:null,markMeshes:null};
 const BOMB_ENT={name:'C4',team:0,isP:false,wp:3,p:{x:0,y:0,z:0}};
 const sdMsg=(t,s)=>{SD.msg=t;SD.msgT=s||3};
@@ -1308,16 +1308,30 @@ function sdSetSite(i){SD.sites[i]={x:P.p.x,y:P.p.y,z:P.p.z};sdSaveSites();sdBuil
 function sdResetSites(){try{localStorage.removeItem('ms_sd_sites')}catch(e){}SD.sites=SITE_DEFAULT.map(q=>({x:q.x,y:q.y,z:q.z}));sdBuildMarkers();sdMsg('↺',1.5)}
 function sdBuildMarkers(){}
 function sdClearMarkers(){if(SD.mk){scene.remove(SD.mk);SD.mk=null}}
+/* ---- صدای C4 (c4_bomb.mp3): بوق‌های پلنت [۰–۳.۲۷] ← «بمب پلنت شد» و تیک‌تاک [۳.۲۷–۴۴.۲۷] ← انفجار [۴۴.۲۷–۴۸.۸] ---- */
+const C4S={raw:null,buf:null,dec:false,plantH:null,tickH:null,tickWant:false};
+const C4S_PLANT=[0,3.27],C4S_TICK=[3.27,44.27],C4S_BOOM=[44.27,48.8],C4S_TICKS=[1.99, 2.95, 3.89, 4.81, 5.7, 6.59, 7.43, 8.27, 9.09, 9.88, 10.66, 11.43, 12.17, 12.9, 13.61, 14.31, 14.98, 15.65, 16.3, 16.94, 17.56, 18.17, 18.78, 19.36, 19.91, 20.46, 21.02, 21.54, 22.06, 22.56, 23.05, 23.54, 24.01, 24.48, 24.92, 25.37, 25.8, 26.22, 26.63, 27.04, 27.42, 27.82, 28.19, 28.56, 28.92, 29.28, 29.62, 29.95, 30.29, 30.61, 30.92, 31.23, 31.53, 31.82, 32.11, 32.39, 32.67, 32.93, 33.19, 33.45, 33.71, 33.95, 34.18, 34.43, 34.65, 34.87, 35.09, 35.31, 35.52, 35.73, 35.92, 36.49, 39.19];
+function sndLoad(){fetch(FILES.c4snd).then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()}).then(b=>{C4S.raw=b}).catch(e=>console.warn('[c4 sound]',FILES.c4snd,e))}
+function sndReady(){if(C4S.buf)return true;if(C4S.raw&&AC&&!C4S.dec){C4S.dec=true;AC.decodeAudioData(C4S.raw.slice(0)).then(b=>{C4S.buf=b}).catch(e=>console.warn('[c4 sound]',e))}return false}
+function sndPlay(clip,off,gain){if(!C4S.buf||!AC)return null;const o=clip[0]+off,d=clip[1]-o;if(d<=.02)return null;
+ const s=AC.createBufferSource(),g=AC.createGain();s.buffer=C4S.buf;g.gain.value=gain;s.connect(g);g.connect(AC.destination);s.start(0,o,d);return{s,g,t0:AC.currentTime-off}}
+function sndStop(h){if(h){try{h.s.stop()}catch(e){}}}
+const sndVol=(x,z)=>Math.max(.12,Math.min(1,1.6/(1+Math.hypot(P.p.x-x,P.p.z-z)/12)));
+function sdSndStop(){sndStop(C4S.plantH);C4S.plantH=null;sndStop(C4S.tickH);C4S.tickH=null;C4S.tickWant=false}
+function sndSync(b,pos){if(!C4S.buf||!C4S.tickWant)return;
+ if(C4S.tickH){const ap=AC.currentTime-C4S.tickH.t0;if(Math.abs(ap-pos)>.4){sndStop(C4S.tickH);C4S.tickH=null}}
+ if(!C4S.tickH&&pos<BOMB_T-.15)C4S.tickH=sndPlay(C4S_TICK,Math.max(0,pos),sndVol(b.x,b.z));
+ if(C4S.tickH)C4S.tickH.g.gain.value=sndVol(b.x,b.z)}
 /* ---- شروع/پایان راند ---- */
 function sdStartMatch(){SD.on=true;SD.round=0;SD.wins=[0,0];SD.final=false;sdBuildMarkers();sdBeginRound()}
-function sdBombClear(){nadesClear();if(SD.drop){scene.remove(SD.drop.g);SD.drop=null}SD.fetcher=null;if(SD.bomb&&SD.bomb.g)scene.remove(SD.bomb.g);if(SD.led){scene.remove(SD.led);SD.led=null}SD.bomb=null;
+function sdBombClear(){sdSndStop();nadesClear();if(SD.drop){scene.remove(SD.drop.g);SD.drop=null}SD.fetcher=null;if(SD.bomb&&SD.bomb.g)scene.remove(SD.bomb.g);if(SD.led){scene.remove(SD.led);SD.led=null}SD.bomb=null;
  for(const f of SD.fx){scene.remove(f.m);if(f.m.geometry)f.m.geometry.dispose();f.m.material.dispose()}SD.fx.length=0}
 function sdBeginRound(){
  sdBombClear();bloodClear();SD.round++;SD.state='live';SD.rt=SD_ROUND_T;SD.bt=0;SD.defT=0;SD.overT=0;SD.hasBomb=true;SD.carrier=null;SD.defuser=null;SD.spec=null;SD.final=false;SD.target=R()<.5?0:1;SD.shake=0;
  P.wp=0;P.pw=undefined;P.pl=0;P.pld=-1;P.sl=0;P.dr=0;P.arm=0;P.wAmmo={0:30,2:12};clickL=clickR=false;
  const off=R()<.5?0:1;let di=0;
  for(const e of ents){spawn(e);e.rg=null;e.path=null;e.plantT=0;e.defT=0;e.mem=0;e.seen=false;if(e.team===1)e.sdSite=(di++ +off)%2}}
-function sdEndRound(w,why){if(SD.state==='over')return;SD.state='over';SD.wins[w]++;SD.overT=SD_OVER_T;SD.final=SD.wins[w]>=SD_WIN;P.pl=0;
+function sdEndRound(w,why){if(SD.state==='over')return;SD.state='over';SD.wins[w]++;SD.overT=SD_OVER_T;SD.final=SD.wins[w]>=SD_WIN;P.pl=0;sdSndStop();
  sdMsg(w===0?'تیم تو برد':'دشمن برد',SD_OVER_T);beep(w===0?660:180,.08,.3)}
 function sdFinish(){const win=SD.wins[0]>SD.wins[1];if(document.pointerLockElement)document.exitPointerLock();leaveMatch();
  setTimeout(()=>lbMsg((win?'بردی ':'باختی ')+SD.wins[0]+' : '+SD.wins[1]),50)}
@@ -1338,14 +1352,14 @@ function sdPlant(x,y,z,by){if(SD.state!=='live')return;
  bm.g.position.set(x,fy+.087*len/BOMB_BASE_LEN/2+.01,z);bm.g.rotation.y=by.yaw||0;scene.add(bm.g);
  const cv=document.createElement('canvas');cv.width=cv.height=64;const cx=cv.getContext('2d'),gr=cx.createRadialGradient(32,32,2,32,32,30);gr.addColorStop(0,'rgba(255,60,40,1)');gr.addColorStop(1,'rgba(255,0,0,0)');cx.fillStyle=gr;cx.fillRect(0,0,64,64);
  const led=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.2}));led.scale.set(.6,.6,1);led.position.set(x,fy+.3,z);scene.add(led);SD.led=led;
- SD.bomb={x,y:fy,z,g:bm.g,lcd:bm.lcd,site:Math.max(0,sdSiteAt(x,fy,z))};SD.state='planted';SD.bt=BOMB_T;SD.beepT=0;SD.hasBomb=false;SD.carrier=null;SD.fetcher=null;SD.defT=0;SD.defuser=null;
+ SD.bomb={x,y:fy,z,g:bm.g,lcd:bm.lcd,site:Math.max(0,sdSiteAt(x,fy,z))};SD.state='planted';SD.bt=BOMB_T;SD.beepT=0;SD.bi=0;C4S.plantH=null;C4S.tickWant=true;SD.hasBomb=false;SD.carrier=null;SD.fetcher=null;SD.defT=0;SD.defuser=null;
  for(const e of ents){e.rg=null;e.path=null;e.plantT=0;e.defT=0}
  if(by&&by.isP){P.pl=0;setWeapon(0)}
- sdMsg('💣 '+SITE_NAME[SD.bomb.site],2);for(let i=0;i<3;i++)setTimeout(()=>beep(700+i*250,.08,.12),i*140)}
-function sdBombTick(dt){const b=SD.bomb;if(!b)return;
- SD.beepT-=dt;if(SD.beepT<=0){SD.beepT=.1+.9*Math.max(0,SD.bt)/BOMB_T;const d=Math.hypot(P.p.x-b.x,P.p.z-b.z);beep(1175,Math.min(.12,.5/(1+d/10)),.08);SD.ledA=1}
- SD.ledA=Math.max(0,SD.ledA-dt*6);if(SD.led)SD.led.material.opacity=.15+.85*SD.ledA;
- b.lcd.set('00:'+String(Math.max(0,Math.ceil(SD.bt))).padStart(2,'0'))}
+ sdMsg('💣 '+SITE_NAME[SD.bomb.site],2);if(!sndReady())for(let i=0;i<3;i++)setTimeout(()=>beep(700+i*250,.08,.12),i*140)}
+function sdBombTick(dt){const b=SD.bomb;if(!b)return;const pos=BOMB_T-SD.bt;
+ while(SD.bi<C4S_TICKS.length&&C4S_TICKS[SD.bi]<=pos){SD.ledA=1;SD.bi++;if(!C4S.buf){const d=Math.hypot(P.p.x-b.x,P.p.z-b.z);beep(1175,Math.min(.12,.5/(1+d/10)),.08)}}
+ if(pos>40)SD.ledA=1;SD.ledA=Math.max(0,SD.ledA-dt*6);if(SD.led)SD.led.material.opacity=.15+.85*SD.ledA;
+ sndSync(b,pos);b.lcd.set('00:'+String(Math.max(0,Math.ceil(SD.bt))).padStart(2,'0'))}
 function boomSound(g){if(!AC)return;const t=AC.currentTime,len=2.4,n=AC.sampleRate*len|0,buf=AC.createBuffer(1,n,AC.sampleRate),ch=buf.getChannelData(0);
  for(let i=0;i<n;i++)ch[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.2);
  const src=AC.createBufferSource();src.buffer=buf;const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(1800,t);lp.frequency.exponentialRampToValueAtTime(70,t+len);
@@ -1358,7 +1372,7 @@ function sdExplode(){const b=SD.bomb;if(!b)return;const cx=b.x,cy=b.y+.3,cz=b.z;
  const mk=(geo,col,op,d,s0,s1,rise,flat)=>{const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false,side:THREE.DoubleSide}));m.position.set(cx,cy,cz);if(flat)m.rotation.x=-Math.PI/2;scene.add(m);SD.fx.push({m,t:0,d,s0,s1,op,rise,y0:cy})};
  mk(new THREE.SphereGeometry(1,20,14),0xff9a2e,.95,1.3,.6,15,0);mk(new THREE.SphereGeometry(1,16,12),0xfff0b8,1,.55,.4,9,0);
  mk(new THREE.RingGeometry(.92,1,48),0xffe3a0,.8,.9,1,30,0,true);mk(new THREE.SphereGeometry(1,14,10),0x2b2724,.6,4.5,2,11,5);
- const dp=Math.hypot(P.p.x-cx,P.p.z-cz),k=Math.max(0,1-dp/45);SD.shake=Math.max(SD.shake,.5+k*1.3);boomSound(k);
+ const dp=Math.hypot(P.p.x-cx,P.p.z-cz),k=Math.max(0,1-dp/45);SD.shake=Math.max(SD.shake,.5+k*1.3);sdSndStop();if(sndReady()){sndPlay(C4S_BOOM,0,Math.min(1,.55+k))}else boomSound(k);
  const f=$('flash');f.style.display='block';f.style.transition='none';f.style.opacity=Math.min(1,.25+k*1.2);requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transition='opacity 1.8s';f.style.opacity=0}))}
 function sdFxUpdate(dt){for(let i=SD.fx.length-1;i>=0;i--){const f=SD.fx[i];f.t+=dt;const u=Math.min(1,f.t/f.d),s=f.s0+(f.s1-f.s0)*(1-(1-u)*(1-u));
   f.m.scale.setScalar(s);f.m.material.opacity=f.op*(1-u);if(f.rise)f.m.position.y=f.y0+f.rise*u;
@@ -1377,7 +1391,7 @@ function sdPickRoam(e){let c=null,r=10;const pl=SD.state==='planted'&&SD.bomb;
 function sdHold(e,dt){   // true = بات باید ثابت بایسته (پلنت یا خنثی‌سازی)
  if(!SD.on)return false;
  if(SD.state==='live'&&e.team===0&&e===SD.carrier){const s=SD.sites[SD.target];
-  if(s&&Math.hypot(e.p.x-s.x,e.p.z-s.z)<SITE_R*.8&&Math.abs(e.p.y-s.y)<3){e.sdHeld=true;e.plantT=(e.plantT||0)+dt;if(e.plantT>=PLANT_T)sdPlant(e.p.x,e.p.y,e.p.z,e);return true}}
+  if(s&&Math.hypot(e.p.x-s.x,e.p.z-s.z)<SITE_R*.8&&Math.abs(e.p.y-s.y)<3){e.sdHeld=true;if(!e.plantT&&sndReady())e.plantH=sndPlay(C4S_PLANT,0,sndVol(e.p.x,e.p.z));e.plantT=(e.plantT||0)+dt;if(e.plantT>=PLANT_T){e.plantH=null;sdPlant(e.p.x,e.p.y,e.p.z,e)}return true}}
  else if(SD.state==='planted'&&e.team===1&&SD.bomb){const b=SD.bomb;
   if(Math.hypot(e.p.x-b.x,e.p.z-b.z)<2.3&&Math.abs(e.p.y-b.y)<2.2){e.sdHeld=true;e.defT=(e.defT||0)+dt;return true}}
  return false}
@@ -1386,6 +1400,7 @@ function sdSpecCycle(dir){const al=ents.filter(e=>!e.dead&&e.team===0&&!e.isP);i
 function sdUpdate(dt){
  if(SD.msgT>0)SD.msgT-=dt;SD.shake=Math.max(0,SD.shake-dt*1.6);sdFxUpdate(dt);
  if(P.dead){
+  if(C4S.plantH){sndStop(C4S.plantH);C4S.plantH=null}
   if(clickL){clickL=false;sdSpecCycle(1)}if(clickR){clickR=false;sdSpecCycle(-1)}if(!SD.spec||SD.spec.dead)sdSpecCycle(1)}
  let a0=0,a1=0,dm=0;for(const e of ents){if(e.dead)continue;if(e.team===0)a0++;else{a1++;dm=Math.max(dm,e.defT||0)}}SD.a0=a0;SD.a1=a1;SD.defT=dm;
  if(SD.state==='live'){SD.rt-=dt;sdCarrierUpdate();
@@ -1397,6 +1412,7 @@ function sdUpdate(dt){
   else if(SD.bt<=0){sdExplode();sdEndRound(0,'بمب منفجر شد 💥')}}
  else if(SD.state==='over'){SD.overT-=dt;if(SD.overT<=0){if(SD.final)sdFinish();else sdBeginRound()}}}
 function sdHud(){
+ if(!locked&&C4S.tickH){sndStop(C4S.tickH);C4S.tickH=null}   // توی منوی توقف صدا قطع بشه؛ بعد از ادامه دوباره با تایمر هم‌زمان می‌شه
  const sec=Math.max(0,SD.state==='planted'?SD.bt:SD.rt),tm=SD.state==='planted'?'💣 '+Math.ceil(sec):Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');
  $('score').textContent=SD.wins[0]+' : '+SD.wins[1]+'   '+SD.a0+'v'+SD.a1+'   '+tm;
  $('msg').textContent=SD.msgT>0?SD.msg:'';
@@ -1407,15 +1423,16 @@ function sdHud(){
  const hn=$('sdhint');hn.style.display=h?'block':'none';if(hh)hn.innerHTML=h;else hn.textContent=h;hn.className=h==='💣'?'bl':'';
  const pb=$('pbar');pb.style.display=(P.pl>0&&!P.dead)?'block':'none';pb.firstElementChild.style.width=Math.min(100,(P.pl||0)/PLANT_T*100)+'%'}
 function bombUpdate(dt){
+ if(C4S.plantH&&!(P.pl>0)&&!(P.wp===3&&mouse)){sndStop(C4S.plantH);C4S.plantH=null}
  if((P.wp||0)!==3){P.pl=0;return}
  const cl=clickL;clickL=clickR=false;
  if(!SD.on||!SD.hasBomb||SD.state!=='live'){P.pl=0;return}
  const si=sdSiteAt(P.p.x,P.p.y,P.p.z),hold=mouse||keys.KeyE;
  if(hold&&si>=0&&P.on&&P.dr<=0){
-  if(!(P.pl>0))P.pl=.0001;P.pl+=dt;P.vx=P.vz=0;
-  const dg=Math.floor(P.pl/PLANT_T*7);if(dg!==P.pld){P.pld=dg;beep(900+dg*70,.05,.05)}
+  if(!(P.pl>0)){P.pl=.0001;C4S.plantH=sndReady()?sndPlay(C4S_PLANT,0,.85):null}P.pl+=dt;P.vx=P.vz=0;
+  if(!C4S.buf){const dg=Math.floor(P.pl/PLANT_T*7);if(dg!==P.pld){P.pld=dg;beep(900+dg*70,.05,.05)}}
   if(P.pl>=PLANT_T)sdPlant(P.p.x,P.p.y,P.p.z,P)}
- else{if(P.pl>0)beep(180,.05,.1);P.pl=0;P.pld=-1}}
+ else{if(P.pl>0&&!C4S.buf)beep(180,.05,.1);P.pl=0;P.pld=-1}}
 
 /* ================= INPUT ================= */
 const keys={};let locked=false,mouse=false,mouse2=false,clickL=false,clickR=false,READY=false;
@@ -1982,7 +1999,7 @@ function botUpdate(e,dt){
  {let px=0,pz=0;for(const t of ents){if(t===e||t.dead||t.team!==e.team)continue;
    const dx=e.p.x-t.p.x,dz=e.p.z-t.p.z,d=Math.hypot(dx,dz);if(d<(fw||sd?6:1.6)&&d>1e-3&&Math.abs(e.p.y-t.p.y)<2){const w=((fw||sd?6:1.6)-d)/(fw||sd?6:1.6);px+=dx/d*w;pz+=dz/d*w}}
   if(px||pz)move(e,px*2.2*dt,pz*2.2*dt)} // هل نرم از هم‌تیمی‌های نزدیک
- if(!e.sdHeld){e.plantT=0;e.defT=0}
+ if(!e.sdHeld){if(e.plantH){sndStop(e.plantH);e.plantH=null}e.plantT=0;e.defT=0}
  {const tp2=vis&&dir?Math.asin(Math.max(-1,Math.min(1,dir.y))):0;e.vp=(e.vp||0)+(tp2-(e.vp||0))*Math.min(1,dt*8)}   // زاویه‌ی نگاه (برای تماشاچی)
  e.cd-=dt;
  if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){e.cd=.35+R()*.3;const hs=R()<.15,j=hs?.02:.03,o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,d={x:bd.x+(R()-.5)*j*2,y:bd.y+(R()-.5)*j*2,z:bd.z+(R()-.5)*j*2},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;fire(e,d)}}
@@ -2516,7 +2533,7 @@ async function boot(){
   st('در حال ساخت برخورد و مسیرها...');await new Promise(r=>setTimeout(r,30));
   buildCol(pv);
   const info=buildNav();console.log('nav',info);
-  pickSpawns();pickSites();bombLoad();
+  pickSpawns();pickSites();bombLoad();sndLoad();
   initBall();   // توپ فوتبال وسط مپ
   window.__g={ents,get P(){return P},get BALL(){return BALL},info,scene,cam,castRay,findPath,nearestNode,nav:()=>({NN,nvx,nvy,nvz,ncF,ncN,NGX,NGZ,GX0,GZ0,ncomp,mainComp,adjS,adjT}),SPAWN:()=>SPAWN,simulate,render,
    setLock:v=>{locked=v},setTp:v=>{tp=v},setPitch:v=>{pitch=v},tris:()=>NT,SD,sdSetSite};
