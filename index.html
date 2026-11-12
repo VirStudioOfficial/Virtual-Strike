@@ -2410,10 +2410,12 @@ function nadesStep(dt){
   const H=s.holes;for(let j=H.length-1;j>=0;j--){H[j].age+=dt;if(H[j].age>=H[j].life)H.splice(j,1)}
   for(const h of H)SMK_G.push(h);
    for(const q of s.sp){const u=q.userData,k=.3+.7*gr,sc=u.sc*(.45+.55*gr);
-    q.position.set(s.x+u.ox*k,s.y+u.oy*k+Math.sin(s.age*.5+u.ph)*.08,s.z+u.oz*k);q.scale.set(sc,sc,1);
+    const ag=s.age*u.sw,ca=Math.cos(ag),sa=Math.sin(ag),w=s.age*u.ws+u.ph;   // هر توپ آروم دور مرکز می‌چرخه + می‌لرزه/نفس می‌کشه → دود زنده
+    q.position.set(s.x+(u.ox*ca-u.oz*sa)*k+Math.sin(w*1.3)*.22,s.y+u.oy*k+Math.sin(w)*.2+s.age*.02,s.z+(u.ox*sa+u.oz*ca)*k+Math.cos(w*1.1)*.22);
+    const br=1+.09*Math.sin(w*1.7);q.scale.set(sc*br,sc*br,1);
     let vis=1;   // سوراخ گلوله حالا توی شیدر (smokePatch) اعمال می‌شه، نه با محو‌کردن کل توپ
     u.hf+=(vis-u.hf)*Math.min(1,dt*(vis<u.hf?14:2.2));   // سریع باز می‌شه، آروم بسته می‌شه
-    q.material.opacity=.62*fo*Math.min(1,s.age/.4)*u.hf;q.material.rotation+=dt*.05}
+    q.material.opacity=.62*fo*Math.min(1,s.age/.4)*u.hf;q.material.rotation+=dt*q.userData.rs}
   if(s.age>=s.life){for(const q of s.sp){scene.remove(q);q.material.dispose()}SMK.splice(i,1)}}
  {const n=Math.min(SMK_NH,SMK_G.length),o=SMK_G.length-n;for(let j=0;j<SMK_NH;j++){const h=j<n?SMK_G[o+j]:null;
   if(!h){SMK_U.uHF.value[j]=0;continue}
@@ -2426,10 +2428,13 @@ function smokeBlocks(o,d,L){for(const s of SMK){if(s.age<.25||s.age>s.life-.6)co
   const r=3*Math.min(1,.3+s.age/1.2),c={x:s.x,y:s.y+1.5,z:s.z};
   if(Math.hypot(o.x-c.x,o.y-c.y,o.z-c.z)<r)return true;if(raySph(o,d,c,r)<L)return true}return false}
 function smokePop(p){let y=p.y;const t=castRay(p.x,p.y+.1,p.z,0,-1,0,5,false);if(t<5)y=p.y+.1-t;   // سطح زمین زیر نارنجک
- if(!SMK_TEX){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),gr=x.createRadialGradient(64,64,4,64,64,62);
-  gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.55,'rgba(255,255,255,.75)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,128,128);SMK_TEX=new THREE.CanvasTexture(c)}
- const sp=[];for(let i=0;i<56;i++){const m=new THREE.SpriteMaterial({map:SMK_TEX,color:new THREE.Color().setHSL(0,0,.6+R()*.14),transparent:true,depthWrite:false,fog:false,opacity:0,rotation:R()*6.28}),q=new THREE.Sprite(m),a=R()*6.28,rr=Math.sqrt(R())*2.3;smokePatch(m);
-  q.userData={ox:Math.cos(a)*rr,oy:.5+R()*2.6,oz:Math.sin(a)*rr,sc:2.4+R()*1.2,ph:R()*6.28,hf:1};q.position.set(p.x,y+.5,p.z);scene.add(q);sp.push(q)}   // توپ‌های کوچیک‌تر ولی بیشتر، تا سوراخ گلوله جزئیات داشته باشه
+ if(!SMK_TEX){SMK_TEX=[];for(let v=0;v<4;v++){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');   // ۴ نوع تکسچر ابری (چند لکه‌ی نرم) به‌جای یه گرادیان ساده
+  for(let b=0;b<11;b++){const a=R()*6.28,r=Math.sqrt(R())*30,cx=64+Math.cos(a)*r,cy=64+Math.sin(a)*r,rr=20+R()*22,g=x.createRadialGradient(cx,cy,1,cx,cy,rr);
+   g.addColorStop(0,'rgba(255,255,255,.55)');g.addColorStop(.6,'rgba(255,255,255,.25)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128)}
+  x.globalCompositeOperation='destination-in';const m=x.createRadialGradient(64,64,6,64,64,62);m.addColorStop(0,'#fff');m.addColorStop(.6,'rgba(255,255,255,.8)');m.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=m;x.fillRect(0,0,128,128);
+  SMK_TEX.push(new THREE.CanvasTexture(c))}}
+ const sp=[];for(let i=0;i<56;i++){const m=new THREE.SpriteMaterial({map:SMK_TEX[i&3],color:new THREE.Color().setHSL(0,0,.6+R()*.14),transparent:true,depthWrite:false,fog:false,opacity:0,rotation:R()*6.28}),q=new THREE.Sprite(m),a=R()*6.28,rr=Math.sqrt(R())*2.3;smokePatch(m);
+  q.userData={ox:Math.cos(a)*rr,oy:.5+R()*2.6,oz:Math.sin(a)*rr,sc:2.4+R()*1.2,ph:R()*6.28,hf:1,sw:(R()-.5)*.45,rs:(R()-.5)*.34,ws:.25+R()*.45};q.position.set(p.x,y+.5,p.z);scene.add(q);sp.push(q)}   // توپ‌های کوچیک‌تر ولی بیشتر، تا سوراخ گلوله جزئیات داشته باشه
  SMK.push({x:p.x,y,z:p.z,age:0,life:18,sp,holes:[]});if(!nsPlay(5,'boom',nsVol(p))){beep(240,.2,.07);beep(150,.35,.05)}}
 /* مولوتف: بطری به هر سطحی بخوره می‌شکنه و ۷ ثانیه روی زمین آتیش می‌مونه (شعاع ~۳ متر)؛ دشمن توی آتیش هر ۰٫۴ ثانیه آسیب می‌بینه و بات‌ها فرار می‌کنن */
 let FIRE_TEX=null;
