@@ -1713,7 +1713,7 @@ function lbRenderUI(){
  $('lbfrs').innerHTML=h;
  $('lbsug').innerHTML=POOL.filter(n=>!LB.friends.includes(n)).map(n=>`<span class="sug">${esc(n)}<button data-a="add" data-n="${esc(n)}" ${LB.pend[n]==='friend'?'disabled':''}>${LB.pend[n]==='friend'?'…':'+'}</button></span>`).join('');
  $('lbcnt').textContent='اسکواد '+(1+sq.length)+'/۵';
- $('lbstart').disabled=!READY||NET.mode==='client';
+ $('lbstart').disabled=!READY||NET.mode==='client'||!!(NET.hostConn&&!NET.on);
  $('lbnet').style.display='flex';netUpdateChip();
  if(inLobby)lbBuildChars()}
 function lbAddFriend(n){n=(n||'').trim();if(!n)return;if(n==='تو'||n===NET.myName){lbMsg('خودت رو نمی‌تونی اد کنی','alert');return}
@@ -1757,7 +1757,7 @@ document.addEventListener('click',e=>{if(!inLobby)return;const t=e.target,b=t.cl
  else if(a==='setclose')$('lbset').style.display='none';
  else if(a==='tab'){if(n!=='PLAY'&&n!=='HOME')lbMsg(n+' — به‌زودی','info')}
  else if(a==='mode'){if(NET.mode==='client'){lbMsg('فقط هاست مود بازی رو انتخاب می‌کنه','alert');return}LB.mode=n;try{localStorage.setItem('ms_mode',n)}catch(e){}if(NET.mode==='host')netBroadcast({t:'lobby',squad:NET.members.slice(),host:NET.myName,mode:LB.mode});lbRenderUI()}
- else if(a==='start'){if(!READY||inMatch)return;if(NET.mode==='client'){lbMsg('فقط هاست می‌تونه شروع کنه','alert');return}startMatch();lockIn()}});
+ else if(a==='start'){if(!READY||inMatch)return;if(NET.hostConn&&!NET.on){lbMsg('هنوز اتصال با هاست کامل نشده — صبر کن','alert');return}if(NET.mode==='client'){lbMsg('فقط هاست می‌تونه شروع کنه','alert');return}startMatch();lockIn()}});
 
 /* ================= NET: چندنفره واقعی با WebRTC (PeerJS) =================
    - هاست روم می‌سازه (کد ۵ کاراکتری) و مرجع اصلیه: بات‌ها، دمیج و امتیاز روی دستگاه هاست شبیه‌سازی می‌شن.
@@ -1843,7 +1843,9 @@ function netHostRoom(cb){if(NET.on){cb&&cb();return}
   const tryMk=()=>{const code=Array.from({length:5},()=>'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(R()*31)]).join(''),
    p=new Peer('ms25r-'+code,PEER_OPTS);NET.peer=p;
    p.on('open',()=>{if(NET.on&&NET.mode==='host'&&NET.room===code)return;NET.on=true;NET.mode='host';NET.room=code;NET.conns=new Map();NET.members=[NET.myName];LB.squad=[NET.myName];
-    netUpdateChip();lbRenderUI();lbMsg('روم ساخته شد — کد رو برای دوستات بفرست: '+code,'check');cb&&cb()});
+    netUpdateChip();lbRenderUI();lbMsg('روم ساخته شد — کد رو برای دوستات بفرست: '+code,'check');
+    clearInterval(NET.lobT);NET.lobT=setInterval(()=>{if(NET.mode!=='host'||!NET.on){clearInterval(NET.lobT);return}if(!inMatch&&NET.conns.size)netBroadcast({t:'lobby',squad:NET.members.slice(),host:NET.myName,mode:LB.mode})},2000);
+    cb&&cb()});
    p.on('error',e=>{if(e.type==='unavailable-id'){try{p.destroy()}catch(x){}tryMk()}else console.warn('[net]',e.type)});
    p.on('disconnected',()=>{setTimeout(()=>{if(NET.peer===p&&!p.destroyed)try{p.reconnect()}catch(x){}},1500)});   // کد روم زنده بمونه تا دوستت دوباره بیاد
    p.on('connection',conn=>{lbMsg('درخواست اتصال رسید…','info');conn.on('open',()=>lbMsg('کانال با یه بازیکن باز شد','info'));conn.on('data',m=>netRoomMsg(conn,m));conn.on('close',()=>netDropConn(conn))})};
@@ -1855,7 +1857,7 @@ function netJoinRoom(codeIn){const code=String(codeIn||'').trim().toUpperCase();
   const p=new Peer(PEER_OPTS);NET.peer=p;NET.room=code;let jto=null;
   p.on('open',()=>{const conn=p.connect('ms25r-'+code,{reliable:true});NET.hostConn=conn;
    const to=jto=setTimeout(()=>{if(!NET.on){NET.joinT=0;{let st='?';try{st=conn.peerConnection.iceConnectionState}catch(x){}lbMsg('اتصال به هاست برقرار نشد (ICE: '+st+(conn.open?'، کانال باز ولی هاست جواب نداد':'')+')','alert')}try{p.destroy()}catch(e){}NET.hostConn=null}},20000);
-   conn.on('open',()=>{try{conn.send({t:'join',name:NET.myName,ver:NET_VER})}catch(e){}});
+   conn.on('open',()=>{try{conn.send({t:'join',name:NET.myName,ver:NET_VER})}catch(e){}lbRenderUI()});
    conn.on('data',m=>netClientMsg(conn,m));
    conn.on('close',()=>{clearTimeout(to);NET.hostConn=null;
     if(NET.on){NET.on=false;NET.mode=null;NET.room='';NET.members=[];LB.squad=[];lbMsg('اتصال با هاست قطع شد','alert');
@@ -1891,7 +1893,7 @@ function netClientMsg(conn,m){
  if(m.t==='badver'){NET.joinT=0;lbMsg('نسخه‌ی بازی‌ت با هاست فرق داره (هاست: '+m.v+' | تو: '+NET_VER+') — هر دو فایل رو آپدیت کنید','alert');try{NET.peer.destroy()}catch(e){}NET.hostConn=null;return}
  if(m.t==='full'){NET.joinT=0;lbMsg('روم پر است یا بازی در جریان است','alert');try{NET.peer.destroy()}catch(e){}NET.hostConn=null;return}
  if(m.t==='roomend'){NET.on=false;NET.mode=null;NET.room='';NET.members=[];LB.squad=[];if(inMatch)leaveMatchMP();netUpdateChip();lbRenderUI();lbMsg('هاست روم رو بست','alert');return}
- if(m.t==='lobby'){NET.joinT=0;NET.on=true;NET.mode='client';NET.hostMode=m.mode||'dm';NET.members=m.squad.slice();LB.squad=m.squad.slice();netUpdateChip();lbRenderUI();return}
+ if(m.t==='lobby'){NET.joinT=0;const same=NET.on&&NET.mode==='client'&&NET.hostMode===(m.mode||'dm')&&NET.members.join()===m.squad.join();NET.on=true;NET.mode='client';NET.hostMode=m.mode||'dm';NET.members=m.squad.slice();LB.squad=m.squad.slice();if(!same){netUpdateChip();lbRenderUI()}return}
  if(m.t==='start'){
  NET.send({t:'ack'});
  if(inMatch&&NET.lastStartId===m.id)return;
