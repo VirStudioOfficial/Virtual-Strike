@@ -1196,6 +1196,13 @@ function bloodUpdate(dt){if(!BL.ok)return;
 const PEN_THICK=.5,PEN_WALLS=2,PEN_DMG=.6;
 /* ---- دمیج AK مثل CS2: ۳۶ پایه | سر ×۴ | شکم ×۱.۲۵ | پا ×۰.۷۵ | افت برد: ۰.۹۸ به ازای هر ۵۰۰ یونیت (= ۱۲.۷ متر) ---- */
 const AK_DMG=36,AK_HEAD=4,AK_CHEST=1,AK_STOM=1.25,AK_LEG=.75,AK_RANGE=.98,AK_RANGE_M=12.7;
+const _bmz=new THREE.Vector3();
+/* سر لوله‌ی تفنگ بات (مختصات دنیا): گلوله/ترسر/فلش از سر لوله‌ی تفنگ بات در می‌آد، نه از وسط بدنش. تماشاچیِ همین بات: از کنار دید خودش */
+function botMuzzle(e){try{const u=e.mesh&&e.mesh.userData,g=u&&u.botGun;
+ if(SD.on&&P.dead&&SD.spec===e&&!e.dead){const o=eye(e),cv=Math.cos(e.vp||0),fx=-Math.sin(e.yaw)*cv,fy=Math.sin(e.vp||0),fz=-Math.cos(e.yaw)*cv;
+  return{x:o.x+fx*.55+Math.cos(e.yaw)*.1,y:o.y+fy*.55-.13,z:o.z+fz*.55-Math.sin(e.yaw)*.1}}
+ if(!g||!g.parent||u.gd)return null;
+ g.updateWorldMatrix(true,false);_bmz.set(0,.015,-.7);g.localToWorld(_bmz);return{x:_bmz.x,y:_bmz.y,z:_bmz.z}}catch(x){return null}}
 function fire(e,d){let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z}
  const o0={x:ox,y:oy,z:oz};let hit=null,zone='body',trav=0,mul=1,walls=0,L=100,bh=false;
  for(;;){
@@ -1210,8 +1217,8 @@ function fire(e,d){let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z}
   if(ex===Infinity||ex>=PEN_THICK||Math.abs(HNY)>.7){L=trav+wd;break}
   const adv=.03+ex;ox=px+d.x*adv;oy=py+d.y*adv;oz=pz+d.z*adv;trav+=wd+adv;mul*=PEN_DMG;walls++}
  L=Math.min(L,100);const end={x:o0.x+d.x*L,y:o0.y+d.y*L,z:o0.z+d.z*L},o=o0;
- tracer(e.isP?muzzlePos():{x:o.x,y:o.y-.15,z:o.z},end);smokeShot(o0,end);
- {const mp=e.isP?muzzlePos():{x:o.x,y:o.y-.15,z:o.z};mflash.position.set(mp.x,mp.y,mp.z);mflash.intensity=e.isP?4:2;mfT=.05}   // برای بازیکن: از سر لوله
+ tracer(e.isP?muzzlePos():(botMuzzle(e)||{x:o.x,y:o.y-.15,z:o.z}),end);smokeShot(o0,end);
+ {const mp=e.isP?muzzlePos():(botMuzzle(e)||{x:o.x,y:o.y-.15,z:o.z});mflash.position.set(mp.x,mp.y,mp.z);mflash.intensity=e.isP?4:2;mfT=.05}   // برای بازیکن: از سر لوله
  if(!e.isP&&SD.on&&P.dead&&SD.spec===e)VM.kick=Math.min(.11,VM.kick+.07);   // لگد گان موقع تماشا
  const dist=Math.hypot(e.p.x-P.p.x,e.p.z-P.p.z);if(!((!e.isP||(e.wp||0)!==2)&&sfx('shot',e.isP?.75:.6/(1+dist/8),.96+R()*.08)))beep(e.isP?((e.wp||0)===2?230:180):140,e.isP?.05:.05/(1+dist/6));
  if(hit&&!hit.isP)bloodHit(end,d,zone);   // پاشش خون
@@ -2216,7 +2223,8 @@ function botUpdate(e,dt){
  if(!e.sdHeld){if(e.plantH){sndStop(e.plantH);e.plantH=null}e.plantT=0;e.defT=0}
  {const tp2=vis&&dir?Math.asin(Math.max(-1,Math.min(1,dir.y))):0;e.vp=(e.vp||0)+(tp2-(e.vp||0))*Math.min(1,dt*8)}   // زاویه‌ی نگاه (برای تماشاچی)
  e.cd-=dt;
- if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){e.cd=(.35+R()*.3)*(e.team===1?EN.cd:1);const hs=R()<(e.team===1?EN.hs:.15),j=(hs?.02:.03)*(e.team===1?EN.jit:1),o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,d={x:bd.x+(R()-.5)*j*2,y:bd.y+(R()-.5)*j*2,z:bd.z+(R()-.5)*j*2},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;fire(e,d)}}
+ if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){e.cd=(.35+R()*.3)*(e.team===1?EN.cd:1);const hs=R()<(e.team===1?EN.hs:.15),j=(hs?.02:.03)*(e.team===1?EN.jit:1),o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,d={x:bd.x+(R()-.5)*j*2,y:bd.y+(R()-.5)*j*2,z:bd.z+(R()-.5)*j*2},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;e.yaw=Math.atan2(-bd.x,-bd.z);e.vp=Math.asin(Math.max(-1,Math.min(1,bd.y)));   // دید بات (و کراس‌هیر تماشاچی) لحظه‌ی شلیک دقیقاً روی همون جهتی می‌ره که گلوله می‌ره
+ fire(e,d)}}
 function simulate(dt){
  nadesStep(dt);
  if(SD.on)sdUpdate(dt);
@@ -2684,7 +2692,8 @@ function heBoom(p){const c={x:p.x,y:p.y+.12,z:p.z};NADE_BY.wp=4;NADE_BY.name=(P&
   const ok=hy=>{const dx=e.p.x-c.x,dy=e.p.y+hy-c.y,dz=e.p.z-c.z,d=Math.hypot(dx,dy,dz);return d<.6||castRay(c.x,c.y,c.z,dx/d,dy/d,dz/d,d,false)>=d-.5},
    dd=Math.hypot(e.p.x-c.x,e.p.y+1-c.y,e.p.z-c.z);if(dd>10)continue;
   if(!(ok(1.0)||ok(.3)))continue;   // از پشت دیوار آسیب نمی‌زنه
-  const dmg=Math.round(98*Math.pow(1-dd/10,1.15));if(dmg>=1)damage(e,dmg,NADE_BY,'body',false)}
+  const dmg=Math.round(200*(1-dd/10));   // حداکثر ۲۰۰ (دشمن ۱۳۰ جون داره): تا ~۳ متری می‌کشه، دورتر آسیب کم‌کم کمتر می‌شه
+  if(dmg>=1)damage(e,dmg,NADE_BY,'body',false)}
  heFx(c);
  const dp=Math.hypot(P.p.x-c.x,P.p.z-c.z),k=Math.max(0,1-dp/40);if(!nsPlay(4,'boom',nsVol(c))){if(sndReady())sndPlay(C4S_BOOM,0,Math.min(.9,.28+k*.72));else boomSound(k*.8)}   // صدای واقعی انفجار (همون فایل C4)؛ اگه لود نشده بود صدای ساختگیif(SD.on)SD.shake=Math.max(SD.shake||0,k*.9);
  if(typeof BALL!=='undefined'&&BALL){const bx=BALL.p.x-c.x,bz=BALL.p.z-c.z,bd=Math.hypot(bx,bz,BALL.p.y-c.y);if(bd<9&&bd>.1)ballImpulse(bx/bd*14*(1-bd/9),3.5,bz/bd*14*(1-bd/9))}}
