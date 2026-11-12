@@ -1309,7 +1309,10 @@ function stepBall(dt){
   const dx=B.p.x-e.p.x,dz=B.p.z-e.p.z,d=Math.hypot(dx,dz),R2=BALL_R+.42;
   if(d<R2&&d>1e-4){
    const nx=dx/d,nz=dz/d,ov=R2-d;
-   B.p.x+=nx*ov;B.p.z+=nz*ov;   // از داخل بدن بیرون کشیدن
+   /* بیرون کشیدن توپ از بدن؛ ولی اگه پشت توپ دیوار باشه توپ تا دیوار میره و بقیه‌ی هل رو خود کاراکتر پس می‌گیره (قبلاً توپ مستقیم توی دیوار فرو می‌رفت) */
+   {const wt=castRay(B.p.x,B.p.y,B.p.z,nx,0,nz,ov+BALL_R,true);
+    if(wt<ov+BALL_R){const okd=Math.max(0,wt-BALL_R);B.p.x+=nx*okd;B.p.z+=nz*okd;const rem=ov-okd;if(rem>0)move(e,-nx*rem,-nz*rem)}
+    else{B.p.x+=nx*ov;B.p.z+=nz*ov}}
    const k=2.4+Math.hypot(e.vx||0,e.vz||0)*.95;
    ballImpulse(nx*k,1.2,nz*k)}}
  /* جاذبه + انتگرال‌گیری با زیرگام: هر زیرگام حداکثر ~۱۲ سانت جابه‌جایی → حتی توپ سریع یا لگ فريم از دیوار رد نمی‌شه */
@@ -1326,7 +1329,7 @@ function stepBall(dt){
     const dot=B.v.x*nx+B.v.z*nz;B.v.x=(B.v.x-2*dot*nx)*.55;B.v.z=(B.v.z-2*dot*nz)*.55;
     if(hv>3.5&&s===0&&!sfx('f1',.4,.75))beep(110,.05,.08)}}
   /* ایمنی: پرتو در ۴ جهت افقی — اگه توپ به هر دلیلی توی دیوار فرو رفت (مثلاً هل دادن کنار دیوار)، بیرون کشیده می‌شه */
-  for(const[ax,az]of[[1,0],[-1,0],[0,1],[0,-1]]){const tw=castRay(B.p.x,B.p.y,B.p.z,ax,0,az,BALL_R,true);
+  for(const[ax,az]of[[1,0],[-1,0],[0,1],[0,-1],[.7071,.7071],[-.7071,.7071],[.7071,-.7071],[-.7071,-.7071]]){const tw=castRay(B.p.x,B.p.y,B.p.z,ax,0,az,BALL_R,true);
    if(tw<BALL_R){B.p.x-=ax*(BALL_R-tw);B.p.z-=az*(BALL_R-tw);
     if(B.v.x*ax+B.v.z*az<0){B.v.x*=.5;B.v.z*=.5}}}
   /* زمین: جهش + اصطکاک غلتش */
@@ -1517,11 +1520,11 @@ function sdWalkTo(e,x,z,dt){const dx=x-e.p.x,dz=z-e.p.z,d=Math.hypot(dx,dz);if(d
 function sdHold(e,dt){   // true = بات باید ثابت بایسته (پلنت یا خنثی‌سازی)
  if(!SD.on)return false;
  if(SD.state==='live'&&e.team===0&&e===SD.carrier){const s=SD.sites[SD.target];
-  if(s&&Math.hypot(e.p.x-s.x,e.p.z-s.z)>=BOT_PLANT_R&&Math.hypot(e.p.x-s.x,e.p.z-s.z)<5&&Math.abs(e.p.y-s.y)<3&&sdCanWalk(e,s.x,s.y,s.z,dt)){sdWalkTo(e,s.x,s.z,dt);return true}
-   if(s&&Math.hypot(e.p.x-s.x,e.p.z-s.z)<BOT_PLANT_R&&Math.abs(e.p.y-s.y)<3){e.sdHeld=true;if(!e.plantT&&sndReady())e.plantH=sndPlay(C4S_PLANT,0,sndVol(e.p.x,e.p.z));e.plantT=(e.plantT||0)+dt;if(e.plantT>=PLANT_T){e.plantH=null;sdPlant(e.p.x,e.p.y,e.p.z,e)}return true}}
+  if(s&&!(e.plantT>0)&&Math.hypot(e.p.x-s.x,e.p.z-s.z)>=BOT_PLANT_R&&Math.hypot(e.p.x-s.x,e.p.z-s.z)<5&&Math.abs(e.p.y-s.y)<3&&sdCanWalk(e,s.x,s.y,s.z,dt)){sdWalkTo(e,s.x,s.z,dt);return true}
+   if(s&&Math.hypot(e.p.x-s.x,e.p.z-s.z)<(e.plantT>0?BOT_PLANT_R*1.8:BOT_PLANT_R)&&Math.abs(e.p.y-s.y)<3){e.sdHeld=true;if(!e.plantT&&sndReady())e.plantH=sndPlay(C4S_PLANT,0,sndVol(e.p.x,e.p.z));e.plantT=(e.plantT||0)+dt;if(e.plantT>=PLANT_T){e.plantH=null;sdPlant(e.p.x,e.p.y,e.p.z,e)}return true}}
  else if(SD.state==='planted'&&e.team===1&&SD.bomb){const b=SD.bomb;
-  if(Math.hypot(e.p.x-b.x,e.p.z-b.z)>=BOT_DEF_R&&Math.hypot(e.p.x-b.x,e.p.z-b.z)<5&&Math.abs(e.p.y-b.y)<2.2&&sdCanWalk(e,b.x,b.y,b.z,dt)){sdWalkTo(e,b.x,b.z,dt);return true}
-   if(Math.hypot(e.p.x-b.x,e.p.z-b.z)<BOT_DEF_R&&Math.abs(e.p.y-b.y)<1.2){e.sdHeld=true;e.defT=(e.defT||0)+dt;return true}}
+  if(!(e.defT>0)&&Math.hypot(e.p.x-b.x,e.p.z-b.z)>=BOT_DEF_R&&Math.hypot(e.p.x-b.x,e.p.z-b.z)<5&&Math.abs(e.p.y-b.y)<2.2&&sdCanWalk(e,b.x,b.y,b.z,dt)){sdWalkTo(e,b.x,b.z,dt);return true}
+   if(Math.hypot(e.p.x-b.x,e.p.z-b.z)<(e.defT>0?BOT_DEF_R*1.8:BOT_DEF_R)&&Math.abs(e.p.y-b.y)<1.2){e.sdHeld=true;e.defT=(e.defT||0)+dt;return true}}
  return false}
 /* ---- حلقه‌ی اصلی حالت ---- */
 function sdSpecCycle(dir){const al=ents.filter(e=>!e.dead&&e.team===0&&!e.isP);if(!al.length){SD.spec=null;return}let i=al.indexOf(SD.spec);i=i<0?0:(i+dir+al.length)%al.length;SD.spec=al[i]}
@@ -2188,7 +2191,7 @@ function botUpdate(e,dt){
  }
  const sy=Math.sin(e.yaw),cy=Math.cos(e.yaw),sp=4.2*dt*(e.team===1?EN.spd:1);
  if(fw||sd)move(e,(-sy*fw+cy*sd)*sp,(-cy*fw-sy*sd)*sp);
- {let px=0,pz=0;for(const t of ents){if(t===e||t.dead||t.team!==e.team)continue;
+ if(!e.sdHeld){let px=0,pz=0;for(const t of ents){if(t===e||t.dead||t.team!==e.team)continue;
    const dx=e.p.x-t.p.x,dz=e.p.z-t.p.z,d=Math.hypot(dx,dz);if(d<(fw||sd?6:1.6)&&d>1e-3&&Math.abs(e.p.y-t.p.y)<2){const w=((fw||sd?6:1.6)-d)/(fw||sd?6:1.6);px+=dx/d*w;pz+=dz/d*w}}
   if(px||pz)move(e,px*2.2*dt,pz*2.2*dt)} // هل نرم از هم‌تیمی‌های نزدیک
  e.ck=(e.ck||0)-dt;if(e.ck<=0){e.ck=.25;   // هر ۱/۴ ثانیه: توی جعبه/دیوار فرو رفته و تکون نمی‌خوره؟ → برگرد به آخرین جای سالم
