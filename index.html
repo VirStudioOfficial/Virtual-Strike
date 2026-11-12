@@ -152,7 +152,7 @@ canvas{display:block}
 <div id="hud"><div id="sdbar"></div><div id="fb"></div><div id="pos"></div><canvas id="mm"></canvas><div id="kf"></div><div id="flash"></div><div id="pbar"><i></i></div><div id="sdhint"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="nades"></div><div id="money" class="t"><span id="mv"></span><i id="mgain"></i></div><div id="buy"></div><div id="toast"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
 <div id="menu"><h1>Mini Strike</h1>
 <div id="load">در حال لود مپ و کاراکترها...</div>
-<div id="pause"><button class="lbb g" id="lbresume" style="font-size:22px;padding:10px 40px">ادامه بازی</button><br><br><button class="lbb r" id="lbleave" style="font-size:16px">بازگشت به لابی</button></div>
+<div id="pause"><div id="pnote" style="display:none;margin-bottom:14px;font-size:14px;opacity:.85;direction:rtl">بازی آنلاینه؛ پاز واقعی نداره و بازی ادامه داره</div><button class="lbb g" id="lbresume" style="font-size:22px;padding:10px 40px">ادامه بازی</button><br><br><button class="lbb r" id="lbleave" style="font-size:16px">بازگشت به لابی</button></div>
 <div>حرکت: WASD &nbsp;|&nbsp; نگاه: ماوس &nbsp;|&nbsp; شلیک: کلیک چپ &nbsp;|&nbsp; پرش: Space &nbsp;|&nbsp; آهسته‌راه رفتن: Shift &nbsp;|&nbsp; نشستن: C &nbsp;|&nbsp; ریلود: R &nbsp;|&nbsp; تفنگ: ۱ &nbsp;|&nbsp; پیستول: ۲ (هر کلیک یک تیر) &nbsp;|&nbsp; چاقو: ۳ (کلیک چپ: ضربه، راست: ضربهٔ سنگین) &nbsp;|&nbsp; Q = سلاح قبلی &nbsp;|&nbsp; دید سوم‌شخص: V &nbsp;|&nbsp; نارنجک: ۵ HE ، ۶ اسموک ، ۷ فلش ، ۸ مولوتف (کلیک چپ پرتاب محکم، کلیک راست آروم)</div>
 <div>تو و ۴ یار (حلقه‌ی آبی) در برابر ۵ دشمن (حلقه‌ی قرمز). Esc برای توقف.</div></div>
 <pre id="lbtune"></pre>
@@ -1621,7 +1621,8 @@ function sdUpdate(dt){
  else if(SD.state==='over'){SD.overT-=dt;if(SD.overT<=0){if(SD.final)sdFinish();else sdBeginRound()}}}
 function sdHud(){
  if(!locked&&C4S.tickH){sndStop(C4S.tickH);C4S.tickH=null}   // توی منوی توقف صدا قطع بشه؛ بعد از ادامه دوباره با تایمر هم‌زمان می‌شه
- const sec=Math.max(0,SD.state==='planted'?SD.bt:SD.rt),tm=SD.state==='planted'?'💣 '+Math.ceil(sec):Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');
+ if(SD.state==='planted')SD.hb=true;else if(SD.state==='live')SD.hb=false;   // ✦ بعد از پایان راند تایمر به عدد بمب (یا زمان راند) یخ می‌کنه و ریست نمی‌شه
+ const bm=SD.state==='planted'||(SD.state==='over'&&SD.hb),sec=Math.max(0,bm?SD.bt:SD.rt),tm=bm?'💣 '+Math.ceil(sec):Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');
  {$('score').textContent='';const bar=$('sdbar');bar.style.display='flex';   // ✦ نوار بالای صفحه مثل CS2: آواتار تیم‌ها + تایمر + امتیاز وسط
   const mk=t=>ents.filter(e=>e.team===t).sort((a,b)=>(b.isP?1:0)-(a.isP?1:0)).slice(0,5).map(e=>({n:e.name,d:!!e.dead,me:!!e.isP,t,pc:Math.max(0,Math.min(100,Math.round(e.hp/((e.team===1&&!e.isP)?EN.hp:100)*10)*10))}));
   const L=mk(0),Rr=mk(1),pl=SD.state==='planted',sig=L.concat(Rr).map(a=>a.n+(a.d?'x':a.pc)).join('|')+'#'+tm+'#'+SD.wins[0]+SD.wins[1]+SD.round+SD.a0+SD.a1;
@@ -1650,6 +1651,7 @@ function bombUpdate(dt){
  else{if(P.pl>0&&!C4S.buf)beep(180,.05,.1);P.pl=0;P.pld=-1}}
 
 /* ================= INPUT ================= */
+const netLive=()=>!!NET.mode&&(NET.members||[]).length>1;
 const keys={};let locked=false,mouse=false,mouse2=false,clickL=false,clickR=false,READY=false;
 addEventListener('keydown',e=>{if(!inMatch)return;if(locked&&(e.code==='Space'||e.ctrlKey))e.preventDefault();keys[e.code]=1;if(e.code==='Space'&&!e.repeat&&P)P.jb=.12;if(e.code==='KeyR')reload();if(e.code==='Digit1')setWeapon(0);if(e.code==='Digit2')setWeapon(2);if(e.code==='Digit3')setWeapon(1);if(e.code==='Digit4')setWeapon(3);if(e.code==='Digit5')setWeapon(4);if(e.code==='Digit6')setWeapon(5);if(e.code==='Digit7')setWeapon(6);if(e.code==='Digit8')setWeapon(7);if(SD.on&&!NET.mode&&P&&!P.dead){if(e.code==='F7'||e.code==='F8'||e.code==='F9')e.preventDefault();if(e.code==='F7')sdSetSite(0);if(e.code==='F8')sdSetSite(1);if(e.code==='F9')sdResetSites()}if(e.code==='KeyQ'&&P)setWeapon(P.pw!==undefined?P.pw:1);if(e.code==='KeyV'&&locked)tp=!tp});addEventListener('keyup',e=>keys[e.code]=0);addEventListener('blur',()=>{for(const k in keys)keys[k]=0});
 addEventListener('mousedown',e=>{if(!locked)return;if(e.button===0){mouse=true;clickL=true}if(e.button===2){mouse2=true;clickR=true}});addEventListener('mouseup',e=>{if(e.button===0)mouse=false;if(e.button===2)mouse2=false});
@@ -1666,7 +1668,7 @@ function applySet(save){SENS=.0022*SET.sens;const d=devicePixelRatio||1;
  if(save){try{localStorage.setItem('ms_set',JSON.stringify(SET))}catch(e){}}}
 applySet(false);
 const lockIn=()=>{AC=AC||new (window.AudioContext||window.webkitAudioContext)();sfxLoad();sndReady();nsDecode();ren.domElement.requestPointerLock()};
-const showMenu=()=>{const lob=READY&&!inMatch;$('menu').style.display=lob?'none':'flex';$('lb').style.display=lob?'block':'none';$('pause').style.display=inMatch?'block':'none';$('hud').style.display=inMatch?'':'none';$('load').style.display=READY?'none':''};
+const showMenu=()=>{const lob=READY&&!inMatch;$('menu').style.display=lob?'none':'flex';$('lb').style.display=lob?'block':'none';$('pause').style.display=inMatch?'block':'none';$('pnote').style.display=netLive()?'block':'none';$('hud').style.display=inMatch?'':'none';$('load').style.display=READY?'none':''};
 $('lbresume').onclick=()=>{if(READY&&inMatch)lockIn()};
 $('lbleave').onclick=()=>leaveMatch();
 /* ================= LOBBY (مثل CS2: کاراکترها وسط، منوی بالا، دوست‌ها سمت راست) ================= */
@@ -1858,7 +1860,7 @@ function netRoomMsg(conn,m){
   lbMsg(n+' به روم پیوست','check');lbRenderUI();
   const lb={t:'lobby',squad:NET.members.slice(),host:NET.myName,mode:LB.mode};try{conn.send(lb)}catch(e){}netBroadcast(lb)}
  else if(m.t==='st'){const e=ents.find(x=>x.name===conn._name);
-  if(e){e.tg={x:m.x,y:m.y,z:m.z,yaw:m.yaw,cr:m.cr,on:m.on}}}
+  if(e){e.tg={x:m.x,y:m.y,z:m.z,yaw:m.yaw,vp:m.vp,cr:m.cr,on:m.on}}}
  else if(m.t==='fire'){const e=ents.find(x=>x.name===conn._name);
   if(e&&!e.dead){e.wp=m.wp||0;fire(e,{x:m.d[0],y:m.d[1],z:m.d[2]})}}
  else if(m.t==='melee'){const e=ents.find(x=>x.name===conn._name),t=ents.find(x=>x.name===m.tg);
@@ -1922,12 +1924,12 @@ function sdClientUpdate(dt){
  else if(SD.state==='planted'){SD.bt-=dt;sdBombTick(dt)}
  else if(SD.state==='over')SD.overT-=dt}
 function netApplySnap(m){
- for(const a of m.e){const[n,x,y,z,yaw,dead,hp,cr,rt]=a,e=ents.find(t=>t.name===n);if(!e)continue;
+ for(const a of m.e){const[n,x,y,z,yaw,dead,hp,cr,rt,vp]=a,e=ents.find(t=>t.name===n);if(!e)continue;
   if(e.isP){if(hp<P.hp-.1){$('dmg').style.opacity=1;hm=.12}
    P.hp=hp;P.rt=rt;
    if(dead&&!P.dead){P.dead=true;pitch=Math.max(pitch,.1);if(!P.rag){try{ragStart(P,{p:{x:P.p.x-1,y:P.p.y,z:P.p.z},lx:P.lx,lz:P.lz},'body')}catch(err){}}}
    continue}
-  e.tg={x,y,z,yaw,cr};e.hp=hp;e.rt=rt;
+  e.tg={x,y,z,yaw,cr,vp};e.hp=hp;e.rt=rt;
   if(dead&&!e.dead){e.dead=true}}
  score[0]=m.s[0];score[1]=m.s[1];
  if(m.sd&&SD.on){SD.rt=m.sd[0];SD.bt=m.sd[1];SD.overT=m.sd[2];if(SD.state==='live')SD.hasBomb=(m.sd[3]===NET.myName);
@@ -1936,16 +1938,16 @@ function netApplySnap(m){
 function netLerp(e,dt){const g=e.tg;if(!g)return;const k=Math.min(1,dt*10);
  e.p.x+=(g.x-e.p.x)*k;e.p.y+=(g.y-e.p.y)*k;e.p.z+=(g.z-e.p.z)*k;
  let dy=g.yaw-e.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));e.yaw+=dy*k;
- e.cr=g.cr||0;e.on=!!g.on;e.vx=0;e.vz=0}
+ if(g.vp!==undefined)e.vp=(e.vp||0)+(g.vp-(e.vp||0))*k;e.cr=g.cr||0;e.on=!!g.on;e.vx=0;e.vz=0}
 NET.frame=dt=>{if(!NET.on)return;
  if(NET.mode==='host'&&inMatch){NET.snapT-=dt;
   if(NET.snapT<=0){NET.snapT=.066;
-   netBroadcast({t:'snap',e:ents.map(e=>[e.name,+e.p.x.toFixed(2),+e.p.y.toFixed(2),+e.p.z.toFixed(2),+e.yaw.toFixed(2),e.dead?1:0,Math.round(e.hp),+(e.cr||0).toFixed(2),+Math.max(0,e.rt).toFixed(1)]),
+   netBroadcast({t:'snap',e:ents.map(e=>[e.name,+e.p.x.toFixed(2),+e.p.y.toFixed(2),+e.p.z.toFixed(2),+e.yaw.toFixed(2),e.dead?1:0,Math.round(e.hp),+(e.cr||0).toFixed(2),+Math.max(0,e.rt).toFixed(1),+((e.isP?pitch:e.vp)||0).toFixed(2)]),
     s:[score[0],score[1]],b:BALL?[+BALL.p.x.toFixed(2),+BALL.p.y.toFixed(2),+BALL.p.z.toFixed(2)]:null,
     sd:SD.on?[+SD.rt.toFixed(1),+SD.bt.toFixed(1),+(SD.overT||0).toFixed(1),SD.hasBomb?P.name:(SD.carrier&&ents.includes(SD.carrier)?SD.carrier.name:''),SD.defE?SD.defE.name:'',+(SD.defE?(SD.defE.defT||0):0).toFixed(2)]:0})}}
  else if(NET.mode==='client'&&inMatch&&P){NET.stT-=dt;
   if(NET.stT<=0){NET.stT=.05;
-   NET.send({t:'st',x:+P.p.x.toFixed(2),y:+P.p.y.toFixed(2),z:+P.p.z.toFixed(2),yaw:+P.yaw.toFixed(2),cr:+(P.cr||0).toFixed(2),on:P.on?1:0})}}}
+   NET.send({t:'st',x:+P.p.x.toFixed(2),y:+P.p.y.toFixed(2),z:+P.p.z.toFixed(2),yaw:+P.yaw.toFixed(2),vp:+pitch.toFixed(2),cr:+(P.cr||0).toFixed(2),on:P.on?1:0})}}}
 function startMatchMP(roster,mode){lobbyExit();bloodClear();
  NAMES_N[0]=NAMES_N[1]=0;score[0]=score[1]=0;
  for(const r of roster){
@@ -2373,7 +2375,11 @@ function botUpdate(e,dt){
  e.ck=(e.ck||0)-dt;if(e.ck<=0){e.ck=.25;   // هر ۱/۴ ثانیه: توی جعبه/دیوار فرو رفته و تکون نمی‌خوره؟ → برگرد به آخرین جای سالم
   if(embedded(e)){if(e.slow){unstuckBot(e,true);return}}else if(e.on)e.safe=[e.p.x,e.p.y,e.p.z]}
  if(!e.sdHeld){if(e.plantH){sndStop(e.plantH);e.plantH=null}e.plantT=0;e.defT=0}
- {const tp2=vis&&dir?Math.asin(Math.max(-1,Math.min(1,dir.y))):0;e.vp=(e.vp||0)+(tp2-(e.vp||0))*Math.min(1,dt*8)}   // زاویه‌ی نگاه (برای تماشاچی)
+ {let tp2=vis&&dir?Math.asin(Math.max(-1,Math.min(1,dir.y))):0;
+  if(e.sdHeld&&!vis){   // ✦ موقع پلنت/دفیوز سرش رو پایین می‌گیره سمت جایی که کار می‌کنه
+   if(e.plantT>0)tp2=-.85;
+   else if(e.defT>0&&SD.bomb){const o3=eye(e),b3=SD.bomb;tp2=Math.atan2((b3.y+.05)-o3.y,Math.max(.15,Math.hypot(b3.x-o3.x,b3.z-o3.z)))}}
+  e.vp=(e.vp||0)+(tp2-(e.vp||0))*Math.min(1,dt*8)}   // زاویه‌ی نگاه (برای تماشاچی)
  e.cd-=dt;
  if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){e.cd=(.35+R()*.3)*(e.team===1?EN.cd:1);const hs=R()<(e.team===1?EN.hs:.15),j=(hs?.02:.03)*(e.team===1?EN.jit:1),o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,d={x:bd.x+(R()-.5)*j*2,y:bd.y+(R()-.5)*j*2,z:bd.z+(R()-.5)*j*2},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;e.yaw=Math.atan2(-bd.x,-bd.z);e.vp=Math.asin(Math.max(-1,Math.min(1,bd.y)));   // دید بات (و کراس‌هیر تماشاچی) لحظه‌ی شلیک دقیقاً روی همون جهتی می‌ره که گلوله می‌ره
  fire(e,d)}}
@@ -2974,7 +2980,7 @@ function render(dt){
 
 let last=performance.now();
 (function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;
- if(READY){if(inMatch){if(locked)simulate(dt);NET.frame(dt);render(dt)}else if(inLobby){NET.frame(dt);lobbyFrame(dt)}}})(last);
+ if(READY){if(inMatch){if(locked||netLive())simulate(dt);NET.frame(dt);render(dt)}/* ✦ آنلاین با دوست: پاز بازی رو برای بقیه متوقف نمی‌کنه */else if(inLobby){NET.frame(dt);lobbyFrame(dt)}}})(last);
 
 /* ================= BOOT: لود مپ + کاراکترها + ساخت مسیرها ================= */
 /* ---- راه رفتن: مدل‌ها اسکلت ندارن، پس پاها و دست‌ها رو از بدنه جدا می‌کنیم و دور باسن/شونه می‌چرخونیم ---- */
