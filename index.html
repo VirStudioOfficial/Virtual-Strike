@@ -731,7 +731,12 @@ function vmArms(k){const A=VM.arms;if(!A)return;
     _wv1.lerp(_wv2,w);_wv2.copy(_wv1).applyMatrix4(hi);_wv1.applyMatrix4(fi);
     fp.setXYZ(fj,_wv1.x,_wv1.y,_wv1.z);hp.setXYZ(hj,_wv2.x,_wv2.y,_wv2.z)}
    fp.needsUpdate=hp.needsUpdate=true}}}
+const VM_ENEMY_TINT=[.95,.95,.5];   // رنگ آستین دشمن موقع تماشا: ضرب روی رنگ دست خودی (خاکستری-آبی → زیتونی)؛ [1,1,1] = بدون تغییر
 function vmUpdate(dt){
+ if(VM.arms){const wE=!!(SD.on&&P.dead&&SD.spec&&!SD.spec.dead&&SD.spec.team===1);   // تماشای بات دشمن → دست‌ها رنگ لباس دشمن
+  if(VM._armE!==wE){VM._armE=wE;const A=VM.arms;if(!VM.armMatA)VM.armMatA=A.R.upper.material;
+   if(wE&&!VM.armMatE&&VM.armMatA.clone&&VM.armMatA.color){VM.armMatE=VM.armMatA.clone();VM.armMatE.color.setRGB(VM_ENEMY_TINT[0],VM_ENEMY_TINT[1],VM_ENEMY_TINT[2])}
+   const mat=wE&&VM.armMatE?VM.armMatE:VM.armMatA;for(const q of['L','R'])for(const k of['upper','fore','hand'])A[q][k].material=mat}}
  const spc=!!(SD.on&&P.dead&&SD.spec&&!SD.spec.dead),vis=(!P.dead&&!tp)||spc;gun.visible=vis;if(VM.arms)VM.arms.group.visible=vis;
  if(spc){P.wp=0;P.rl=0;P.arm=0;P.dr=0;P.sl=0;P.pl=0}   // تماشا از دید یار: ویومدل AK بدون ریلود/چاقو/بمب (بات‌ها فقط AK دارن)
  VM.kick+=(0-VM.kick)*Math.min(1,dt*11);   // بازگشت نرم‌تر → لگد دیده می‌شه
