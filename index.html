@@ -10,6 +10,15 @@ canvas{display:block}
 #cross{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-4px;border:1px solid #3f3;border-radius:50%}
 .t{position:absolute;font-size:28px;font-weight:bold;text-shadow:0 0 5px #000;direction:ltr}
 #hp{left:20px;bottom:16px}#ammo{right:20px;bottom:16px}
+#money{left:20px;bottom:58px;color:#7cdc5c}#money i{font-style:normal;font-size:16px;color:#bff5a8;margin-left:10px;opacity:0}
+#buy{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);min-width:340px;padding:14px 16px;border-radius:12px;direction:rtl;color:#fff;font-size:16px;background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.07));backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);border:1px solid rgba(255,255,255,.28);box-shadow:0 8px 30px rgba(0,0,0,.35)}
+#buy h4{margin:0 0 10px;display:flex;justify-content:space-between;font-size:17px}
+#buy .bi{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;margin-bottom:6px;background:rgba(0,0,0,.28)}
+#buy .bi b{width:22px;height:22px;display:grid;place-items:center;border-radius:5px;background:rgba(255,255,255,.18);font-size:13px}
+#buy .bi .svgi{width:24px;height:24px}#buy .bi span{flex:1}#buy .bi em{font-style:normal;color:#8fe06b;direction:ltr}
+#buy .bi.no{opacity:.45}#buy .bi.own{opacity:.75}#buy .bi.own em{color:#9fd0ff}
+#buy small{display:block;margin-top:8px;opacity:.7;font-size:12px;text-align:center}
+#toast{display:none;position:absolute;left:50%;bottom:130px;transform:translateX(-50%);padding:7px 16px;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;font-size:16px;direction:rtl;white-space:nowrap}
 #score{top:10px;left:0;right:0;text-align:center;font-size:20px;direction:rtl}
 #fb{display:none;position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
 #nades{position:absolute;right:20px;bottom:62px;display:flex;gap:14px;direction:ltr;color:#fff;font:600 17px sans-serif;text-shadow:0 0 4px #000}
@@ -111,7 +120,7 @@ canvas{display:block}
 @keyframes bl{50%{opacity:.25}}#sdhint.bl{animation:bl 1s steps(2) infinite}
 #flash{display:none;position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
 </style></head><body>
-<div id="hud"><div id="fb"></div><div id="pos"></div><canvas id="mm"></canvas><div id="kf"></div><div id="flash"></div><div id="pbar"><i></i></div><div id="sdhint"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="nades"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
+<div id="hud"><div id="fb"></div><div id="pos"></div><canvas id="mm"></canvas><div id="kf"></div><div id="flash"></div><div id="pbar"><i></i></div><div id="sdhint"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="nades"></div><div id="money" class="t"><span id="mv"></span><i id="mgain"></i></div><div id="buy"></div><div id="toast"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
 <div id="menu"><h1>Mini Strike</h1>
 <div id="load">در حال لود مپ و کاراکترها...</div>
 <div id="pause"><button class="lbb g" id="lbresume" style="font-size:22px;padding:10px 40px">ادامه بازی</button><br><br><button class="lbb r" id="lbleave" style="font-size:16px">بازگشت به لابی</button></div>
@@ -960,6 +969,22 @@ function unstuckP(e){
  e.vx=e.vz=0;e.vy=0;e.gx=e.p.x;e.gy=e.p.y;e.gz=e.p.z;
  const m=$('msg');m.textContent='از تله آزاد شدی! (خودکار)';m.style.opacity=1;setTimeout(()=>m.style.opacity=0,2500);
  console.log('[unstuck] تلپورت به',e.p.x.toFixed(1),e.p.y.toFixed(1),e.p.z.toFixed(1))}
+/* ---- نجات بات‌ها از گیر کردن توی جعبه/دیوار ----
+   embedded: اگه از وسط بدن بات در همه‌ی جهت‌ها اولین برخورد «پشت» سطح باشه (یعنی توی یه حجم بسته مثل جعبه‌ایم) */
+const EMB_D=[[1,0],[.7071,.7071],[0,1],[-.7071,.7071],[-1,0],[-.7071,-.7071],[0,-1],[.7071,-.7071]];
+function embedded(e){
+ for(const h of[.7,1.2]){let hit=0,back=0;
+  for(const[dx,dz]of EMB_D){const t=castRay(e.p.x,e.p.y+h,e.p.z,dx,0,dz,4,true);
+   if(t<Infinity){hit++;if(HNX*dx+HNZ*dz>0)back++}}
+  if(hit>=6&&back>=hit-1&&back>=6)return true}
+ return false}
+function unstuckBot(e,useSafe){
+ let x,y,z;
+ if(useSafe&&e.safe&&Math.hypot(e.safe[0]-e.p.x,e.safe[2]-e.p.z)<25){x=e.safe[0];y=e.safe[1];z=e.safe[2]}
+ else{const n=nearestNode(e.p.x,e.p.y,e.p.z);
+  if(n<0){const s=SPAWN[e.team][0];x=s[0];y=s[1];z=s[2]}else{x=nvx[n];y=nvy[n];z=nvz[n]}}
+ e.p.x=x;e.p.y=y+.1;e.p.z=z;e.vx=e.vz=0;e.vy=0;e.on=false;e.gx=x;e.gy=y;e.gz=z;e.sx=undefined;
+ e.path=null;e.rg=null;e.rgt=0;e.unst=0;e.stuck=0;e.pstuck=0;e.slow=false;e.kx=x;e.kz=z}
 const eye=e=>({x:e.p.x,y:e.p.y+1.6-CROUCH_D*(e.cr||0)-(e.dip||0)-(e.sdip||0),z:e.p.z});
 function raySph(o,d,c,r){const x=c.x-o.x,y=c.y-o.y,z=c.z-o.z,b=x*d.x+y*d.y+z*d.z;if(b<0)return 1e9;const q=x*x+y*y+z*z-b*b;return q>r*r?1e9:b-Math.sqrt(r*r-q)}
 
@@ -1037,7 +1062,7 @@ function scatterPick(e){ // اسپاون پراکنده: گره‌ی تصادف�
   const sc=Math.min(md,40)-(vis?100:0)+R()*5;
   if(sc>bs){bs=sc;best=c}}
  return best}
-function spawn(e,scatter){const L=SPAWN[e.team],o=SPAWN[1-e.team];
+function spawn(e,scatter){const wasDead=!!e.dead,L=SPAWN[e.team],o=SPAWN[1-e.team];
  let s=L[Math.floor(R()*L.length)];
  if(scatter){const c=scatterPick(e);if(c)s=c}
  else for(let k=0;k<12;k++){const c=L[Math.floor(R()*L.length)];   // نقطه‌ای که کسی کنارش نیست
@@ -1048,7 +1073,7 @@ function spawn(e,scatter){const L=SPAWN[e.team],o=SPAWN[1-e.team];
   const dx=nvx[pa[k]]-s[0],dz=nvz[pa[k]]-s[2];if(Math.hypot(dx,dz)>.5)e.yaw=Math.atan2(-dx,-dz)}}
  {const u=e.mesh&&e.mesh.userData;if(u&&u.gd){if(u.gdObj&&u.gdObj.parent)u.gdObj.parent.remove(u.gdObj);u.gdObj=null;u.body.add(u.botGun);if(u.gunHold){u.botGun.scale.setScalar(u.gunHold.s);u.botGun.position.copy(u.gunHold.p);u.botGun.quaternion.copy(u.gunHold.q)}else{u.botGun.scale.setScalar(.8);u.botGun.position.set(.08,1.12,-.45);u.botGun.rotation.set(0,0,0)}u.gd=null}}
  e.lx=e.p.x;e.lz=e.p.z;e.sx=undefined;
- if(e.isP){if((e.wp||0)>=4)e.wp=0;e.wAmmo={0:30,2:12};e.ammo=AMAX[e.wp||0];e.rl=0;e.gn={4:1,5:1,6:2,7:1};e.ntw=0;e.nsw=0;e.fl=0}}
+ if(e.isP){if((e.wp||0)>=4)e.wp=0;e.wAmmo={0:30,2:12};e.ammo=AMAX[e.wp||0];e.rl=0;if(!e.gn||wasDead)e.gn={4:0,5:0,6:0,7:0};if(e.money===undefined)e.money=MONEY_START;e.buyT=BUY_TIME;if(buyOpen)buySet(false);e.ntw=0;e.nsw=0;e.fl=0}}
 let P,pitch=0;
 
 /* ================= COMBAT ================= */
@@ -1203,7 +1228,7 @@ function killFeed(by,t,hs,wb){const f=$('kf'),r=document.createElement('div');r.
 function damage(t,a,by,zone,wb){t.hp-=a;if(!t.isP&&!t.dead&&by&&by.p){t.mem=Math.max(t.mem||0,2);t.lk=[by.p.x,by.p.z]}   // ازش تیر خورده → به سمت تیرانداز می‌چرخه
  if(t.isP)$('dmg').style.opacity=1;if(by.isP){$('cross').style.borderColor='#f33';hm=.12;if(zone==='head')sfx('hs',.85)}
  if(t.hp<=0&&!t.dead){t.dead=true;if(t.isP){t.pl=0;t.pld=-1}   // وسط پلنت مردی: نوار پیشرفت پاک بشه
-  t.rt=SD.on?1e9:4.5;score[by.team]++;killFeed(by,t,zone==='head',wb);ragStart(t,by,zone);bloodPool(t);
+  t.rt=SD.on?1e9:4.5;score[by.team]++;moneyKill(by,t);killFeed(by,t,zone==='head',wb);ragStart(t,by,zone);bloodPool(t);
   if(NET.mode==='host')NET.send({t:'kill',by:by.name,bteam:by.team,tg:t.name,zone,hs:zone==='head'?1:0,wb:wb?1:0,bx:+by.p.x.toFixed(2),bz:+by.p.z.toFixed(2)})}}
 /* ---- ragdoll v3: فیزیک واقعی — اسکلت ذره‌ای (سر، شونه‌ها، لگن، زانو، پا، دست) + میله‌های فاصله + محدودیت مفصل + برخورد با مپ.
    ragStart فقط ضربه‌ی گلوله رو می‌ده و اسکلت رو از پوز لحظه‌ی مرگ می‌سازه؛ بقیه‌ش فیزیکه (ragStep/ragSub) و رندر (ragRender/ragPose) ---- */
@@ -1322,7 +1347,7 @@ function stepBall(dt){
 /* ================= حالت «گشتن و نابود کردن» (Search & Destroy) =================
    تو و تیمت مهاجمین (بمب پیش توئه، کلید ۴)؛ دشمن‌ها مدافع. بدون ریسپاون؛ بعد از مرگ از دید یارت تماشا می‌کنی.
    مهاجم‌ها برن → اگه همه‌ی دشمن‌ها بمیرن یا بمب منفجر بشه می‌برن؛ اگه همه‌ی خودی‌ها بمیرن (قبل از پلنت)، زمان تموم بشه یا بمب خنثی بشه می‌بازن. */
-const PLANT_T=3.27,DEFUSE_T=5,BOMB_T=41,SD_ROUND_T=120,SD_WIN=8,SITE_R=6,SD_OVER_T=5.5,SITE_NAME=['A','B'];
+const PLANT_T=3.27,DEFUSE_T=5,BOMB_T=41,SD_ROUND_T=120,SD_WIN=8,SITE_R=4,SD_OVER_T=5.5,SITE_NAME=['A','B'];
 const SD={on:false,round:0,wins:[0,0],state:'idle',rt:0,bt:0,hasBomb:false,bomb:null,carrier:null,defuser:null,target:0,spec:null,msg:'',msgT:0,overT:0,defT:0,sites:[],mk:null,fx:[],shake:0,beepT:0,ledA:0,led:null,a0:0,a1:0,final:false,drop:null,fetcher:null,markMeshes:null};
 const BOMB_ENT={name:'C4',team:0,isP:false,wp:3,p:{x:0,y:0,z:0}};
 const sdMsg=(t,s)=>{SD.msg=t;SD.msgT=s||3};
@@ -1379,7 +1404,45 @@ function sndSync(b,pos){if(!C4S.buf||!C4S.tickWant)return;
  if(C4S.tickH)C4S.tickH.g.gain.value=sndVol(b.x,b.z)}
 /* ---- شروع/پایان راند ---- */
 function sdStartMatch(){SD.on=true;SD.round=0;SD.wins=[0,0];SD.final=false;sdBuildMarkers();sdBeginRound()}
-function sdBombClear(){sdSndStop();nadesClear();if(SD.drop){scene.remove(SD.drop.g);SD.drop=null}SD.fetcher=null;if(SD.bomb&&SD.bomb.g)scene.remove(SD.bomb.g);if(SD.led){scene.remove(SD.led);SD.led=null}SD.bomb=null;
+/* ---- کیت خنثی‌سازی (مثل CS2): یه دوشاخه مستقیم به بدنه‌ی بمب (سمتی که خنثی‌کننده ایستاده) وصل می‌شه و یه کابل فنری ازش تا کمر/دست خنثی‌کننده کشیده می‌شه ---- */
+let KIT=null;
+class KitHelix extends THREE.Curve{getPoint(t,o){o=o||new THREE.Vector3();const a=t*26*2*Math.PI;return o.set(Math.cos(a)*.032,Math.sin(a)*.032,t)}}   // فنر روی محور +Z به طول ۱؛ با scale.z کش میاد
+function kitBuild(){
+ const g=new THREE.Group(),M=c=>new THREE.MeshLambertMaterial({color:c});
+ const plug=new THREE.Group();   // +Z = جهت بیرون از بمب؛ نصفش توی بدنه‌ی بمب فرو می‌ره
+ plug.add(new THREE.Mesh(new THREE.BoxGeometry(.07,.05,.07),M(0x3b4147)));
+ const nk=new THREE.Mesh(new THREE.CylinderGeometry(.016,.016,.05,8),M(0x14181b));nk.rotation.x=Math.PI/2;nk.position.z=.05;plug.add(nk);
+ const led=new THREE.Mesh(new THREE.BoxGeometry(.018,.012,.018),new THREE.MeshBasicMaterial({color:0x33ff66}));led.position.set(0,.028,0);plug.add(led);
+ g.add(plug);
+ const coil=new THREE.Mesh(new THREE.TubeGeometry(new KitHelix(),260,.006,5,false),M(0x20262a));g.add(coil);
+ const hand=new THREE.Group();   // دسته‌ی کیت توی دست خنثی‌کننده
+ hand.add(new THREE.Mesh(new THREE.BoxGeometry(.06,.05,.12),M(0x3b4147)));
+ g.add(hand);g.visible=false;
+ return{g,plug,coil,hand,led,ext:0}}
+function bombLocalBox(b){   // جعبه‌ی محلیِ بمب (مستقل از چرخش/اسکیل)
+ if(b.lbox)return b.lbox;const box=new THREE.Box3();
+ for(const m of b.g.children){if(!m.geometry)continue;if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();m.updateMatrix();box.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrix))}
+ return b.lbox=box}
+function sdKitUpdate(dt){
+ const b=SD.bomb,e=SD.defE;
+ if(!b||!b.g||!e||e.dead||SD.state!=='planted'||!(e.defT>0)){if(KIT){KIT.g.visible=false;KIT.ext=0}return}
+ if(!KIT){KIT=kitBuild();scene.add(KIT.g)}
+ const V=THREE.Vector3;b.g.updateMatrixWorld(true);
+ const bx=bombLocalBox(b),c=bx.getCenter(new V()),h=bx.getSize(new V()).multiplyScalar(.5);
+ const lp=b.g.worldToLocal(new V(e.p.x,e.p.y,e.p.z));let dx=lp.x-c.x,dz=lp.z-c.z;const dl=Math.hypot(dx,dz)||1;dx/=dl;dz/=dl;
+ const t=Math.min(Math.abs(dx)>1e-4?h.x/Math.abs(dx):1e9,Math.abs(dz)>1e-4?h.z/Math.abs(dz):1e9);   // نقطه‌ی برخورد خط مرکز→خنثی‌کننده با دیواره‌ی بمب
+ const at=b.g.localToWorld(new V(c.x+dx*t*.97,c.y+h.y*.25,c.z+dz*t*.97));
+ const sy=Math.sin(e.yaw),cy=Math.cos(e.yaw),en=new V(e.p.x+cy*.26-sy*.12,e.p.y+.95,e.p.z-sy*.26-cy*.12);   // سمت راست و کمی جلوی بات (تقریباً جای دست)
+ const out=new V(en.x-at.x,0,en.z-at.z).normalize();
+ KIT.plug.position.copy(at);KIT.plug.lookAt(at.clone().add(out));
+ const st=at.clone().add(out.clone().multiplyScalar(.07));   // کابل از سر دوشاخه شروع می‌شه
+ KIT.ext=Math.min(1,KIT.ext+dt/.35);const k=1-Math.pow(1-KIT.ext,3);   // فنر نرم باز می‌شه
+ const d=en.clone().sub(st),L=Math.max(.05,d.length()),tip=st.clone().add(d.clone().multiplyScalar(k));
+ KIT.coil.position.copy(st);KIT.coil.scale.set(1,1,Math.max(.02,L*k));KIT.coil.lookAt(en);
+ KIT.hand.position.copy(tip);KIT.hand.lookAt(st);
+ KIT.led.material.color.setHex(Math.floor(performance.now()/180)%2?0x33ff66:0x0d4a1c);
+ KIT.g.visible=true}
+function sdBombClear(){sdSndStop();if(KIT){KIT.g.visible=false;KIT.ext=0}nadesClear();if(SD.drop){scene.remove(SD.drop.g);SD.drop=null}SD.fetcher=null;if(SD.bomb&&SD.bomb.g)scene.remove(SD.bomb.g);if(SD.led){scene.remove(SD.led);SD.led=null}SD.bomb=null;
  for(const f of SD.fx){scene.remove(f.m);if(f.m.geometry)f.m.geometry.dispose();f.m.material.dispose()}SD.fx.length=0}
 function sdBeginRound(){
  sdBombClear();bloodClear();SD.round++;SD.state='live';SD.rt=SD_ROUND_T;SD.bt=0;SD.defT=0;SD.overT=0;SD.hasBomb=true;SD.carrier=null;SD.defuser=null;SD.spec=null;SD.final=false;SD.target=R()<.5?0:1;SD.shake=0;
@@ -1457,7 +1520,7 @@ function sdUpdate(dt){
  if(P.dead){
   if(C4S.plantH){sndStop(C4S.plantH);C4S.plantH=null}
   if(clickL){clickL=false;sdSpecCycle(1)}if(clickR){clickR=false;sdSpecCycle(-1)}if(!SD.spec||SD.spec.dead)sdSpecCycle(1)}
- let a0=0,a1=0,dm=0;for(const e of ents){if(e.dead)continue;if(e.team===0)a0++;else{a1++;dm=Math.max(dm,e.defT||0)}}SD.a0=a0;SD.a1=a1;SD.defT=dm;
+ let a0=0,a1=0,dm=0;SD.defE=null;for(const e of ents){if(e.dead)continue;if(e.team===0)a0++;else{a1++;if((e.defT||0)>dm)SD.defE=e;dm=Math.max(dm,e.defT||0)}}SD.a0=a0;SD.a1=a1;SD.defT=dm;sdKitUpdate(dt);
  if(SD.state==='live'){SD.rt-=dt;sdCarrierUpdate();
   if(a1===0)sdEndRound(0,'همه‌ی دشمن‌ها کشته شدن');else if(a0===0)sdEndRound(1,'همه‌ی تیم تو کشته شدن');else if(SD.rt<=0)sdEndRound(1,'زمان تموم شد')}
  else if(SD.state==='planted'){SD.bt-=dt;sdBombTick(dt);
@@ -1716,7 +1779,7 @@ function netClientMsg(conn,m){
  if(m.t==='kill'){const t=ents.find(x=>x.name===m.tg);
   if(t&&!t.dead){t.dead=true;t.rt=4.5;
    const b={name:m.by,team:m.bteam,isP:false,wp:0,p:{x:m.bx,y:t.p.y,z:m.bz}};
-   killFeed(b,t,!!m.hs,!!m.wb);
+   killFeed(b,t,!!m.hs,!!m.wb);if(P&&m.by===P.name&&m.bteam!==t.team)moneyAdd(KILL_R);
    if(!t.rag){try{ragStart(t,{p:{x:m.bx,y:t.p.y,z:m.bz},lx:t.lx,lz:t.lz},m.zone)}catch(e){}}
    bloodPool(t);
    if(t.isP){pitch=Math.max(pitch,.1)}}
@@ -2014,6 +2077,8 @@ function botUpdate(e,dt){
  e.sk=(e.sk||0)-dt;
  if(e.sk<=0){e.sk=1;const m=Math.hypot(e.p.x-(e.kx===undefined?e.p.x:e.kx),e.p.z-(e.kz===undefined?e.p.z:e.kz));
   e.stuck=m<.7?(e.stuck||0)+1:0;e.kx=e.p.x;e.kz=e.p.z;
+  e.slow=m<.7;e.pstuck=(m<.7&&e._rm)?(e.pstuck||0)+1:0;e._rm=0;   // pstuck: وسط مسیریابی ۵ ثانیه تکون نخورده
+  if(e.pstuck>=5){unstuckBot(e,false);return}
   if(e.stuck>=2){e.unst=2.5;e.stuck=0;e.rgt=0}}
  e.unst=Math.max(0,(e.unst||0)-dt);
  let fw=0,sd=0,vis=false,dir=null;
@@ -2048,7 +2113,7 @@ function botUpdate(e,dt){
     if(navJumpEdge(prev,n)&&nvy[n]>e.p.y+.25&&dist<1.25&&dist>.2&&e.on&&e._jumpEdge!==edgeKey){
      e.vy=JUMP;e.on=false;e._jumpEdge=edgeKey;
     }
-    if(dist>.2){const want=Math.atan2(-dx,-dz);let d=want-e.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));{const st=BOT_TURN_ROAM*dt;e.yaw+=Math.max(-st,Math.min(st,d*Math.min(1,dt*10)))}fw=1}
+    if(dist>.2){const want=Math.atan2(-dx,-dz);let d=want-e.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));{const st=BOT_TURN_ROAM*dt;e.yaw+=Math.max(-st,Math.min(st,d*Math.min(1,dt*10)))}fw=1;e._rm=1}
    }else e.rgt=0; // مسیر پیدا نشد: نقطه‌ی گشت جدید انتخاب کن
   }
  }
@@ -2057,6 +2122,8 @@ function botUpdate(e,dt){
  {let px=0,pz=0;for(const t of ents){if(t===e||t.dead||t.team!==e.team)continue;
    const dx=e.p.x-t.p.x,dz=e.p.z-t.p.z,d=Math.hypot(dx,dz);if(d<(fw||sd?6:1.6)&&d>1e-3&&Math.abs(e.p.y-t.p.y)<2){const w=((fw||sd?6:1.6)-d)/(fw||sd?6:1.6);px+=dx/d*w;pz+=dz/d*w}}
   if(px||pz)move(e,px*2.2*dt,pz*2.2*dt)} // هل نرم از هم‌تیمی‌های نزدیک
+ e.ck=(e.ck||0)-dt;if(e.ck<=0){e.ck=.25;   // هر ۱/۴ ثانیه: توی جعبه/دیوار فرو رفته و تکون نمی‌خوره؟ → برگرد به آخرین جای سالم
+  if(embedded(e)){if(e.slow){unstuckBot(e,true);return}}else if(e.on)e.safe=[e.p.x,e.p.y,e.p.z]}
  if(!e.sdHeld){if(e.plantH){sndStop(e.plantH);e.plantH=null}e.plantT=0;e.defT=0}
  {const tp2=vis&&dir?Math.asin(Math.max(-1,Math.min(1,dir.y))):0;e.vp=(e.vp||0)+(tp2-(e.vp||0))*Math.min(1,dt*8)}   // زاویه‌ی نگاه (برای تماشاچی)
  e.cd-=dt;
@@ -2069,7 +2136,7 @@ function simulate(dt){
    if(e.rt<=0&&NET.mode!=='client'){spawn(e,true);
     if(NET.mode==='host')NET.send({t:'rsp',n:e.name,x:+e.p.x.toFixed(2),y:+e.p.y.toFixed(2),z:+e.p.z.toFixed(2),yaw:+e.yaw.toFixed(2)})}
    continue}
-  if(e.isP)playerUpdate(dt);else if(e.net){netLerp(e,dt);continue}else botUpdate(e,dt);
+  if(e.isP){playerUpdate(dt);if(e.buyT>0)e.buyT-=dt}else if(e.net){netLerp(e,dt);continue}else botUpdate(e,dt);
   const was=e.on,vb=e.vy;phys(e,dt);
   if(e.isP&&!was&&e.on&&vb<-3){const q=-vb;e.dip=Math.min(.2,(q-3)*.018);e.vx*=.9;e.vz*=.9;beep(60+Math.min(q,20)*2,.07,.1)}}   // فرود: ضربه‌ی دوربین + صدای تپ + کمی کم شدن سرعت
  if(NET.mode!=='client'){separate();stepBall(dt)}}
@@ -2365,7 +2432,7 @@ function nadeK(){let p=[0,0,0],g=[0,0,0];   // حالت آماده؛ موقع پ
   else{const u=(a-.6)/.4;p=[.03*(1-u),0,.1*(1-u)-.14*u];g=[.7*(1-u)-.5*u,0,-.2*(1-u)]}}
  return{p,g,L:[0,0,0],ld:[0,0,-1],lp:[0,1,0],R:[0,0,0],rd:[0,0,-1],rp:[0,1,0],lw:0}}
 /* پرتاب */
-function nadeUpdate(dt){const w=P.wp||0;if(w<4)return;if(!P.gn)P.gn={4:1,5:1,6:2,7:1};
+function nadeUpdate(dt){const w=P.wp||0;if(w<4)return;if(!P.gn)P.gn={4:0,5:0,6:0,7:0};
  const cl=clickL,cr=clickR;clickL=clickR=false;
  if(P.ntw>0){P.ntw-=dt;if(P.ntw<=0){P.ntw=0;nadeThrow(w,!!P.nsoft);P.nsw=.5}}
  else if(P.nsw>0){P.nsw-=dt;if(P.nsw<=0){P.nsw=0;const b=(P.pw!==undefined&&P.pw<4)?P.pw:0;setWeapon(b);if((P.wp||0)>=4)setWeapon(0)}}   // بعد از پرتاب برگرد سر اسلحه‌ی قبلی
@@ -2394,7 +2461,7 @@ function nadePhys(g,dt){if(g.rest)return;
   if(fl&&Math.hypot(g.v.x,g.v.y,g.v.z)<1.5){g.rest=true;g.v.x=g.v.y=g.v.z=0;if(g.k===5)g.t=Math.min(g.t,.35)}}   // اسموک بعد از ایستادن می‌ترکه
  else{g.p.x+=mx;g.p.y+=my;g.p.z+=mz}}
 function nadesStep(dt){
- if(P&&!P.gn)P.gn={4:1,5:1,6:2,7:1};
+ if(P&&!P.gn)P.gn={4:0,5:0,6:0,7:0};
  if(P&&P.fl>0)P.fl=Math.max(0,P.fl-dt);
  for(let i=NADES.length-1;i>=0;i--){const g=NADES[i];g.t-=dt;
   const n=Math.max(1,Math.ceil(dt/.016)),h=dt/n;for(let s=0;s<n;s++)nadePhys(g,h);
@@ -2542,6 +2609,39 @@ function flashBoom(p){const c={x:p.x,y:p.y+.15,z:p.z};
  for(const e of ents){if(e.dead||e.isP||e.net)continue;const o=eye(e),du=dur(o,-Math.sin(e.yaw),0,-Math.cos(e.yaw),3.8);
   if(du>.2&&sees(o)){e.fl=Math.max(e.fl||0,du);e.mem=0}}}
 let _ngS='';
+/* ================= پول + منوی خرید (کلید B) =================
+   پول با کیل زدن زیاد می‌شه (مثل CS2: کیل ۳۰۰$، کیل با چاقو ۱۵۰۰$). فعلاً فقط پرتابی‌ها: از هر کدوم فقط یکی، و پیش‌فرض هیچی نداریم.
+   زمان خرید: ۲۰ ثانیه از شروع هر راند (حالت S&D) / از هر اسپاون (حالت رقابتی). مرگ → پرتابی‌ها از دست می‌ره؛ زنده موندن → می‌مونه. */
+const MONEY_MAX=16000,MONEY_START=800,BUY_TIME=20,KILL_R=300,KNIFE_R=1500;
+const BUY_ITEMS=[{k:4,n:'نارنجک HE',p:300,ic:'nade'},{k:5,n:'اسموک',p:300,ic:'smoke'},{k:6,n:'فلش‌بنگ',p:200,ic:'flash'},{k:7,n:'مولوتف',p:400,ic:'fire'}];
+let buyOpen=false,toastUntil=0,buySig='';
+function moneyAdd(v){if(!P)return;P.money=Math.max(0,Math.min(MONEY_MAX,(P.money||0)+v));
+ const g=$('mgain');if(g&&v>0){g.textContent='+$'+v;g.style.transition='none';g.style.opacity=1;requestAnimationFrame(()=>requestAnimationFrame(()=>{g.style.transition='opacity 1.2s';g.style.opacity=0}))}}
+function moneyKill(by,t){if(!P||!by||!by.isP||by.team===t.team)return;moneyAdd(by.wp===1?KNIFE_R:KILL_R)}
+function buyToast(m){const e=$('toast');if(!e)return;e.textContent=m;e.style.display='block';toastUntil=performance.now()+1800}
+function buyAllowed(){return !!(P&&!P.dead&&inMatch&&locked&&P.buyT>0&&(!SD.on||SD.state==='live'))}
+function buyRender(){const g=P.gn||{};
+ $('buy').innerHTML='<h4><span>خرید</span><span style="color:#8fe06b;direction:ltr">$'+(P.money|0)+'</span></h4>'+BUY_ITEMS.map((it,i)=>{const own=(g[it.k]|0)>0,no=!own&&(P.money|0)<it.p;
+  return '<div class="bi'+(own?' own':no?' no':'')+'"><b>'+(i+1)+'</b>'+ICON[it.ic]+'<span>'+it.n+'</span><em>'+(own?'داری':'$'+it.p)+'</em></div>'}).join('')+'<small>شماره = خرید • B = بستن • '+Math.max(0,Math.ceil(P.buyT))+' ثانیه</small>'}
+function buySet(v){buyOpen=v;$('buy').style.display=v?'block':'none';if(v){buySig='';buyRender()}}
+function buyItem(i){const it=BUY_ITEMS[i];if(!it||!buyAllowed())return;if(!P.gn)P.gn={4:0,5:0,6:0,7:0};
+ if((P.gn[it.k]|0)>0){buyToast('از هر نارنجک فقط یکی می‌شه داشت');return}
+ if((P.money|0)<it.p){buyToast('پول کافی نیست');return}
+ P.money-=it.p;P.gn[it.k]=1;beep(880,.05,.08);buyRender()}
+function buyHud(){
+ const mv=$('mv');if(!mv)return;const show=!!P&&inMatch;$('money').style.display=show?'block':'none';
+ if(show){const t='$'+(P.money|0);if(mv.textContent!==t)mv.textContent=t}
+ if(buyOpen){if(!buyAllowed())buySet(false);else{const g=P.gn||{},sig=(P.money|0)+'|'+(g[4]|0)+(g[5]|0)+(g[6]|0)+(g[7]|0)+'|'+Math.ceil(P.buyT);if(sig!==buySig){buySig=sig;buyRender()}}}
+ const tt=$('toast');if(tt&&tt.style.display==='block'&&performance.now()>toastUntil)tt.style.display='none'}
+addEventListener('keydown',e=>{   // capture: قبل از هندلر اصلی، تا عددها وسط خرید اسلحه عوض نکنن
+ if(!inMatch||!P||!locked)return;
+ if(e.code==='KeyB'){e.stopImmediatePropagation();if(e.repeat)return;
+  if(buyOpen){buySet(false);return}
+  if(P.dead)return;
+  if(buyAllowed())buySet(true);else buyToast(SD.on&&SD.state!=='live'?'الان نمی‌شه خرید کرد':'وقت خرید تموم شده');
+  return}
+ if(buyOpen){const m=/^Digit([1-4])$/.exec(e.code);if(m){e.stopImmediatePropagation();e.preventDefault();if(!e.repeat)buyItem(+m[1]-1)}}
+},true);
 function nadesHud(){const el=$('nades');if(!el)return;const w=P.wp||0,g=P.gn||{};
  const h=P.dead?'':[[4,'nade','5'],[5,'smoke','6'],[6,'flash','7'],[7,'fire','8']].map(a=>'<span class="ng'+(w===a[0]?' on':'')+((g[a[0]]|0)?'':' no')+'">'+ICON[a[1]]+'<b>'+(g[a[0]]|0)+'</b><i>'+a[2]+'</i></span>').join('');
  if(h!==_ngS){_ngS=h;el.innerHTML=h}}
@@ -2607,7 +2707,7 @@ function render(dt){
  vmUpdate(dt);
  try{mmDraw()}catch(e){}
  {const fb=$('fb');if(fb){const a=(P.fl>0&&!P.dead)?Math.min(1,P.fl/Math.max(.3,(P.fd||1)*.4)):0;fb.style.display=a>0?'block':'none';fb.style.opacity=a}}
- try{nadesHud()}catch(e){}
+ try{nadesHud()}catch(e){}try{buyHud()}catch(e){}
  if(POSV){const q=$('pos'),w=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:P;if(q)q.textContent='X '+w.p.x.toFixed(2)+'\nY '+w.p.y.toFixed(2)+'\nZ '+w.p.z.toFixed(2)}
  bloodUpdate(dt);
  for(let i=tr.length-1;i>=0;i--){tr[i].t-=dt;if(tr[i].t<=0){scene.remove(tr[i].l);tr[i].l.geometry.dispose();tr.splice(i,1)}}
@@ -2732,7 +2832,7 @@ function pickSpawns(){
 boot();
 /* دیباگ: کلید B → فهرست همه‌ی آبجکت‌های ویومدل (چسبیده به دوربین) با مختصات فضای دوربین چاپ می‌شه.
    مختصات: x منفی = چپ | y منفی = پایین | z منفی = جلو. هر شیء عجیبی توی صفحه دیدی، این خروجی رو بفرست. */
-addEventListener('keydown',e=>{if(e.code==='KeyB'&&READY&&!e.repeat&&!TUNE.on){
+addEventListener('keydown',e=>{if(e.code==='F10'&&READY&&!e.repeat&&!TUNE.on){
  cam.updateMatrixWorld(true);const inv=cam.matrixWorld.clone().invert();
  console.log('--- VIEWMODEL DUMP (کلید B) ---');
  cam.traverse(o=>{if(o===cam)return;
