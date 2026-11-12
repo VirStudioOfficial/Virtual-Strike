@@ -247,7 +247,7 @@ new THREE.GLTFLoader().load(FILES.gun,g=>{
  pv.scale.setScalar(.88/Math.max(sz.x,sz.y,sz.z));   // طول اسلحه ≈ ۰٫۷
  pv.rotation.y=Math.PI/2+.03;                        // لوله به سمت جلو و کمی به سمت مرکز
  pv.position.set(0,0,0);
- gun.remove(gunBox);gun.add(pv);VM.model=pv;AKW=pv.clone(true);setupMag(m)
+ gun.remove(gunBox);gun.add(pv);VM.model=pv;AKW=pv.clone(true);setupMag(m);setupHandle(m)
 },undefined,err=>console.warn('ak-47.glb لود نشد:',err));
 
 /* ---- چاقو: M9 Bayonet (فایل m9_bayonet_knife.glb کنار HTML) — تیغه توی مدل به +X و دسته به -X ---- */
@@ -511,6 +511,17 @@ addEventListener('keydown',e=>{if(!locked)return;
 const VM={kick:0,snd:0,mag:null,magReal:false,magRest:null,arms:null,reach:{}};
 
 /* خشاب: اگه توی مدل اسلحه آبجکتی با اسم mag/magazine/clip باشه جداش می‌کنیم، وگرنه یه خشاب جعبه‌ای برای «خشاب جدید» می‌سازیم */
+/* دسته‌ی اسلحه‌کش (charging handle) AK: از مدل جدا می‌شه تا موقع مسلح‌کردن همراه دست عقب بیاد و ول بشه. اگه پیدا نشد، لیست نودها توی console چاپ می‌شه */
+const ARM_PULL=.12;   // مسافت عقب‌کشیدن دسته (فضای گان؛ هم‌اندازه‌ی حرکت دست)
+function setupHandle(m){
+ const names=[];m.traverse(o=>{if(o!==m&&o.name)names.push(o.name)});console.log('نودهای مدل AK:',names.join(', '));
+ const pick=rx=>{const r=[];m.traverse(o=>{if(o===m||!rx.test(o.name||''))return;let p=o.parent;while(p&&p!==m){if(rx.test(p.name||''))return;p=p.parent}r.push(o)});return r};
+ let parts=pick(/charging|cocking|cocker|handle/i);
+ if(!parts.length)parts=pick(/bolt|slide|carrier|lever|rack/i);
+ if(!parts.length){console.warn('دسته‌ی اسلحه‌کش توی مدل AK پیدا نشد');return}
+ gun.updateMatrixWorld(true);const grp=new THREE.Group();gun.add(grp);gun.updateMatrixWorld(true);
+ for(const o of parts)grp.attach(o);
+ VM.ch=grp;console.log('دسته‌ی اسلحه‌کش از مدل جدا شد:',parts.map(o=>o.name).join(', '))}
 function setupMag(m){
  /* خشاب AK توی مدل از چند تکه ساخته شده (bm_magazine_low + Bottom + Part1..3)؛ همه رو توی یک گروه می‌ذاریم تا با هم حرکت کنن */
  const rx=/magazine|(^|[_\-\s.])(mag|clip)([_\-\s.\d]|$)/i,parts=[];
@@ -718,6 +729,7 @@ function vmUpdate(dt){
   if(cu)k.R=V.sub(V.sub(V.sub(NADE_C,V.mul(X,cu.xk+cu.R)),V.mul(Y,cu.yk-AR.hl*HAND_CENTER)),V.mul(X,Math.max(0,rad-cu.R)*NADE_FIT));
   else k.R=V.sub(NADE_C,V.mul(X,rad));
   k.rd=Y;k.rp=X}   // نارنجک: مشت نیمه‌بسته دور نارنجک
+ if(VM.ch){if(kn||pi||bm||nd)VM.ch.visible=false;else{VM.ch.visible=true;let z=0;if(P.arm>0&&P.armD>0){const t=1-P.arm/P.armD;z=ARM_PULL*_sm((t-.40)/.22)*(1-_sm((t-.68)/.06))}VM.ch.position.z=z}}   // دسته‌ی اسلحه‌کش: با دست می‌گیره و عقب می‌کشه (t=.40→.62)، موقع ول‌کردن (t=.68) برمی‌گرده جلو
  const M=VM.mag;if(M&&(kn||pi||bm||nd))M.visible=false;else if(M){let show,follow;
   if(VM.magReal){show=!(u>=.36&&u<.44);follow=(u>=.22&&u<.36)||(u>=.44&&u<.66)}   // خشاب قدیمی دست رو دنبال می‌کنه، می‌افته، بعد خشاب نو برمی‌گرده
   else{show=u>=.44&&u<.66;follow=true}                                              // فقط خشاب نو (جعبه‌ای)
@@ -2544,7 +2556,7 @@ function render(dt){
     for(const o of u.fpAll)for(const q of(Array.isArray(o.material)?o.material:[o.material]))q.clippingPlanes=fp?[u.fpPlane]:null;
     u.fpOn=fp}
    m.rotation.order='YXZ';m.rotation.x=0;
-   if(fp){const df=e.isP?Math.max(0,Math.min(1,-pitch/1.0)):0,sh=e.isP?-FP_LEG_BACK+FP_LEG_FWD*df:0;   // هرچی بیشتر پایین رو نگاه کنی، بدن به عقب خم می‌شه و پاها جلوتر میان (مثل CS)
+   if(fp){const df=e.isP?Math.max(0,Math.min(1,-pitch/1.0)):0,sh=e.isP?-FP_LEG_BACK+FP_LEG_FWD*df:-FP_LEG_BACK;   // هرچی بیشتر پایین رو نگاه کنی، بدن به عقب خم می‌شه و پاها جلوتر میان (مثل CS)
     m.position.x-=Math.sin(e.yaw)*sh;m.position.z-=Math.cos(e.yaw)*sh;m.rotation.x=e.isP?FP_LEG_TILT*df:0;u.ring.visible=false;
     const up=_dv.set(0,1,0).applyQuaternion(m.quaternion),nh=CHAR_H*FP_NECK*(1-.26*e.cr);   // سر رو از گردن می‌بُریم تا دوربین توی سر نیفته
     u.fpPlane.setFromNormalAndCoplanarPoint(up.clone().negate(),new THREE.Vector3(m.position.x+up.x*nh,m.position.y+up.y*nh,m.position.z+up.z*nh))}
