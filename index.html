@@ -2059,13 +2059,20 @@ function resumeLoad(){
   SD.state=s.state;SD.overT=s.overT||0;SD.bt=s.bomb?s.bt:SD.bt}
  for(const [e,d] of made){
   if(d.dd){e.hp=0;e.dead=true;e.rt=d.rt;if(e.isP){e.pl=0;e.pld=-1}
-   try{ragStart(e,{p:{x:e.p.x,y:e.p.y,z:e.p.z-1},isP:false,team:1-e.team},'body')}catch(err){console.warn('[resume] جسد:',err)}}}
+   /* فیکس رفرش: ragdoll از روی ماتریس دنیای مش ساخته می‌شه، ولی مش هنوز رندر نشده و سر (0,0,0) مونده؛ اول مش رو بذار جای خودش */
+   e.mesh.position.set(e.p.x,e.p.y,e.p.z);e.mesh.rotation.set(0,e.yaw,0);e.fall=0;e.mesh.updateMatrixWorld(true);
+   try{ragStart(e,{p:{x:e.p.x,y:e.p.y,z:e.p.z-1},isP:false,team:1-e.team},'body')}catch(err){console.warn('[resume] جسد:',err)}
+   /* جسد دوباره تیر نخوره: سرعت اولیه صفر + چند ثانیه شبیه‌سازی پیش‌اپیش تا روی زمین بخوابه */
+   try{const rg=e.rag;if(rg){for(const q of rg.P){q.px=q.x;q.py=q.y;q.pz=q.z}rg.t=1;for(let k=0;k<540&&!rg.sleep;k++)ragSub(rg)}}catch(err){console.warn('[resume] settle:',err)}}}
  if(P&&r.P){const q=r.P;P.money=q.money;P.buyT=q.buyT;P.buyX=q.buyX;P.buyZ=q.buyZ;if(q.gn)P.gn=q.gn;if(q.wa)P.wAmmo=q.wa;
   const w=q.wp|0,okW=w===0||w===1||w===2||(w===3&&SD.on&&SD.hasBomb&&SD.state==='live');
   if(okW){P.wp=w;P.arm=w===0?1.3:0;if(w===0)P.armD=1.3}
   P.ammo=r.ents.find(d=>d.ip).am}
  pitch=+r.pitch||0;
  $('kf').innerHTML='';inMatch=true;$('hud').style.display='';
+ {const sv=r.ents.find(d=>d.ip),f2=v=>v.toFixed(2);   // دیباگ موقت رفرش: ببین مختصات ذخیره‌شده با مختصات بعد از ادامه یکیه یا نه
+  console.log('[resume] ذخیره‌شده  x=%s y=%s z=%s dead=%s',sv.x,sv.y,sv.z,sv.dd);console.log('[resume] بعد از لود   x=%s y=%s z=%s',f2(P.p.x),f2(P.p.y),f2(P.p.z));
+  let n=0;const iv=setInterval(()=>{if(!P||++n>12){clearInterval(iv);return}console.log('[resume] +%ss locked=%s dead=%s x=%s y=%s z=%s on=%s',(n*.5).toFixed(1),locked,P.dead,f2(P.p.x),f2(P.p.y),f2(P.p.z),P.on)},500)}
  showMenu();   // منوی توقف باز میشه؛ «ادامه بازی» رو بزن تا ماوس قفل بشه و مچ ادامه پیدا کنه
  return true}
 setInterval(resumeSave,1000);
