@@ -731,11 +731,23 @@ function vmArms(k){const A=VM.arms;if(!A)return;
     _wv1.lerp(_wv2,w);_wv2.copy(_wv1).applyMatrix4(hi);_wv1.applyMatrix4(fi);
     fp.setXYZ(fj,_wv1.x,_wv1.y,_wv1.z);hp.setXYZ(hj,_wv2.x,_wv2.y,_wv2.z)}
    fp.needsUpdate=hp.needsUpdate=true}}}
-const VM_ENEMY_TINT=[.95,.95,.5];   // رنگ آستین دشمن موقع تماشا: ضرب روی رنگ دست خودی (خاکستری-آبی → زیتونی)؛ [1,1,1] = بدون تغییر
+const VM_ENEMY_SLEEVE=[205,195,188];   // رنگ مطلوب آستین دشمن موقع تماشا (RGB ۰-۲۵۵): پیراهن روشن؛ دست‌کش‌ها تیره می‌مونن
+const VM_ENEMY_TINT=[1.9,1.7,1.45];   // اگه از روی تکسچر نشد محاسبه بشه، این ضریب (ضرب روی رنگ دست خودی) استفاده می‌شه؛ [1,1,1] = بدون تغییر
+function vmEnemyTint(){   // ضریب = رنگ مطلوب آستین ÷ میانگین رنگ واقعی آستین دست خودی (از روی تکسچر و UV بازو و ساعد)
+ try{const m=VM.armMatA,tex=m&&m.map,im=tex&&tex.image,A=VM.arms;if(!im)throw 0;
+  const w=im.width,h=im.height,cv=document.createElement('canvas');cv.width=w;cv.height=h;
+  const cx=cv.getContext('2d',{willReadFrequently:true});cx.drawImage(im,0,0);const d=cx.getImageData(0,0,w,h).data;
+  let r=0,g=0,b=0,n=0;
+  for(const q of['L','R'])for(const k of['upper','fore']){const uv=A[q][k].geometry.attributes.uv;if(!uv)continue;
+   for(let i=0;i<uv.count;i+=2){let u=uv.getX(i),v=uv.getY(i);u-=Math.floor(u);v-=Math.floor(v);if(tex.flipY)v=1-v;
+    const o=((Math.min(h-1,v*h|0))*w+Math.min(w-1,u*w|0))*4;r+=d[o];g+=d[o+1];b+=d[o+2];n++}}
+  if(!n)throw 0;const T=VM_ENEMY_SLEEVE,f=(t,c)=>Math.max(.3,Math.min(3,t/Math.max(20,c/n)));
+  const out=[f(T[0],r),f(T[1],g),f(T[2],b)];console.log('[arms] ضریب رنگ آستین دشمن',out.map(x=>+x.toFixed(2)));return out}
+ catch(e){return VM_ENEMY_TINT}}
 function vmUpdate(dt){
  if(VM.arms){const wE=!!(SD.on&&P.dead&&SD.spec&&!SD.spec.dead&&SD.spec.team===1);   // تماشای بات دشمن → دست‌ها رنگ لباس دشمن
   if(VM._armE!==wE){VM._armE=wE;const A=VM.arms;if(!VM.armMatA)VM.armMatA=A.R.upper.material;
-   if(wE&&!VM.armMatE&&VM.armMatA.clone&&VM.armMatA.color){VM.armMatE=VM.armMatA.clone();VM.armMatE.color.setRGB(VM_ENEMY_TINT[0],VM_ENEMY_TINT[1],VM_ENEMY_TINT[2])}
+   if(wE&&!VM.armMatE&&VM.armMatA.clone&&VM.armMatA.color){VM.armMatE=VM.armMatA.clone();{const t=vmEnemyTint();VM.armMatE.color.setRGB(t[0],t[1],t[2])}}
    const mat=wE&&VM.armMatE?VM.armMatE:VM.armMatA;for(const q of['L','R'])for(const k of['upper','fore','hand'])A[q][k].material=mat}}
  const spc=!!(SD.on&&P.dead&&SD.spec&&!SD.spec.dead),vis=(!P.dead&&!tp)||spc;gun.visible=vis;if(VM.arms)VM.arms.group.visible=vis;
  if(spc){P.wp=0;P.rl=0;P.arm=0;P.dr=0;P.sl=0;P.pl=0}   // تماشا از دید یار: ویومدل AK بدون ریلود/چاقو/بمب (بات‌ها فقط AK دارن)
