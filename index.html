@@ -104,7 +104,11 @@ canvas{display:block}
 #lbfeed{position:absolute;top:54px;right:84px;width:330px;text-align:right;direction:rtl;font-size:12.5px;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 #lbfeed div{background:rgba(8,12,18,.72);padding:3px 10px;border-radius:4px;animation:lbf .3s;text-shadow:0 1px 2px #000}
 @keyframes lbf{from{opacity:0;transform:translateX(14px)}}
-#lbbot{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;direction:rtl}
+#lbbot{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:12px;direction:rtl;width:max-content;max-width:calc(100vw - 20px);box-sizing:border-box}
+#lbbot .modeb,#lbbot .mchip,#lbbot #lbstart,#lbbot #lbcnt{white-space:nowrap;flex:none}
+#lbbot #lbmodes{flex:none}
+@media(max-width:820px){#lbbot{gap:6px;bottom:10px}#lbbot .modeb{padding:5px 9px;gap:6px}#lbbot .modeb b{font-size:12px}#lbbot .modeb small,#lbbot .mchip small{font-size:10px}#lbbot #lbmodes{gap:5px;margin:0}#lbbot .mchip{padding:5px 8px;font-size:12px}#lbbot #lbstart{font-size:16px;padding:9px 24px}#lbbot #lbcnt{padding:7px 9px;font-size:12px}}
+@media(max-width:620px){#lbbot{flex-wrap:wrap;row-gap:6px}}
 .modeb{display:flex;align-items:center;gap:10px;background:rgba(10,14,20,.82);border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:7px 14px}
 .modeb b{display:block;font-size:14px}.modeb small{opacity:.65;font-size:12px}
 #lbstart{font-size:19px;font-weight:700;padding:11px 46px;letter-spacing:.5px;border-radius:6px;box-shadow:0 4px 20px rgba(31,143,85,.45)}
@@ -3472,7 +3476,7 @@ if(TOUCH){
 #tc.edit #tgn{display:flex}
 #tc #tbuy{left:34%;top:34%;width:56px;height:56px;display:none;animation:tbin .25s ease-out}
 @keyframes tbin{from{opacity:0;scale:.6}to{opacity:1;scale:1}}
-#tc #tpause{left:max(14px,env(safe-area-inset-left));top:12px;width:40px;height:40px}
+#tc #tpause{left:max(14px,env(safe-area-inset-left));top:12px;width:46px;height:46px}
 #tc #twp{position:absolute;right:max(152px,calc(env(safe-area-inset-right) + 148px));top:calc(26% + 54px);display:none;gap:5px;direction:ltr;padding:5px;border-radius:15px;background:rgba(20,22,28,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 #tc.wpo #twp,#tc.edit #twp{display:flex}
 #tc #twp .tb{position:static}
@@ -3485,15 +3489,15 @@ if(TOUCH){
 #tc .sel{outline:3px solid #ffd54a!important;outline-offset:3px}
 #tc .te,#tc .th{display:none!important}
 #tpanel{position:fixed;left:50%;top:6px;transform:translateX(-50%);z-index:46;display:none;width:min(430px,94vw);max-height:94vh;overflow:auto;box-sizing:border-box;padding:10px 12px;border-radius:12px;background:rgba(18,22,30,.94);border:1px solid rgba(255,255,255,.2);color:#fff;font:13px/1.6 inherit;direction:rtl;-webkit-user-select:none;user-select:none;touch-action:manipulation}
-#tpanel .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-weight:700}#tpanel .ph b{color:#ffd54a}
-#tpanel .pb{display:flex;gap:12px;align-items:center}#tpanel .pc{flex:1;min-width:0}
+#tpanel .tp-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-weight:700}#tpanel .tp-h b{color:#ffd54a}
+#tpanel .tp-b{display:flex;gap:12px;align-items:center}#tpanel .tp-c{flex:1;min-width:0}
 #tpanel label{display:flex;align-items:center;gap:6px;margin:3px 0}#tpanel label span{width:52px;flex:none}#tpanel label em{width:40px;flex:none;font-style:normal;text-align:left;direction:ltr;opacity:.8}
 #tpanel input[type=range]{flex:1;min-width:0;touch-action:pan-x;accent-color:#ffd54a}
-#tpanel .hd{gap:8px;cursor:pointer}#tpanel .hd input{width:18px;height:18px;accent-color:#ffd54a}
-#tpanel .ar{display:grid;grid-template-columns:repeat(3,38px);grid-template-rows:repeat(3,34px);gap:4px;direction:ltr;flex:none}
-#tpanel .ar button{border:0;border-radius:8px;background:#2f3a4d;color:#fff;font-size:16px;padding:0;touch-action:manipulation}#tpanel .ar button:active{background:#4a5d7d}
-#tpanel .pf{display:flex;gap:8px;margin-top:8px}#tpanel .pf button{flex:1;border:0;border-radius:8px;padding:8px 4px;font:inherit;font-weight:700;color:#fff;touch-action:manipulation}
-#tpanel .pf .r{background:#a8322f}#tpanel .pf .x{background:#3c6fa8}#tpanel .pf .s{background:#f1c40f;color:#222}
+#tpanel .tp-hd{gap:8px;cursor:pointer}#tpanel .tp-hd input{width:18px;height:18px;accent-color:#ffd54a}
+#tpanel .tp-ar{display:grid;grid-template-columns:repeat(3,38px);grid-template-rows:repeat(3,34px);gap:4px;direction:ltr;flex:none}
+#tpanel .tp-ar button{border:0;border-radius:8px;background:#2f3a4d;color:#fff;font-size:16px;padding:0;touch-action:manipulation}#tpanel .tp-ar button:active{background:#4a5d7d}
+#tpanel .tp-f{display:flex;gap:8px;margin-top:8px}#tpanel .tp-f button{flex:1;border:0;border-radius:8px;padding:8px 4px;font:inherit;font-weight:700;color:#fff;touch-action:manipulation}
+#tpanel .tp-f .tp-r{background:#a8322f}#tpanel .tp-f .tp-x{background:#3c6fa8}#tpanel .tp-f .tp-s{background:#f1c40f;color:#222}
 #tpanel small{display:block;margin-top:6px;opacity:.65;font-size:11px;line-height:1.5}
 #tc.edit{background:rgba(0,0,0,.35)}#tc.edit .tb,#tc.edit #twp,#tc.edit #tbuyk{outline:2px dashed #fd6;outline-offset:3px}
 #tc .te{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none;gap:10px;direction:rtl;font-size:15px;z-index:3}
@@ -3547,7 +3551,7 @@ if(TOUCH){
  let SEL='tfire',SNAP='{}';
  const NM={tfire:'شلیک',tjump:'پرش',tcrouch:'خم شدن',treload:'ریلود',tuse:'استفاده / خنثی‌سازی',tbuy:'خرید',tpause:'پاز',twt:'تغییر سلاح',tgn:'پرتابی‌ها'};
  const pn=document.createElement('div');pn.id='tpanel';
- pn.innerHTML='<div class="ph"><span>چیدمان کنترل لمسی</span><span>دکمه: <b id="tpn"></b></span></div><div class="pb"><div class="pc"><label class="hd"><input type="checkbox" id="tph"><span style="width:auto">مخفی کردن دکمه</span></label><label><span>اندازه</span><input type="range" id="tps" min="50" max="200" step="5"><em id="tpsv"></em></label><label><span>شفافیت</span><input type="range" id="tpo" min="20" max="100" step="5"><em id="tpov"></em></label></div><div class="ar"><i></i><button data-d="0,-1">▲</button><i></i><button data-d="-1,0">◀</button><i></i><button data-d="1,0">▶</button><i></i><button data-d="0,1">▼</button><i></i></div></div><div class="pf"><button class="r" id="tpr">ریست دکمه</button><button class="x" id="tpx">خروج</button><button class="s" id="tpsave">ذخیره و استفاده</button></div><small>روی هر دکمه بزن تا انتخاب بشه، بکشش تا جابه‌جا بشه. دکمه‌هایی مثل خرید و پرتابی‌ها توی بازی فقط سر وقتشون ظاهر می‌شن.</small>';
+ pn.innerHTML='<div class="tp-h"><span>چیدمان کنترل لمسی</span><span>دکمه: <b id="tpn"></b></span></div><div class="tp-b"><div class="tp-c"><label class="tp-hd"><input type="checkbox" id="tph"><span style="width:auto">مخفی کردن دکمه</span></label><label><span>اندازه</span><input type="range" id="tps" min="50" max="200" step="5"><em id="tpsv"></em></label><label><span>شفافیت</span><input type="range" id="tpo" min="20" max="100" step="5"><em id="tpov"></em></label></div><div class="tp-ar"><i></i><button data-d="0,-1">▲</button><i></i><button data-d="-1,0">◀</button><i></i><button data-d="1,0">▶</button><i></i><button data-d="0,1">▼</button><i></i></div></div><div class="tp-f"><button class="tp-r" id="tpr">ریست دکمه</button><button class="tp-x" id="tpx">خروج</button><button class="tp-s" id="tpsave">ذخیره و استفاده</button></div><small>روی هر دکمه بزن تا انتخاب بشه، بکشش تا جابه‌جا بشه. دکمه‌هایی مثل خرید و پرتابی‌ها توی بازی فقط سر وقتشون ظاهر می‌شن.</small>';
  document.body.appendChild(pn);
  const pq=q=>pn.querySelector(q);
  const cfg=id=>{SET.tpos=SET.tpos||{};return SET.tpos[id]||(SET.tpos[id]={})};
@@ -3558,7 +3562,7 @@ if(TOUCH){
  pq('#tph').onchange=e=>{cfg(SEL).h=e.target.checked;window.tcApply()};
  const nud=(dx,dy)=>{const el=document.getElementById(SEL);if(!el)return;const c=cfg(SEL);if(c.x===undefined){const r=el.getBoundingClientRect();c.x=(r.left+r.width/2)/innerWidth*100;c.y=(r.top+r.height/2)/innerHeight*100}
   c.x=+Math.max(0,Math.min(100,c.x+dx*.4)).toFixed(1);c.y=+Math.max(0,Math.min(100,c.y+dy*.4)).toFixed(1);window.tcApply()};
- pn.querySelectorAll('.ar button').forEach(b=>{const [dx,dy]=b.dataset.d.split(',').map(Number);let iv=0,to=0;const stop=()=>{clearTimeout(to);clearInterval(iv);iv=to=0};
+ pn.querySelectorAll('.tp-ar button').forEach(b=>{const [dx,dy]=b.dataset.d.split(',').map(Number);let iv=0,to=0;const stop=()=>{clearTimeout(to);clearInterval(iv);iv=to=0};
   b.addEventListener('pointerdown',e=>{e.preventDefault();nud(dx,dy);to=setTimeout(()=>{iv=setInterval(()=>nud(dx,dy),50)},350)});
   ['pointerup','pointercancel','pointerleave'].forEach(n=>b.addEventListener(n,stop))});
  pq('#tpr').onclick=()=>{if(SET.tpos)delete SET.tpos[SEL];window.tcApply();upd()};
@@ -3567,11 +3571,15 @@ if(TOUCH){
  window.tcEdit=v=>{EDIT=v;tc.classList.toggle('edit',v);pn.style.display=v?'block':'none';
   if(v){SNAP=JSON.stringify(SET.tpos||{});selBtn(NM[SEL]?SEL:'tfire')}else tc.querySelectorAll('.sel').forEach(n=>n.classList.remove('sel'));
   window.tcShow();if(!v)openSet('touch')};
+ const hitBtn=t=>{const d=t.target.closest&&t.target.closest('.tb');if(d)return d;
+  let best=null,bd=1e9;for(const el of tc.querySelectorAll('.tb')){const r=el.getBoundingClientRect();if(r.width<1)continue;const pad=Math.max(14,Math.min(26,r.width*.35));
+   const dx=Math.max(r.left-t.clientX,0,t.clientX-r.right),dy=Math.max(r.top-t.clientY,0,t.clientY-r.bottom),dist=Math.hypot(dx,dy);if(dist<=pad&&dist<bd){bd=dist;best=el}}
+  return best};
  tc.addEventListener('touchstart',e=>{e.preventDefault();
   if(EDIT){for(const t of e.changedTouches){const tg=t.target.closest&&t.target.closest('.te div');
     if(tg){if(tg.id==='tedone')window.tcEdit(false);else{SET.tpos={};saveSet();window.tcApply()}continue}
-    const el=t.target.closest&&t.target.closest('.tb');if(!el)continue;const r=el.closest('#twp')||el.closest('#tgn')||el.closest('#tbuyk')||el;selBtn(r.id);T[t.identifier]={k:'d',r}}return}
-  for(const t of e.changedTouches){const el=t.target.closest&&t.target.closest('.tb');
+    const el=hitBtn(t);if(!el)continue;const r=el.closest('#twp')||el.closest('#tgn')||el.closest('#tbuyk')||el;selBtn(r.id);T[t.identifier]={k:'d',r}}return}
+  for(const t of e.changedTouches){const el=hitBtn(t);
    if(!el&&buyOpen){const rows=[...document.querySelectorAll('#buy .bi')];const bx=document.getElementById('buy').getBoundingClientRect();const i=rows.findIndex(r=>{const q=r.getBoundingClientRect();return t.clientX>=bx.left&&t.clientX<=bx.right&&t.clientY>=q.top-3&&t.clientY<=q.bottom+3});
     if(i>=0){buyItem(i);continue}
     if(t.clientX<bx.left||t.clientX>bx.right||t.clientY<bx.top||t.clientY>bx.bottom){buySet(false);continue}}
