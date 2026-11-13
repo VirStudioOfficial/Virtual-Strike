@@ -2386,7 +2386,10 @@ function lbfPrep(o){
   if(LBF_TEX&&typeof TMPL!=='undefined'&&TMPL.ally){let bv=0;TMPL.ally.traverse(x=>{if(x.isMesh&&x.material){for(const q of(Array.isArray(x.material)?x.material:[x.material]))if(q.map&&q.map.image){const v=x.geometry.attributes.position.count;if(v>bv){bv=v;tex=q.map}}}})}
   if(tex&&geo.attributes.uv&&tex.flipY===false){const u=geo.attributes.uv.array;for(let i=1;i<u.length;i+=2)u[i]=1-u[i]}   // FBX: v از پایین؛ glTF: v از بالا
   console.log('[lobby] تکسچر کاراکتر:',tex?'پیدا شد':'پیدا نشد → رنگ‌آمیزی ساده');
-  const m=tex?new THREE.MeshLambertMaterial({map:tex,color:0xffffff}):new THREE.MeshLambertMaterial({vertexColors:true,color:0xffffff});m.skinning=true;mesh.material=m}
+  const mk=t=>{const mm=t?new THREE.MeshLambertMaterial({map:t,color:0xffffff}):new THREE.MeshLambertMaterial({vertexColors:true,color:0xffffff});mm.skinning=true;return mm};
+  let texE=null;   // تکسچر تیم دشمن (برای صحنه‌ی Defeat که دشمن برنده‌ست)؛ اگه نبود همون ally
+  if(LBF_TEX&&typeof TMPL!=='undefined'&&TMPL.enemy){let bv=0;TMPL.enemy.traverse(x=>{if(x.isMesh&&x.material){for(const q of(Array.isArray(x.material)?x.material:[x.material]))if(q.map&&q.map.image){const v=x.geometry.attributes.position.count;if(v>bv){bv=v;texE=q.map}}}})}
+  LBF.matA=mk(tex);LBF.matE=texE?mk(texE):LBF.matA;mesh.material=LBF.matA}
  /* نمونه‌برداری از پوز آخر انیمیشن: جای باسن، جهت سر، و دو دست (برای گان) */
  const tw=new THREE.Group();tw.scale.setScalar(sc);const to=THREE.SkeletonUtils.clone(o);tw.add(to);
  const mx=new THREE.AnimationMixer(to),ac=mx.clipAction(clip);ac.play();
@@ -2437,9 +2440,10 @@ function lbfMake(i){
  const w=new THREE.Group(),inner=new THREE.Group(),o=THREE.SkeletonUtils.clone(LBF.src);
  inner.scale.setScalar(LBF.sc);inner.add(o);w.add(inner);
  let gunO=null;const rh=lbfBones(o).RightHand;if(rh){const g=lbfGunObj();lbtApply(g);rh.add(g);gunO=g}
- o.traverse(x=>{if(x.isSkinnedMesh){x.frustumCulled=false;x.castShadow=true;x.receiveShadow=true}});
+ const useE=!!(ENDS&&!ENDS.win);   // دشمن برنده شده → ظاهر تیم دشمن
+ o.traverse(x=>{if(x.isSkinnedMesh){x.frustumCulled=false;x.castShadow=true;x.receiveShadow=true;if(LBF.matE)x.material=useE?LBF.matE:LBF.matA}});
  const mx=new THREE.AnimationMixer(o),ac=mx.clipAction(LBF.clip);ac.setLoop(THREE.LoopOnce,1);ac.clampWhenFinished=true;ac.timeScale=.94+((i*5)%4)*.04;ac.play();
- w.userData={body:inner,mx,ac,slot:i,gun:gunO};scene.add(w);return w}
+ w.userData={body:inner,mx,ac,slot:i,gun:gunO,enemy:useE};scene.add(w);return w}
 function lbfPlace(w,x,y,z,cx,cz,i){   // ته مسیر راه‌رفتن دقیقاً روی جای خودش می‌شینه؛ از چند قدم عقب‌تر شروع می‌کنه
  const a=Math.atan2(cx-x,cz-z)+LBF.off+((i%3)-1)*.03,c=Math.cos(a),s=Math.sin(a),hx=LBF.he.x,hz=LBF.he.z;
  w.rotation.y=a;w.position.set(x-(hx*c+hz*s),y,z-(-hx*s+hz*c));w.userData.cp={x,y,z};w.userData.slot=i}
@@ -2471,6 +2475,7 @@ function lbBuildChars(){
  const me=NET.myName||'تو',names=lbNames(me),cx=s.x-LB3.f.x*LB3.D,cz=s.z-LB3.f.z*LB3.D,old=LB3.byName,keep={};let cards='';
  names.forEach((n,i)=>{const[sx,sd]=LB_SLOTS[i];let x=s.x+LB3.r.x*sx+LB3.f.x*sd,z=s.z+LB3.r.z*sx+LB3.f.z*sd;{const q=lbClear(x,z,s.y);x=q[0];z=q[1]}const t=castRay(x,s.y+1.5,z,0,-1,0,4,false),gy=t<4?s.y+1.5-t:s.y;
   let m=old[n];
+  if(m&&!!m.userData.enemy!==!!(ENDS&&!ENDS.win)){scene.remove(m);m.userData.mx.stopAllAction();m=null}   // ظاهر تیم عوض شده → دوباره بساز
   if(!m)m=lbfMake(i);   // عضو جدید: خودش راه می‌یاد تو
   else if(m.userData.slot!==i){m.userData.ac.time=LBF.clip.duration;m.userData.mx.update(0)}   // جاش عوض شده (کسی رفته): بدون راه‌رفتن مجدد می‌پره روی جای جدید
   lbfPlace(m,x,gy,z,cx,cz,i);keep[n]=m;
