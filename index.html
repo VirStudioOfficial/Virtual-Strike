@@ -1104,7 +1104,7 @@ function mkMesh(team){
  ring.rotation.x=-Math.PI/2;ring.position.y=.05;root.add(ring);
  root.traverse(o=>{if(o.isMesh&&o!==ring){o.castShadow=true;o.receiveShadow=true}});
  const botGun=makeBotGun();body.add(botGun);
- root.userData={body,ring,botGun,arm:TMPL[team?'enemy':'ally']&&TMPL[team?'enemy':'ally'].userData.arm};
+ root.userData={body,ring,botGun,arm:TMPL[team?'enemy':'ally']&&TMPL[team?'enemy':'ally'].userData.arm,rig:TMPL[team?'enemy':'ally']&&TMPL[team?'enemy':'ally'].userData.rig};
  try{holdPose(root.userData)}catch(err){console.warn('[holdPose] ژست نگه‌داشتن گان اعمال نشد:',err)}   // دست‌ها رو به سمت گان می‌چرخونه و گان رو بین دو دست می‌ذاره
  scene.add(root);return root}
 
@@ -2474,6 +2474,11 @@ function separate(){
 
 /* ================= RENDER + HUD ================= */
 const _dv=new THREE.Vector3(),GHOST=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false}),FP_LEG_BACK=.30,FP_LEG_FWD=.12,FP_LEG_TILT=.15,FP_NECK=.80;
+/* ---- کمر و نشستن ----
+   HIPJ_F/WAIST_F: ارتفاع مفصل ران و کمر (کسری از قد) | CROUCH_HIP: چند متر باسن موقع کروچ پایین میاد | CROUCH_THIGH: چرخش ران به جلو (رادیان)
+   LEAN_K: چقدر از زاویه‌ی نگاه روی کمر میاد | LEAN_FWD/LEAN_BACK: حداکثر خم به جلو/عقب (رادیان) | LEAN_CROUCH: خم اضافه‌ی تنه موقع نشستن */
+const HIPJ_F=.50,WAIST_F=.55,CROUCH_HIP=.50,CROUCH_THIGH=1.4,LEAN_K=.5,LEAN_FWD=.6,LEAN_BACK=.4,LEAN_CROUCH=.25;
+const _gq=new THREE.Quaternion(),_gX=new THREE.Vector3(1,0,0);
 /* ---- ragdoll v3: موتور ---- */
 const RG_G=13,RG_H=1/90,RG_IT=6;
 const RG_FR=.90,RG_MU=2.2;   // RG_FR: ضریب اصطکاک نمایی در هر گام (کمتر = سفت‌تر)؛ RG_MU: اصطکاک ثابت
@@ -2508,6 +2513,7 @@ function ragPrep(u){
   for(const piv of legs){const st=ragStats(piv);if(!st||Math.abs(st.cx)<1e-4)continue;
    const kp=knee(piv),m1=piv.children.find(c=>c.isMesh);piv.position.x+=st.cx;m1.position.x-=st.cx;
    if(kp){const m2=kp.children.find(c=>c.isMesh);if(m2)m2.position.x-=st.cx}}
+  {const sp=body.getObjectByName('spine');if(sp)sp.rotation.x=0}   // کمر صاف؛ موقعیت استراحتِ شونه‌ها از پوزِ خمیده ثبت نشه
   body.updateWorldMatrix(true,true);
   const inv=new THREE.Matrix4().copy(body.matrixWorld).invert(),loc=o=>o.getWorldPosition(new V()).applyMatrix4(inv);
   const side=a=>a.map(p=>({p,x:loc(p).x})).sort((a,b)=>a.x-b.x).map(o=>o.p);
@@ -2978,22 +2984,43 @@ function render(dt){
   if(sp>1&&!e.dead&&e.on)e.walk+=dt*Math.min(sp,7)*1.6;
   {const n=Math.floor((e.walk*1.4-Math.PI/2)/Math.PI),was=e.fsN;e.fsN=n;if(was!==undefined&&n!==was&&!e.dead&&e.on&&sp>3.6)footstep(e,sp)}
   const rg=e.dead&&e.rag;
-  if(rg)ragRender(e,u,dt);
+  if(rg){if(u.spine)u.spine.rotation.x=0;ragRender(e,u,dt)}
   else{u.body.rotation.x=-e.fall*1.5;u.body.rotation.z=0;if(u.limbsZ){u.body.position.set(0,0,0);if(u.knees)for(const q of u.knees)q.quaternion.identity();if(u.arms)for(const q of u.arms)q.rotation.z=0;if(u.legs)for(const q of u.legs){q.rotation.y=0;q.rotation.z=0}u.limbsZ=false}}
   if(rg)u.limbsZ=true;
   const wph=e.walk*1.4,wam=u.amp||0;   // فاز واحد برای پا/بدن/دست تا با هم هماهنگ باشن
   if(!rg){u.body.position.y=e.dead?.12*e.fall:(1-Math.abs(Math.sin(wph)))*.04*wam;   // بدن موقع باز بودن پاها پایین‌تر می‌ره، موقع عمودی بودن بالاتر
    if(e.dead){u.body.rotation.z=0;u.body.rotation.y=0}
    else{u.body.rotation.z=Math.sin(wph)*.035*wam;u.body.rotation.y=-Math.sin(wph)*.08*wam;u.body.rotation.x=-.07*wam}}   // تاب لگن، چرخش کمر، کمی خم به جلو
-  u.body.scale.y=1-.26*e.cr;
+  u.body.scale.y=u.rig?1:1-.26*e.cr;   // مدل واقعی: دیگه فشرده نمی‌شه، واقعاً می‌شینه (پایین)
   if(u.legs===undefined){const g=n=>u.body.getObjectByName(n),l=g('legL'),r=g('legR'),al=g('armL'),ar=g('armR');
-   u.legs=l&&r?[l,r]:null;const kl=g('kneeL'),kr=g('kneeR');u.knees=kl&&kr?[kl,kr]:null;u.arms=al&&ar?[al,ar]:null;u.amp=0}
+   u.legs=l&&r?[l,r]:null;const kl=g('kneeL'),kr=g('kneeR');u.knees=kl&&kr?[kl,kr]:null;u.arms=al&&ar?[al,ar]:null;u.amp=0;u.spine=g('spine')||null;u.neckM=g('neckM')||null;if(!u.spine)u.neckM=null}
+  /* ---- نشستن: باسن پایین میاد، ران جلو می‌ره، زانو خم می‌شه؛ زاویه‌ها از طول واقعی ران/ساق حل می‌شن تا کف پا همیشه رو زمین بمونه ---- */
+  const crc=e.dead?0:(e.cr||0);let cA=0,cC=0;
+  if(u.legs&&u.rig&&!rg){const RG=u.rig;
+   if(crc>.002){cA=CROUCH_THIGH*crc;const D=CROUCH_HIP*crc,v=Math.max(-1,Math.min(1,(RG.hh-D-RG.lt*Math.cos(cA))/RG.ls));cC=Math.acos(v);
+    let lift=0;if(RG.fp&&RG.fp.length){const f2=KNEE_SIGN*cC,s2=Math.sin(f2),c2=Math.cos(f2),h0=RG.hh-D-RG.lt*Math.cos(cA);let mn=1e9;for(const q of RG.fp){const hg=h0+q[0]*s2+q[1]*c2;if(hg<mn)mn=hg}lift=Math.max(0,-mn)}   // نوک پوتین زیر زمین نره
+    u.body.position.y-=D-lift;u.body.position.z=RG.lt*Math.sin(cA)-RG.ls*Math.sin(cC)}   // پا جلوتر از ران میفته؛ بدن همون‌قدر عقب می‌ره تا پاها زیر خود بازیکن بمونن
+   else u.body.position.z=0}
   if(u.legs&&!rg){const mv=(sp>1&&!e.dead&&e.on)?1:0;u.amp+=(mv-u.amp)*Math.min(1,dt*12); // نرم شروع/توقف
    const A=(.32+.5*Math.min(1,sp/6.5))*(1-.45*e.cr)*u.amp,l0=A*(Math.sin(wph)+.18*Math.sin(2*wph)),l1=A*(Math.sin(wph+Math.PI)+.18*Math.sin(2*wph));   // دامنه با سرعت؛ گام کمی نامتقارن
-   u.legs[0].rotation.x=l0;u.legs[1].rotation.x=l1;
+   const lk=u.rig?u.rig.legK:1;   // لولای ران بالاتر رفته؛ دامنه‌ی راه رفتن کم می‌شه تا طول گام همون قبلی بمونه
+   u.legs[0].rotation.x=l0*lk-KNEE_SIGN*cA;u.legs[1].rotation.x=l1*lk-KNEE_SIGN*cA;
    if(u.knees){const c0=Math.cos(wph),s0=Math.max(0,-KNEE_SIGN*c0),s1=Math.max(0,KNEE_SIGN*c0),cr=e.cr||0;   // زانو موقع حرکت پا به جلو (swing) خم می‌شه، موقع تکیه تقریباً صاف
-    u.knees[0].rotation.x=KNEE_SIGN*(.07*u.amp+1.2*A*s0+.35*cr);u.knees[1].rotation.x=KNEE_SIGN*(.07*u.amp+1.2*A*s1+.35*cr)}
+    u.knees[0].rotation.x=KNEE_SIGN*(.07*u.amp+1.2*A*s0+(u.rig?cA+cC:.35*cr));u.knees[1].rotation.x=KNEE_SIGN*(.07*u.amp+1.2*A*s1+(u.rig?cA+cC:.35*cr))}
    if(u.arms){if(u.armQ){u.arms[0].quaternion.copy(u.armQ[0]);u.arms[1].quaternion.copy(u.armQ[1])}else{const hs=-KNEE_SIGN;u.arms[0].rotation.x=hs*1.15-l0*.06;u.arms[1].rotation.x=hs*1.05-l1*.06;u.arms[0].rotation.y=-.14;u.arms[1].rotation.y=.14}}}   // دست‌ها (اسلحه به دست) کم تکون می‌خورن // دست‌ها مخالف پای هم‌طرف
+  /* ---- خم و راست شدن کمر با زاویه‌ی نگاه: نگاه به پایین = خم به جلو، نگاه به بالا = کمی به عقب. دست‌ها و تفنگ بات هم با تنه می‌چرخن ---- */
+  if(u.spine&&u.rig&&!rg){
+   const pv=e.dead?0:(e.isP?pitch:(e.vp||0)),fp0=!e.dead&&((e.isP&&!tp)||e===specT);
+   const tg=Math.max(-LEAN_BACK,Math.min(LEAN_FWD,-pv*LEAN_K))+LEAN_CROUCH*crc;
+   if(u.lean===undefined)u.lean=tg;u.lean+=(tg-u.lean)*Math.min(1,dt*14);
+   const f=u.lean*(fp0?.5:1);   // اول‌شخصِ خودت نصف: سر نیفته جلوی دوربین
+   u.spine.rotation.x=KNEE_SIGN*f;
+   const bg=u.botGun,gh=u.gunHold;
+   if(bg&&gh&&!u.gd&&bg.parent===u.body){
+    if(!u.wB){u.body.updateWorldMatrix(true,true);u.wB=u.body.worldToLocal(u.spine.getWorldPosition(new THREE.Vector3()))}   // محور کمر توی فضای بدن (ثابته)
+    const al=-f,ca=Math.cos(al),sa=Math.sin(al),dy=gh.p.y-u.wB.y,dz=gh.p.z-u.wB.z;
+    bg.position.set(gh.p.x,u.wB.y+dy*ca-dz*sa,u.wB.z+dy*sa+dz*ca);
+    bg.quaternion.copy(_gq.setFromAxisAngle(_gX,al)).multiply(gh.q)}}
   if(u.gd)stepDeadGun(u.gdObj,u.gd,dt);
   u.ring.visible=!e.dead;
   if(e.isP||e===specT||u.fpOn){ // اول‌شخص (خودت یا یاری که تماشاش می‌کنی): پاها دیده بشه، سر از گردن بریده بشه
@@ -3009,8 +3036,10 @@ function render(dt){
    m.rotation.order='YXZ';m.rotation.x=0;
    if(fp){const df=e.isP?Math.max(0,Math.min(1,-pitch/1.0)):0,sh=e.isP?-FP_LEG_BACK+FP_LEG_FWD*df:-FP_LEG_BACK;   // هرچی بیشتر پایین رو نگاه کنی، بدن به عقب خم می‌شه و پاها جلوتر میان (مثل CS)
     m.position.x-=Math.sin(e.yaw)*sh;m.position.z-=Math.cos(e.yaw)*sh;m.rotation.x=e.isP?FP_LEG_TILT*df:0;u.ring.visible=false;
-    const up=_dv.set(0,1,0).applyQuaternion(m.quaternion),nh=CHAR_H*FP_NECK*(1-.26*e.cr);   // سر رو از گردن می‌بُریم تا دوربین توی سر نیفته
-    u.fpPlane.setFromNormalAndCoplanarPoint(up.clone().negate(),new THREE.Vector3(m.position.x+up.x*nh,m.position.y+up.y*nh,m.position.z+up.z*nh))}
+    let up,pt;   // سر رو از گردن می‌بُریم تا دوربین توی سر نیفته؛ گردن با خم شدن کمر و نشستن جابه‌جا می‌شه
+    if(u.neckM){m.updateMatrixWorld(true);pt=u.neckM.getWorldPosition(new THREE.Vector3());up=_dv.set(0,0,1).transformDirection(u.neckM.matrixWorld)}
+    else{up=_dv.set(0,1,0).applyQuaternion(m.quaternion);const nh=CHAR_H*FP_NECK*(1-.26*e.cr);pt=new THREE.Vector3(m.position.x+up.x*nh,m.position.y+up.y*nh,m.position.z+up.z*nh)}
+    u.fpPlane.setFromNormalAndCoplanarPoint(up.clone().negate(),pt)}
    if(u.botGun&&(e.isP||isSp||u.fpGunHid)){const hg=e.isP?fp:(isSp&&!e.dead);u.botGun.visible=!hg;u.fpGunHid=hg&&!e.isP}
    m.visible=e.isP?(fp||tp||e.dead):true}
   else m.visible=true}
@@ -3056,30 +3085,52 @@ function rigLegs(root,opt){opt=opt||{};
   zmin=Math.min(zmin,z);zmax=Math.max(zmax,z);ymin=Math.min(ymin,y);ymax=Math.max(ymax,y);
   xmin=Math.min(xmin,x);xmax=Math.max(xmax,x)}
  const H=zmax-zmin,HIP=zmin+H*.385,PY=(ymin+ymax)/2,XMID=(xmin+xmax)/2; // خط میانی واقعی مدل؛ GLB لزوماً حول x=0 نیست
+ const HJ=zmin+H*HIPJ_F,WAIST=zmin+H*WAIST_F,OVL=H*.04,NECK_Z=zmin+H*FP_NECK;   // HJ: مفصل واقعی ران (بالاتر از بین‌پایی) | WAIST: محل خم شدن کمر
  const ARM_X=opt.arms===false?1e9:H*.142,SH_Z=zmin+H*.80,SH_X=H*.142;
  const cnt=ix?ix.count:pos.count,V=k=>ix?ix.getX(k):k;
- const T=[],L=[],R=[],AL=[],AR=[];
+ /* مرکز عمقِ (جلو-عقب) واقعیِ تنه توی یه ارتفاع. PY وسط کل مدله و اگه دست‌ها جلو دراز باشن (مثل دشمن) از وسط کمر/باسن فاصله می‌گیره */
+ const bandY=z0=>{let sy=0,n=0;for(let k=0;k<cnt;k+=3){const a=V(k),b=V(k+1),c=V(k+2);
+   if(Math.abs((pos.getZ(a)+pos.getZ(b)+pos.getZ(c))/3-z0)>H*.03)continue;
+   if(Math.abs((pos.getX(a)+pos.getX(b)+pos.getX(c))/3-XMID)>ARM_X)continue;
+   sy+=(pos.getY(a)+pos.getY(b)+pos.getY(c))/3;n++}return n>20?sy/n:PY};
+ const PYL=bandY(HJ),PYW=bandY(WAIST);
+ const T=[],L=[],R=[],AL=[],AR=[],TP=[],TC=[],EL=[],ER=[];
  for(let k=0;k<cnt;k+=3){const a=V(k),b=V(k+1),c=V(k+2);
-  const mz=Math.max(pos.getZ(a),pos.getZ(b),pos.getZ(c)),cx=(pos.getX(a)+pos.getX(b)+pos.getX(c))/3-XMID;
-  if(mz>HIP){if(Math.abs(cx)>ARM_X)(cx<0?AL:AR).push(a,b,c);else T.push(a,b,c);continue}
+  const mz=Math.max(pos.getZ(a),pos.getZ(b),pos.getZ(c)),cz=(pos.getZ(a)+pos.getZ(b)+pos.getZ(c))/3,cx=(pos.getX(a)+pos.getX(b)+pos.getX(c))/3-XMID;
+  if(mz>HIP){
+   if(Math.abs(cx)>ARM_X){(cx<0?AL:AR).push(a,b,c);continue}
+   if(cz<=WAIST+OVL)TP.push(a,b,c);           // لگن (ثابت)
+   if(cz>WAIST-OVL)TC.push(a,b,c);            // سینه+سر (دور کمر می‌چرخه)؛ ۴٪ قد هم‌پوشانی تا موقع خم شدن بین لگن و سینه شکاف نیفته
+   if(cz<=HJ)(cx<0?EL:ER).push(a,b,c);        // بالای ران تا مفصل ران: کپی‌ش با پا می‌چرخه (لگن ثابت هم سر جاشه)
+   continue}
   (cx<0?L:R).push(a,b,c)}
  if(!L.length||!R.length)return; // جدا نشدن؛ همون مدل قبلی می‌مونه
  const mk=(idx,name,px,pz)=>{const gg=new THREE.BufferGeometry();
   for(const n in g.attributes)gg.setAttribute(n,g.attributes[n]);gg.setIndex(idx);
   const m=new THREE.Mesh(gg,body.material);
-  if(!name){m.name='torso';return m}
   const piv=new THREE.Group();piv.name=name;piv.position.set(px,PY,pz);m.position.set(-px,-PY,-pz);piv.add(m);return piv};
  const KNEE=zmin+H*.27;   // زانو: حدود ۲۷٪ قد از زمین
  const split=idx=>{const th=[],ca=[];for(let k=0;k<idx.length;k+=3){const z=(pos.getZ(idx[k])+pos.getZ(idx[k+1])+pos.getZ(idx[k+2]))/3;(z>KNEE?th:ca).push(idx[k],idx[k+1],idx[k+2])}return[th,ca]};
  const mkM=idx=>{const gg=new THREE.BufferGeometry();for(const n in g.attributes)gg.setAttribute(n,g.attributes[n]);gg.setIndex(idx);return new THREE.Mesh(gg,body.material)};
- const leg=(th,ca,name,kn)=>{const piv=new THREE.Group();piv.name=name;piv.position.set(0,PY,HIP);const m1=mkM(th);m1.position.set(0,-PY,-HIP);piv.add(m1);   // ران
-  if(ca.length){const kp=new THREE.Group();kp.name=kn;kp.position.set(0,0,KNEE-HIP);const m2=mkM(ca);m2.position.set(0,-PY,-KNEE);kp.add(m2);piv.add(kp)}   // ساق دور زانو می‌چرخه
+ const leg=(th,ca,name,kn)=>{const piv=new THREE.Group();piv.name=name;piv.position.set(0,PYL,HJ);const m1=mkM(th);m1.position.set(0,-PYL,-HJ);piv.add(m1);   // ران (از مفصل ران)
+  if(ca.length){const kp=new THREE.Group();kp.name=kn;kp.position.set(0,0,KNEE-HJ);const m2=mkM(ca);m2.position.set(0,-PYL,-KNEE);kp.add(m2);piv.add(kp)}   // ساق دور زانو می‌چرخه
   return piv};
  const[LT,LC]=split(L),[RT,RC]=split(R);
- const parts=[mk(T),leg(LT,LC,'legL','kneeL'),leg(RT,RC,'legR','kneeR')];
- if(AL.length&&AR.length){parts.push(mk(AL,'armL',XMID-SH_X,SH_Z),mk(AR,'armR',XMID+SH_X,SH_Z));
+ /* نقاط کف پا (نسبت به زانو): موقع نشستن ساق به عقب کج می‌شه و نوک پوتین فرو می‌ره زمین؛ با این نقاط بدن همون‌قدر بالا می‌آد */
+ const fp=[];{const lim=zmin+H*.12,cand=[];for(const ii of[LC,RC])for(let k=0;k<ii.length;k++)if(pos.getZ(ii[k])<lim)cand.push(ii[k]);
+  const st=Math.max(1,Math.floor(cand.length/48));for(let k=0;k<cand.length;k+=st)fp.push([pos.getY(cand[k])-PYL,pos.getZ(cand[k])-KNEE])}
+ const pelvis=mkM(TP);pelvis.name='torso';
+ const parts=[pelvis,leg(LT.concat(EL),LC,'legL','kneeL'),leg(RT.concat(ER),RC,'legR','kneeR')];
+ /* کمر: همه‌ی بدنِ بالای کمر (سینه، سر، دست‌ها) زیر یه گروه می‌ره که دور محور X می‌چرخه */
+ const spine=new THREE.Group();spine.name='spine';spine.position.set(0,PYW,WAIST);
+ const chest=mkM(TC);chest.name='chest';chest.position.set(0,-PYW,-WAIST);spine.add(chest);
+ const neck=new THREE.Object3D();neck.name='neckM';neck.position.set(0,0,NECK_Z-WAIST);spine.add(neck);   // نقطه‌ی گردن: صفحه‌ی برش سر توی اول‌شخص
+ if(AL.length&&AR.length){const aL=mk(AL,'armL',XMID-SH_X,SH_Z),aR=mk(AR,'armR',XMID+SH_X,SH_Z);
   // A-pose → دست‌ها کنار بدن (دور محور Y مدل)
-  parts[3].rotation.y=-ARM_REST;parts[4].rotation.y=ARM_REST}
+  aL.rotation.y=-ARM_REST;aR.rotation.y=ARM_REST;
+  for(const a of[aL,aR]){a.position.y-=PYW;a.position.z-=WAIST;spine.add(a)}}   // مختصات نسبت به کمر؛ جای دنیایی دست‌ها عوض نمی‌شه
+ parts.push(spine);
+ root.userData.rig={hj:HJ-zmin,kn:KNEE-zmin,wa:WAIST-zmin,legK:HIPJ_F>0?.385/HIPJ_F:1,fp};
  const par=body.parent;par.remove(body);par.add(...parts)}
 let KNEE_SIGN=1;   // علامت چرخش زانو (خودکار در fitChar تشخیص داده می‌شه)
 const ARM_REST=.49; // رادیان (~۲۸°): هرچی بیشتر، دست‌ها نزدیک‌تر به بدن
@@ -3098,6 +3149,7 @@ function fitChar(root,kind){
  const inner=new THREE.Group();root.position.set(-c.x,-b.min.y,-c.z);inner.add(root);inner.scale.setScalar(sc);
  const out=new THREE.Group();inner.rotation.y=Math.PI;out.add(inner);
  out.userData.s=sc;
+ {const rg=root.userData&&root.userData.rig;if(rg)out.userData.rig={hh:rg.hj*sc,lt:(rg.hj-rg.kn)*sc,ls:rg.kn*sc,wa:rg.wa*sc,legK:rg.legK,fp:(rg.fp||[]).map(q=>[q[0]*sc,q[1]*sc])}}   // طول ران/ساق و ارتفاع باسن به متر (برای حل نشستن)
  if(cf.armPitch)out.userData.arm={p:cf.armPitch,r:cf.armRoll};
  try{out.updateMatrixWorld(true);const ll=out.getObjectByName('legL'),kl=out.getObjectByName('kneeL');
   if(ll&&kl){const w=new THREE.Vector3();ll.rotation.x=0;out.updateMatrixWorld(true);kl.getWorldPosition(w);const z0=w.z;ll.rotation.x=.3;out.updateMatrixWorld(true);kl.getWorldPosition(w);ll.rotation.x=0;out.updateMatrixWorld(true);KNEE_SIGN=(w.z-z0)>0?1:-1}
