@@ -104,11 +104,13 @@ canvas{display:block}
 #lbfeed{position:absolute;top:54px;right:84px;width:330px;text-align:right;direction:rtl;font-size:12.5px;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 #lbfeed div{background:rgba(8,12,18,.72);padding:3px 10px;border-radius:4px;animation:lbf .3s;text-shadow:0 1px 2px #000}
 @keyframes lbf{from{opacity:0;transform:translateX(14px)}}
-#lbbot{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:12px;direction:rtl;width:max-content;max-width:calc(100vw - 20px);box-sizing:border-box}
-#lbbot .modeb,#lbbot .mchip,#lbbot #lbstart,#lbbot #lbcnt{white-space:nowrap;flex:none}
-#lbbot #lbmodes{flex:none}
-@media(max-width:820px){#lbbot{gap:6px;bottom:10px}#lbbot .modeb{padding:5px 9px;gap:6px}#lbbot .modeb b{font-size:12px}#lbbot .modeb small,#lbbot .mchip small{font-size:10px}#lbbot #lbmodes{gap:5px;margin:0}#lbbot .mchip{padding:5px 8px;font-size:12px}#lbbot #lbstart{font-size:16px;padding:9px 24px}#lbbot #lbcnt{padding:7px 9px;font-size:12px}}
-@media(max-width:620px){#lbbot{flex-wrap:wrap;row-gap:6px}}
+#lbbot{position:absolute;bottom:16px;left:12px;right:84px;transform:none;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;direction:rtl;box-sizing:border-box}
+#lb #lbbot{pointer-events:none}#lb #lbbot>.lbg,#lb #lbbot .lbg>*{pointer-events:auto}
+#lbbot .lbg{display:flex;align-items:center;gap:10px}
+#lbbot .lbga{flex-direction:column;align-items:stretch;gap:8px}
+#lbbot #lbmodes{margin:0;display:flex;gap:8px}#lbbot #lbmodes .mchip{flex:1}
+#lbbot .modeb,#lbbot .mchip,#lbbot #lbstart,#lbbot #lbcnt{white-space:nowrap}
+@media(max-width:820px){#lbbot{bottom:10px;left:8px;right:76px}#lbbot .lbg{gap:6px}#lbbot .lbga{gap:5px}#lbbot .modeb{padding:5px 9px;gap:6px}#lbbot .modeb b{font-size:12px}#lbbot .modeb small,#lbbot .mchip small{font-size:10px}#lbbot #lbmodes{gap:5px}#lbbot .mchip{padding:5px 8px;font-size:12px}#lbbot #lbstart{font-size:16px;padding:9px 22px}#lbbot #lbcnt{padding:7px 9px;font-size:12px}}
 .modeb{display:flex;align-items:center;gap:10px;background:rgba(10,14,20,.82);border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:7px 14px}
 .modeb b{display:block;font-size:14px}.modeb small{opacity:.65;font-size:12px}
 #lbstart{font-size:19px;font-weight:700;padding:11px 46px;letter-spacing:.5px;border-radius:6px;box-shadow:0 4px 20px rgba(31,143,85,.45)}
@@ -228,7 +230,7 @@ canvas{display:block}
  <div class="nrow"><input id="netJoinName" maxlength="14" placeholder="اسم دوست آنلاین (عضویت در رومش)"><button class="lbb" id="netJoinF" style="font-size:12px;padding:4px 10px">عضویت</button></div>
  <div class="nrow" id="netCodeRow"><input id="netJoinCode" maxlength="8" placeholder="کد روم (مثلاً XTF4V)" style="text-transform:uppercase;letter-spacing:2px"><button class="lbb" id="netJoinC" style="font-size:12px;padding:4px 10px">ورود با کد</button></div>
 </div>
-<div id="lbbot" class="pe"><div class="modeb"><span class="mi" data-ic="map"></span><div><b>Dust 2</b><small id="lbmsub">رقابتی • ۵ در برابر ۵</small></div></div><div id="lbmodes"><button class="mchip on" data-a="mode" data-n="dm">رقابتی<small>با ریسپاون</small></button><button class="mchip" data-a="mode" data-n="sd">گشتن و نابود کردن<small>پلنت بمب • بدون ریسپاون</small></button></div><button class="lbb g" id="lbstart" data-a="start">شروع بازی</button><div id="lbcnt">اسکواد ۱/۵</div></div>
+<div id="lbbot" class="pe"><div class="lbg lbga"><div id="lbmodes"><button class="mchip on" data-a="mode" data-n="dm">رقابتی<small>با ریسپاون</small></button><button class="mchip" data-a="mode" data-n="sd">گشتن و نابود کردن<small>پلنت بمب • بدون ریسپاون</small></button></div><div class="modeb"><span class="mi" data-ic="map"></span><div><b>Dust 2</b><small id="lbmsub">رقابتی • ۵ در برابر ۵</small></div></div></div><div class="lbg lbgb"><button class="lbb g" id="lbstart" data-a="start">شروع بازی</button><div id="lbcnt">اسکواد ۱/۵</div></div></div>
 </div>
 <div id="lbset"><div class="sbox"><div class="shd"><span>⚙ تنظیمات</span><button class="sb" id="sx">✕</button></div><div class="stb" id="stb"></div><div class="sbd" id="sbd"></div><div class="sft"><span id="sstat"></span><span><button class="sb" id="srt">بازنشانی این بخش</button> <button class="sb" id="sra">بازنشانی همه</button> <button class="sb on" id="sok">تأیید</button></span></div></div></div><div id="fpsc"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
