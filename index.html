@@ -7,7 +7,32 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:Tahom
 canvas{display:block}
 #hud{position:fixed;inset:0;pointer-events:none}
 #hud::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.38) 100%)}
-#cross{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-4px;border:1px solid #3f3;border-radius:50%}
+.xh{position:absolute;left:50%;top:50%;width:0;height:0;pointer-events:none}
+.xh i{position:absolute;display:block;background:var(--c);box-shadow:0 0 0 var(--ol,0px) #000d}
+.xh .ct,.xh .cb{width:var(--th);height:var(--sz);margin-left:calc(var(--th)/-2)}
+.xh .cl,.xh .cr{height:var(--th);width:var(--sz);margin-top:calc(var(--th)/-2)}
+.xh .ct{top:calc(0px - var(--sz) - var(--gap) - var(--sp,0px))}.xh .cb{top:calc(var(--gap) + var(--sp,0px))}
+.xh .cl{left:calc(0px - var(--sz) - var(--gap) - var(--sp,0px))}.xh .cr{left:calc(var(--gap) + var(--sp,0px))}
+.xh .cdot{width:var(--ds);height:var(--ds);margin:calc(var(--ds)/-2);border-radius:50%}
+.xh .cring{box-sizing:border-box;width:calc(var(--rs) + var(--sp,0px)*2);height:calc(var(--rs) + var(--sp,0px)*2);margin:calc(var(--rs)/-2 - var(--sp,0px));border-radius:50%;background:none;border:var(--th) solid var(--c)}
+.xh.hit i{background:var(--hit)}.xh.hit .cring{background:none;border-color:var(--hit)}
+#hud.novig::before{display:none}#hud.nomm #mm{display:none}#hud.nokf #kf{display:none}
+#hp,#ammo,#money,#nades,#score,#kf,#toast,#buy{zoom:var(--hs,1)}
+#fpsc{position:fixed;bottom:4px;left:50%;transform:translateX(-50%);z-index:25;font:600 13px monospace;color:#9fe8a8;text-shadow:0 0 3px #000;display:none;pointer-events:none}
+.shd{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;font-size:19px;color:#fd6}
+.stb{display:flex;gap:4px;padding:0 14px;border-bottom:1px solid #fff2}
+.stb button{background:none;border:0;border-bottom:3px solid transparent;color:#fffb;padding:9px 14px;font:inherit;font-size:14px;cursor:pointer}.stb button.on{color:#fff;border-color:#4aa3ff}
+.sbd{flex:1;overflow:auto;padding:8px 6px}
+.sr{display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid #ffffff10;font-size:14px}
+.sr>label{flex:0 0 36%}.sgrid .sr>label{flex:1}.sr small{display:block;font-size:11.5px;opacity:.55}.sr>div{flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sr input[type=range]{flex:1;min-width:120px;accent-color:#4aa3ff}
+.sr input[type=number]{width:74px;background:#ffffff1f;border:1px solid #fff4;color:#fff;border-radius:6px;padding:4px 6px;font:inherit}
+.sb{background:#ffffff1c;border:1px solid #fff3;color:#fff;border-radius:7px;padding:5px 11px;font:inherit;font-size:13px;cursor:pointer}.sb:hover{background:#ffffff30}.sb.on{background:#2f7be0;border-color:#6db0ff}.sb.cap{background:#b8860b}
+.kb{min-width:130px;direction:ltr}.sgrid{display:grid;grid-template-columns:1fr 1fr}
+.sw{position:relative;width:44px;height:24px;display:inline-block}.sw input{opacity:0;width:0;height:0}.sw span{position:absolute;inset:0;border-radius:24px;background:#ffffff30;cursor:pointer;transition:.15s}.sw span::after{content:'';position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}.sw input:checked+span{background:#2f9e5f}.sw input:checked+span::after{right:23px}
+.scol{width:24px;height:24px;border-radius:50%;border:2px solid #fff6;padding:0;cursor:pointer}
+.sft{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px;border-top:1px solid #fff2;font-size:12.5px;color:#fd6}
+.xpv{height:120px;width:100%;position:relative;border-radius:10px;overflow:hidden;background:linear-gradient(#5c7fa8,#c9b98a)}
 .t{position:absolute;font-size:28px;font-weight:bold;text-shadow:0 0 5px #000;direction:ltr}
 #hp{left:20px;bottom:16px}#ammo{right:20px;bottom:16px}
 #money{left:20px;bottom:58px;color:#7cdc5c}#money i{font-style:normal;font-size:16px;color:#bff5a8;margin-left:10px;opacity:0}
@@ -25,8 +50,8 @@ canvas{display:block}
 #nades .ng{display:flex;align-items:center;gap:4px;opacity:.65}#nades .ng.on{opacity:1;color:#ffd23f}#nades .ng.no{opacity:.25}
 #nades i{font-style:normal;font-size:12px;opacity:.7;margin-left:2px}#nades .svgi{width:22px;height:22px}
 #pos{position:absolute;left:16px;top:12px;padding:4px 10px;border-radius:8px;background:rgba(0,0,0,.55);color:#9fe8a8;font:600 15px/1.4 monospace;direction:ltr;white-space:pre}
-#mm{position:absolute;top:12px;right:12px;width:200px;height:200px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.12),0 4px 14px rgba(0,0,0,.5)}
-#kf{position:absolute;top:226px;right:14px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;direction:ltr}
+#mm{position:absolute;top:12px;right:12px;width:var(--mm,200px);height:var(--mm,200px);border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.12),0 4px 14px rgba(0,0,0,.5)}
+#kf{position:absolute;top:calc(var(--mm,200px) + 26px);right:14px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;direction:ltr}
 .kfr{background:rgba(0,0,0,.55);padding:3px 10px;border-radius:4px;font-size:16px;font-weight:bold;white-space:nowrap;transition:opacity .5s;text-shadow:0 0 3px #000}
 .kfr.me{border:2px solid #e33}.kfr .a{color:#5aa9ff}.kfr .b{color:#ff6a5a}.kfr .w{color:#ddd;margin:0 8px;font-weight:normal}.kfr .hs{color:#fff}
 #msg{top:40%;left:0;right:0;text-align:center;font-size:30px;color:#fd6}
@@ -116,17 +141,11 @@ canvas{display:block}
 #ends .esub2{position:absolute;top:calc(6% + 108px);left:50%;transform:translateX(-50%);font-size:13px;opacity:.8;background:rgba(0,0,0,.45);padding:3px 14px;border-radius:4px;white-space:nowrap}
 #endsok{position:absolute;bottom:5%;left:50%;transform:translateX(-50%);pointer-events:auto;font-size:18px;padding:10px 44px}
 @keyframes endsIn{from{opacity:0;transform:translate(-50%,-30px)}to{opacity:1;transform:translate(-50%,0)}}
-#lbset{position:absolute;inset:0;background:rgba(0,0,0,.62);display:none;place-items:center;direction:rtl}
-#lbset .mbox{width:min(420px,92vw);background:#121923;border:1px solid #2b3747;border-radius:10px;padding:18px 22px;line-height:1.7}
-#lbset h3{margin:0 0 12px;color:#fd6}
-#lbset label{display:block;margin-bottom:12px;font-size:14px}#lbset label b{float:left;color:#9fd0ff}
-#lbset input[type=range]{width:100%;display:block}#lbset select{width:100%;background:#0b111a;color:#fff;border:1px solid #3a4a5f;border-radius:5px;padding:6px;font-family:inherit;margin-top:4px}
 #lbvig{display:none}
 #lb{text-shadow:0 1px 3px rgba(0,0,0,.55)}
 #lbtop,#lbfrs,.modeb,#lbcnt,#lbmenu,#lbaddp,#lbset .mbox,.pcn,.fav .nm,#lbfeed div{background:linear-gradient(135deg,rgba(255,255,255,.24),rgba(255,255,255,.07))!important;backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);border:1px solid rgba(255,255,255,.28);box-shadow:0 6px 24px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.3)}
 #lbtop{border-width:0 0 1px 0}#lbfrs{border-width:0 0 0 1px;padding-left:10px}
-#lbset{background:rgba(0,0,0,.18)!important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-#lbaddp input,#lbset select{background:rgba(255,255,255,.14)!important;border:1px solid rgba(255,255,255,.3)!important}
+#lbaddp input{background:rgba(255,255,255,.14)!important;border:1px solid rgba(255,255,255,.3)!important}
 #lbaddp input::placeholder{color:rgba(255,255,255,.65)}
 #lbmenu button:hover,.sug{background:rgba(255,255,255,.16)}
 .lbb:not(.g):not(.r){background:rgba(255,255,255,.2)}.lbb:not(.g):not(.r):hover{background:rgba(255,255,255,.32)}
@@ -152,8 +171,8 @@ canvas{display:block}
 <div id="hud"><div id="sdbar"></div><div id="fb"></div><div id="pos"></div><canvas id="mm"></canvas><div id="kf"></div><div id="flash"></div><div id="pbar"><i></i></div><div id="sdhint"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="nades"></div><div id="money" class="t"><span id="mv"></span><i id="mgain"></i></div><div id="buy"></div><div id="toast"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
 <div id="menu"><h1>Mini Strike</h1>
 <div id="load">در حال لود مپ و کاراکترها...</div>
-<div id="pause"><div id="pnote" style="display:none;margin-bottom:14px;font-size:14px;opacity:.85;direction:rtl">بازی آنلاینه؛ پاز واقعی نداره و بازی ادامه داره</div><button class="lbb g" id="lbresume" style="font-size:22px;padding:10px 40px">ادامه بازی</button><br><br><button class="lbb r" id="lbleave" style="font-size:16px">بازگشت به لابی</button></div>
-<div>حرکت: WASD &nbsp;|&nbsp; نگاه: ماوس &nbsp;|&nbsp; شلیک: کلیک چپ &nbsp;|&nbsp; پرش: Space &nbsp;|&nbsp; آهسته‌راه رفتن: Shift &nbsp;|&nbsp; نشستن: C &nbsp;|&nbsp; ریلود: R &nbsp;|&nbsp; تفنگ: ۱ &nbsp;|&nbsp; پیستول: ۲ (هر کلیک یک تیر) &nbsp;|&nbsp; چاقو: ۳ (کلیک چپ: ضربه، راست: ضربهٔ سنگین) &nbsp;|&nbsp; Q = سلاح قبلی &nbsp;|&nbsp; دید سوم‌شخص: V &nbsp;|&nbsp; نارنجک: ۵ HE ، ۶ اسموک ، ۷ فلش ، ۸ مولوتف (کلیک چپ پرتاب محکم، کلیک راست آروم)</div>
+<div id="pause"><div id="pnote" style="display:none;margin-bottom:14px;font-size:14px;opacity:.85;direction:rtl">بازی آنلاینه؛ پاز واقعی نداره و بازی ادامه داره</div><button class="lbb g" id="lbresume" style="font-size:22px;padding:10px 40px">ادامه بازی</button><br><br><button class="lbb" id="pset" style="font-size:16px">⚙ تنظیمات</button><br><br><button class="lbb r" id="lbleave" style="font-size:16px">بازگشت به لابی</button></div>
+<div id="keyhint"></div>
 <div>تو و ۴ یار (حلقه‌ی آبی) در برابر ۵ دشمن (حلقه‌ی قرمز). Esc برای توقف.</div></div>
 <pre id="lbtune"></pre>
 <div id="ends"><div class="eb"><div class="et" id="etxt"></div><div class="es" id="esub"></div></div><div class="esub2" id="emvp"></div><button class="lbb g" id="endsok">ادامه</button></div>
@@ -170,11 +189,8 @@ canvas{display:block}
  <div class="nrow" id="netCodeRow"><input id="netJoinCode" maxlength="8" placeholder="کد روم (مثلاً XTF4V)" style="text-transform:uppercase;letter-spacing:2px"><button class="lbb" id="netJoinC" style="font-size:12px;padding:4px 10px">ورود با کد</button></div>
 </div>
 <div id="lbbot" class="pe"><div class="modeb"><span class="mi" data-ic="map"></span><div><b>Dust 2</b><small id="lbmsub">رقابتی • ۵ در برابر ۵</small></div></div><div id="lbmodes"><button class="mchip on" data-a="mode" data-n="dm">رقابتی<small>با ریسپاون</small></button><button class="mchip" data-a="mode" data-n="sd">گشتن و نابود کردن<small>پلنت بمب • بدون ریسپاون</small></button></div><button class="lbb g" id="lbstart" data-a="start">شروع بازی</button><div id="lbcnt">اسکواد ۱/۵</div></div>
-<div id="lbset" class="pe"><div class="mbox"><h3>تنظیمات</h3>
-<label>حساسیت ماوس <b id="vs"></b><input type="range" id="rs" min="0.3" max="3" step="0.05"></label>
-<label>میدان دید (FOV) <b id="vf"></b><input type="range" id="rf" min="60" max="110" step="1"></label>
-<label>کیفیت تصویر<select id="rq"><option value="low">کم</option><option value="mid">متوسط</option><option value="high">بالا</option><option value="ultra">خیلی بالا (سنگین‌تر)</option></select></label>
-<button class="lbb" data-a="setclose">بستن</button></div></div></div>
+</div>
+<div id="lbset"><div class="sbox"><div class="shd"><span>⚙ تنظیمات</span><button class="sb" id="sx">✕</button></div><div class="stb" id="stb"></div><div class="sbd" id="sbd"></div><div class="sft"><span id="sstat"></span><span><button class="sb" id="srt">بازنشانی این بخش</button> <button class="sb" id="sra">بازنشانی همه</button> <button class="sb on" id="sok">تأیید</button></span></div></div></div><div id="fpsc"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
@@ -254,8 +270,8 @@ const CHAR_H=1.8;       // قد کاراکترها به متر
 /* ================= RENDER SETUP ================= */
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xc7dbf2);scene.fog=new THREE.Fog(0xc7dbf2,70,330);   // مپ ×۱٫۵ بزرگ شد → مه هم دورتر
 const cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,650);cam.rotation.order='YXZ';scene.add(cam);   // far هم برای مپ بزرگ‌تر
-const ren=new THREE.WebGLRenderer({antialias:true});ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.shadowMap.enabled=true;ren.localClippingEnabled=true;ren.shadowMap.type=THREE.PCFSoftShadowMap;ren.toneMapping=THREE.ACESFilmicToneMapping;ren.toneMappingExposure=.95;document.body.prepend(ren.domElement);
-addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight)});
+const ren=new THREE.WebGLRenderer({antialias:(()=>{try{return JSON.parse(localStorage.getItem('ms_set')||'{}').aa!==false}catch(e){return true}})()});ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.shadowMap.enabled=true;ren.localClippingEnabled=true;ren.shadowMap.type=THREE.PCFSoftShadowMap;ren.toneMapping=THREE.ACESFilmicToneMapping;ren.toneMappingExposure=.95;document.body.prepend(ren.domElement);
+addEventListener('resize',()=>layoutView());
 
 /* ---- ویومدل (گان + دست‌ها) در پاس جدا رندر می‌شه تا هیچ‌وقت داخل دیوار/مپ فرو نره ----
    پاس ۱: مپ و بقیه‌ی دنیا (لایه ۰) | پاس ۲: بعد از پاک‌کردن depth فقط گان و دست‌ها (لایه ۱) روی تصویر کشیده می‌شن */
@@ -1300,7 +1316,7 @@ function killFeed(by,t,hs,wb){const f=$('kf'),r=document.createElement('div');r.
  f.appendChild(r);while(f.children.length>5)f.removeChild(f.firstChild);
  setTimeout(()=>{r.style.opacity=0;setTimeout(()=>r.remove(),500)},4500)}
 function damage(t,a,by,zone,wb){t.hp-=a;if(!t.isP&&!t.dead&&by&&by.p){t.mem=Math.max(t.mem||0,2);t.lk=[by.p.x,by.p.z]}   // ازش تیر خورده → به سمت تیرانداز می‌چرخه
- if(t.isP)$('dmg').style.opacity=1;if(by.isP){$('cross').style.borderColor='#f33';hm=.12;if(zone==='head')sfx('hs',.85)}
+ if(t.isP)$('dmg').style.opacity=1;if(by.isP){$('cross').classList.add('hit');hm=.12;if(zone==='head')sfx('hs',.85)}
  if(t.hp<=0&&!t.dead){t.dead=true;if(t.isP){t.pl=0;t.pld=-1}   // وسط پلنت مردی: نوار پیشرفت پاک بشه
   t.rt=SD.on?1e9:4.5;if(by.team!==t.team)by.kl=(by.kl||0)+1;t.ds=(t.ds||0)+1;score[by.team]++;moneyKill(by,t);killFeed(by,t,zone==='head',wb);ragStart(t,by,zone);bloodPool(t);
   if(NET.mode==='host')NET.send({t:'kill',by:by.name,bteam:by.team,tg:t.name,zone,hs:zone==='head'?1:0,wb:wb?1:0,bx:+by.p.x.toFixed(2),bz:+by.p.z.toFixed(2)})}}
@@ -1670,7 +1686,7 @@ function bombUpdate(dt){
  if((P.wp||0)!==3){P.pl=0;return}
  const cl=clickL;clickL=clickR=false;
  if(!SD.on||!SD.hasBomb||SD.state!=='live'){P.pl=0;return}
- const si=sdSiteAt(P.p.x,P.p.y,P.p.z),hold=mouse||keys.KeyE;
+ const si=sdSiteAt(P.p.x,P.p.y,P.p.z),hold=mouse||isDown('use');
  if(hold&&si>=0&&P.on&&P.dr<=0){
   if(!(P.pl>0)){P.pl=.0001;C4S.plantH=sndReady()?sndPlay(C4S_PLANT,0,.85):null}P.pl+=dt;P.vx=P.vz=0;
   if(!C4S.buf){const dg=Math.floor(P.pl/PLANT_T*7);if(dg!==P.pld){P.pld=dg;beep(900+dg*70,.05,.05)}}
@@ -1682,21 +1698,64 @@ function bombUpdate(dt){
 /* ================= INPUT ================= */
 const netLive=()=>!!NET.mode&&(NET.members||[]).length>1;
 const keys={};let locked=false,mouse=false,mouse2=false,clickL=false,clickR=false,READY=false;
-addEventListener('keydown',e=>{if(!inMatch)return;if(locked&&(e.code==='Space'||e.ctrlKey))e.preventDefault();keys[e.code]=1;if(e.code==='Space'&&!e.repeat&&P)P.jb=.12;if(e.code==='KeyR')reload();if(e.code==='Digit1')setWeapon(0);if(e.code==='Digit2')setWeapon(2);if(e.code==='Digit3')setWeapon(1);if(e.code==='Digit4')setWeapon(3);if(e.code==='Digit5')setWeapon(4);if(e.code==='Digit6')setWeapon(5);if(e.code==='Digit7')setWeapon(6);if(e.code==='Digit8')setWeapon(7);if(SD.on&&!NET.mode&&P&&!P.dead){if(e.code==='F7'||e.code==='F8'||e.code==='F9')e.preventDefault();if(e.code==='F7')sdSetSite(0);if(e.code==='F8')sdSetSite(1);if(e.code==='F9')sdResetSites()}if(e.code==='KeyQ'&&P)setWeapon(P.pw!==undefined?P.pw:1);if(e.code==='KeyV'&&locked)tp=!tp});addEventListener('keyup',e=>keys[e.code]=0);addEventListener('blur',()=>{for(const k in keys)keys[k]=0});
-addEventListener('mousedown',e=>{if(!locked)return;if(e.button===0){mouse=true;clickL=true}if(e.button===2){mouse2=true;clickR=true}});addEventListener('mouseup',e=>{if(e.button===0)mouse=false;if(e.button===2)mouse2=false});
+const actionsFor=c=>{const r=[],n=nk(c);for(const a in SET.bind)if(SET.bind[a]&&nk(SET.bind[a])===n)r.push(a);return r},WSLOT={w1:0,w2:2,w3:1,w4:3,g5:4,g6:5,g7:6,g8:7};
+function press(c){for(const a of actionsFor(c)){if(a in WSLOT)setWeapon(WSLOT[a]);else if(a==='jump'){if(P)P.jb=.12}else if(a==='reload'){if(P)reload()}else if(a==='last'){if(P)setWeapon(P.pw!==undefined?P.pw:1)}else if(a==='tp'){if(locked)tp=!tp}else if(a==='crouch'){if(SET.crouchTog)TOG.crouch=!TOG.crouch}else if(a==='walk'){if(SET.walkTog)TOG.walk=!TOG.walk}else if(a==='fire'){if(locked){mouse=true;clickL=true}}else if(a==='alt'){if(locked){mouse2=true;clickR=true}}else if(a==='buy'&&c.startsWith('Mouse')&&locked&&P)dispatchEvent(new KeyboardEvent('keydown',{code:c}))}}
+function release(c){for(const a of actionsFor(c)){if(a==='fire')mouse=false;else if(a==='alt')mouse2=false}}
+addEventListener('keydown',e=>{if(!inMatch||!e.isTrusted)return;if(locked&&(e.code==='Space'||e.ctrlKey||actionsFor(e.code).length))e.preventDefault();keys[e.code]=1;if(!e.repeat)press(e.code);
+ if(SD.on&&!NET.mode&&P&&!P.dead){if(e.code==='F7'||e.code==='F8'||e.code==='F9')e.preventDefault();if(e.code==='F7')sdSetSite(0);if(e.code==='F8')sdSetSite(1);if(e.code==='F9')sdResetSites()}});
+addEventListener('keyup',e=>{keys[e.code]=0;release(e.code)});addEventListener('blur',()=>{for(const k in keys)keys[k]=0});
+addEventListener('mousedown',e=>{if(!locked)return;if(e.button)e.preventDefault();const c='Mouse'+e.button;keys[c]=1;press(c)});
+addEventListener('mouseup',e=>{const c='Mouse'+e.button;keys[c]=0;if(e.button&&locked)e.preventDefault();release(c)});
+addEventListener('wheel',e=>{if(!locked||!P||SET.wheel==='off')return;e.preventDefault();if(SET.wheel==='jump'){WJ=performance.now()+90;P.jb=.12;return}const o=[0,2,1,4,5,6,7,3],n=o.length,s=e.deltaY>0?1:-1;let i=o.indexOf(P.wp||0);for(let k=0;k<n;k++){i=(i+s+n)%n;const w=P.wp||0;setWeapon(o[i]);if((P.wp||0)!==w)break}},{passive:false});
 addEventListener('contextmenu',e=>{if(locked)e.preventDefault()});
 let skipMM=0;   // رد کردن پرش‌های ناگهانی ماوس (باگ شناخته‌شده‌ی Pointer Lock در کروم/ویندوز)
-addEventListener('mousemove',e=>{if(!locked||P.dead)return;if(skipMM>0){skipMM--;return}let dx=e.movementX,dy=e.movementY;if(Math.abs(dx)>250||Math.abs(dy)>250)return;P.yaw-=dx*SENS;pitch=Math.max(-1.5,Math.min(1.5,pitch-dy*SENS))});
+addEventListener('mousemove',e=>{if(!locked||P.dead)return;if(skipMM>0){skipMM--;return}let dx=e.movementX,dy=e.movementY;if(Math.abs(dx)>250||Math.abs(dy)>250)return;P.yaw-=dx*SENS;pitch=Math.max(-1.5,Math.min(1.5,pitch-dy*SENS*SET.sensY*(SET.invY?-1:1)))});
 let inMatch=false,inLobby=false;
 /* ---- تنظیمات (ذخیره در localStorage) ---- */
-const SET=Object.assign({sens:1,fov:75,q:'high'},(()=>{try{return JSON.parse(localStorage.getItem('ms_set')||'{}')}catch(e){return {}}})());
-let SENS=.0022*SET.sens;
-function applySet(save){SENS=.0022*SET.sens;const d=devicePixelRatio||1;
- ren.setPixelRatio(({low:1,mid:Math.min(d,1.5),high:Math.min(d,2),ultra:Math.min(Math.max(d,1.5),2.25)})[SET.q]||Math.min(d,2));ren.setSize(innerWidth,innerHeight);
- if(inMatch){cam.fov=SET.fov;cam.updateProjectionMatrix()}
- if(save){try{localStorage.setItem('ms_set',JSON.stringify(SET))}catch(e){}}}
+const BIND_DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',walk:'ShiftLeft',crouch:'KeyC',fire:'Mouse0',alt:'Mouse2',reload:'KeyR',use:'KeyE',w1:'Digit1',w2:'Digit2',w3:'Digit3',w4:'Digit4',g5:'Digit5',g6:'Digit6',g7:'Digit7',g8:'Digit8',last:'KeyQ',buy:'KeyB',tp:'KeyV'};
+const SET_DEF={sens:1,sensY:1,invY:false,raw:false,wheel:'off',crouchTog:false,walkTog:false,fov:75,fovAxis:'v',ar:'auto',arMode:'stretch',q:'high',res:100,shadow:'preset',vd:0,fog:true,lights:true,bright:1,aa:true,fps:0,showFps:false,hudScale:100,showMM:true,mmSize:200,showKF:true,showPos:true,vign:true,vol:100,
+ cx:{style:'cross',color:'#33ff33',size:8,thick:2,gap:3,outline:true,ol:1,alpha:100,dot:false,ds:2,dyn:true,hit:'#ff3333'},bind:BIND_DEF};
+const SET=(()=>{let s={};try{s=JSON.parse(localStorage.getItem('ms_set')||'{}')||{}}catch(e){}const o=Object.assign({},SET_DEF,s);o.cx=Object.assign({},SET_DEF.cx,s.cx);o.bind=Object.assign({},BIND_DEF,s.bind);return o})();
+const saveSet=()=>{try{localStorage.setItem('ms_set',JSON.stringify(SET))}catch(e){}};
+let SENS=.0022*SET.sens,MASTER=null,WJ=0,_lvS=-1;const TOG={crouch:false,walk:false},FPC={n:0,t:0};
+const nk=c=>(c||'').replace(/^(Shift|Control|Alt)(Left|Right)$/,'$1');
+const isDown=a=>{const c=nk(SET.bind[a]);return !!c&&(c==='Shift'||c==='Control'||c==='Alt'?(keys[c+'Left']||keys[c+'Right']):keys[SET.bind[a]])};
+const crouchDown=()=>{if(P&&P.dead)TOG.crouch=false;return SET.crouchTog?TOG.crouch:isDown('crouch')},walkDown=()=>SET.walkTog?TOG.walk:isDown('walk'),jumpDown=()=>isDown('jump')||performance.now()<WJ;
+const AR_T={'16:9':16/9,'16:10':1.6,'3:2':1.5,'4:3':4/3,'5:4':1.25,'21:9':21/9};
+function vFov(){const a=cam.aspect||1;return SET.fovAxis==='h'?Math.min(120,2*Math.atan(Math.tan(SET.fov*Math.PI/360)/a)*180/Math.PI):SET.fov}
+function layoutView(){const W=innerWidth,H=innerHeight,A=inMatch&&!inLobby?AR_T[SET.ar]:0,bars=SET.arMode==='bars';let rw=W,rh=H,bw=W,bh=H;
+ if(A){if(bars){if(W/H>A)bw=Math.round(H*A);else bh=Math.round(W/A);rw=bw;rh=bh}else if(A<=W/H)rw=Math.round(H*A);else rh=Math.round(W/A)}
+ const bx=(W-bw)>>1,by=(H-bh)>>1;ren.setSize(rw,rh,false);
+ const c=ren.domElement.style;c.position='fixed';c.left=bx+'px';c.top=by+'px';c.width=bw+'px';c.height=bh+'px';
+ const h=$('hud').style;h.right=h.bottom='auto';h.left=bx+'px';h.top=by+'px';h.width=bw+'px';h.height=bh+'px';
+ if(inLobby)lbLayout();else{cam.aspect=rw/rh;cam.fov=vFov()}cam.updateProjectionMatrix()}
+/* ---- پروفایل‌های کیفیت: هرچی پایین‌تر، بازی سبک‌تر (رزولوشن، سایه، مه/فاصله‌ی دید، حذف و ساده‌سازی بازیکن‌های دور) ---- */
+const QUAL={
+ low:  {pr:.7,   sh:false,sm:1024,se:60, shT:1,shN:1,fogN:35,fogF:110,far:125,ent:105,anim:22,mmN:3,lights:false},
+ mid:  {pr:1.25, sh:true, sm:1024,se:65, shT:1,shN:2,fogN:55,fogF:170,far:190,ent:165,anim:38,mmN:2,lights:true},
+ high: {pr:2,    sh:true, sm:2048,se:85, shT:2,shN:1,fogN:70,fogF:300,far:340,ent:300,anim:65,mmN:1,lights:true},
+ ultra:{pr:2.25, sh:true, sm:4096,se:100,shT:2,shN:1,fogN:90,fogF:400,far:650,ent:1e9,anim:1e9,mmN:1,lights:true}};
+let QL=QUAL.high,FRN=0;const _cf=new THREE.Frustum(),_cm=new THREE.Matrix4(),_cs=new THREE.Sphere();
+function applySet(save){SENS=.0022*SET.sens;const d=devicePixelRatio||1,b=QUAL[SET.q]||QUAL.high,q=QL=Object.assign({},b);
+ const SH={low:[1024,1],mid:[2048,1],high:[2048,2],ultra:[4096,2]}[SET.shadow];
+ if(SET.shadow==='off')q.sh=false;else if(SH){q.sh=true;q.sm=SH[0];q.shT=SH[1]}
+ if(SET.vd>0){q.far=SET.vd;q.fogF=Math.max(60,SET.vd*.92);q.fogN=Math.min(q.fogN,q.fogF*.3)}
+ if(!SET.lights)q.lights=false;if(!SET.showMM)q.mmN=1e9;
+ ren.setPixelRatio(Math.max(.4,(SET.q==='low'?b.pr:SET.q==='ultra'?Math.min(Math.max(d,1.5),b.pr):Math.min(d,b.pr))*SET.res/100));
+ sun.castShadow=q.sh;
+ if(sun.shadow.mapSize.x!==q.sm){sun.shadow.mapSize.set(q.sm,q.sm);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}}
+ {const sc=sun.shadow.camera;sc.left=sc.bottom=-q.se;sc.right=sc.top=q.se;sc.updateProjectionMatrix()}
+ const st=q.shT===2?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;
+ if(ren.shadowMap.type!==st){ren.shadowMap.type=st;scene.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true)})}
+ ren.shadowMap.autoUpdate=q.shN<=1;ren.shadowMap.needsUpdate=true;
+ scene.fog.near=SET.fog?q.fogN:1e6;scene.fog.far=SET.fog?q.fogF:1e6+1;cam.far=q.far;sky.scale.setScalar(Math.min(1,(q.far-5)/500));
+ if(mflash.visible!==q.lights){mflash.visible=exL.visible=q.lights}
+ ren.toneMappingExposure=.95*SET.bright;if(MASTER)MASTER.gain.value=SET.vol/100;
+ layoutView();if(save)saveSet()}
 applySet(false);
-const lockIn=()=>{AC=AC||new (window.AudioContext||window.webkitAudioContext)();sfxLoad();sndReady();nsDecode();ren.domElement.requestPointerLock()};
+const lockIn=()=>{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+ if(!MASTER){try{const real=AC.destination;MASTER=AC.createGain();MASTER.gain.value=SET.vol/100;MASTER.connect(real);Object.defineProperty(AC,'destination',{get:()=>MASTER,configurable:true})}catch(e){MASTER=null}}
+ sfxLoad();sndReady();nsDecode();const el=ren.domElement,f=()=>el.requestPointerLock();try{const r=SET.raw?el.requestPointerLock({unadjustedMovement:true}):f();if(r&&r.catch)r.catch(f)}catch(e){f()}};
 const showMenu=()=>{const lob=READY&&!inMatch;$('menu').style.display=lob?'none':'flex';$('lb').style.display=lob?'block':'none';$('pause').style.display=inMatch?'block':'none';$('pnote').style.display=netLive()?'block':'none';$('hud').style.display=inMatch?'':'none';$('load').style.display=READY?'none':''};
 $('lbresume').onclick=()=>{if(READY&&inMatch)lockIn()};
 $('lbleave').onclick=()=>leaveMatch();
@@ -1744,10 +1803,6 @@ function lbOpenPendMenu(n,el){const v=LB.pend[n],q=esc(n),r=el.getBoundingClient
 function lbOpenMenu(n,el){const ins=LB.squad.includes(n),q=esc(n),r=el.getBoundingClientRect(),m=$('lbmenu');
  m.innerHTML=`<div class="mh">${q}</div>`+(ins?`<button data-a="kick" data-n="${q}">خارج کردن از اسکواد</button>`:`<button data-a="inv" data-n="${q}" ${LB.squad.length>=4||LB.pend[n]?'disabled':''}>دعوت به اسکواد</button>`)+`<button data-a="unf" data-n="${q}">حذف از دوست‌ها</button>`;
  m.style.top=Math.max(52,Math.min(r.top,innerHeight-140))+'px';m.style.display='block'}
-function lbSettingsSync(){$('rs').value=SET.sens;$('rf').value=SET.fov;$('rq').value=SET.q;$('vs').textContent=(+SET.sens).toFixed(2);$('vf').textContent=SET.fov}
-$('rs').oninput=e=>{SET.sens=+e.target.value;applySet(true);lbSettingsSync()};
-$('rf').oninput=e=>{SET.fov=+e.target.value;applySet(true);lbSettingsSync()};
-$('rq').onchange=e=>{SET.q=e.target.value;applySet(true)};
 $('lbname').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){lbAddFriend($('lbname').value);$('lbname').value=''}});
 document.addEventListener('click',e=>{if(!inLobby)return;const t=e.target,b=t.closest&&t.closest('[data-a]');
  if(!t.closest('#lbmenu')&&!(b&&b.dataset.a==='fmenu'))$('lbmenu').style.display='none';
@@ -1765,8 +1820,8 @@ document.addEventListener('click',e=>{if(!inLobby)return;const t=e.target,b=t.cl
  else if(a==='inv'){$('lbmenu').style.display='none';lbInvite(n)}
  else if(a==='kick'){$('lbmenu').style.display='none';LB.squad=LB.squad.filter(x=>x!==n);lbMsg(n+' از اسکواد خارج شد');lbRenderUI()}
  else if(a==='unf'){$('lbmenu').style.display='none';LB.friends=LB.friends.filter(x=>x!==n);LB.squad=LB.squad.filter(x=>x!==n);lbSave();lbRenderUI()}
- else if(a==='settings'){lbSettingsSync();$('lbset').style.display='grid'}
- else if(a==='setclose')$('lbset').style.display='none';
+ else if(a==='settings'){openSet()}
+ 
  else if(a==='tab'){if(n!=='PLAY'&&n!=='HOME')lbMsg(n+' — به‌زودی','info')}
  else if(a==='mode'){if(NET.mode==='client'){lbMsg('فقط هاست مود بازی رو انتخاب می‌کنه','alert');return}LB.mode=n;try{localStorage.setItem('ms_mode',n)}catch(e){}if(NET.mode==='host')netBroadcast({t:'lobby',squad:NET.members.slice(),host:NET.myName,mode:LB.mode});lbRenderUI()}
  else if(a==='start'){if(!READY||inMatch)return;if(NET.hostConn&&!NET.on){lbMsg('هنوز اتصال با هاست کامل نشده — صبر کن','alert');return}if(NET.mode==='client'){lbMsg('فقط هاست می‌تونه شروع کنه','alert');return}startMatch();lockIn()}});
@@ -2320,13 +2375,13 @@ function knifeUpdate(dt){if((P.wp||0)!==1)return;
  if(P.sl>0&&!P.hitDone&&1-P.sl/P.sd>=(P.sk?.5:.4)){P.hitDone=true;meleeHit()}}
 function playerUpdate(dt){
  if(P.dead)return;
- const f=(keys.KeyW?1:0)-(keys.KeyS?1:0),r=(keys.KeyD?1:0)-(keys.KeyA?1:0),L=Math.hypot(f,r)||1;
+ const f=(isDown('fwd')?1:0)-(isDown('back')?1:0),r=(isDown('right')?1:0)-(isDown('left')?1:0),L=Math.hypot(f,r)||1;
  const sy=Math.sin(P.yaw),cy=Math.cos(P.yaw);
  /* نشستن: Shift چپ یا C (نگه‌داشتن؛ Ctrl نه، چون Ctrl+W تب رو می‌بنده). زیر سقف کوتاه نمی‌ذاره بلند شی */
- const want=keys.KeyC||(P.cr>.02&&!canStand())?1:0;
+ const want=crouchDown()||(P.cr>.02&&!canStand())?1:0;
  P.cr+=(want-P.cr)*Math.min(1,dt*12);if(Math.abs(want-P.cr)<.01)P.cr=want;
  /* سرعت افقی */
- const walk=(keys.ShiftLeft||keys.ShiftRight)&&!P.cr?.5:1,spd=(6.5-3.4*P.cr)*walk*((P.wp||0)===1?1.1:1)*(P.pl>0?0:1),tx=(-sy*f+cy*r)/L*spd,tz=(-cy*f-sy*r)/L*spd;
+ const walk=walkDown()&&!P.cr?.5:1,spd=(6.5-3.4*P.cr)*walk*((P.wp||0)===1?1.1:1)*(P.pl>0?0:1),tx=(-sy*f+cy*r)/L*spd,tz=(-cy*f-sy*r)/L*spd;
  const k=1-Math.exp(-dt*(P.on?16:3));                 // کنترل هوایی ضعیف‌تر از زمین
  P.vx+=(tx-P.vx)*k;P.vz+=(tz-P.vz)*k;
  if(Math.abs(P.vx)<.01&&Math.abs(P.vz)<.01&&!f&&!r){P.vx=P.vz=0}
@@ -2337,7 +2392,7 @@ function playerUpdate(dt){
  if(P.on)P.coy=.1;else P.coy-=dt;
  P.jb-=dt;
  if(P.jb>0&&P.coy>0&&P.vy<=.5){P.vy=JUMP;P.jb=0;P.coy=0;P.jh=true;P.on=false}
- if(P.jh&&P.vy>0&&!keys.Space){P.vy*=.5;P.jh=false}
+ if(P.jh&&P.vy>0&&!jumpDown()){P.vy*=.5;P.jh=false}
  if(P.vy<=0)P.jh=false;
  P.dip*=Math.exp(-dt*10);                              // ضربه‌ی فرود روی دوربین
  P.cd-=dt;
@@ -2949,7 +3004,7 @@ function buyInZone(){return !!P&&Math.hypot(P.p.x-(P.buyX===undefined?P.p.x:P.bu
 function buyAllowed(){return !!(P&&!P.dead&&inMatch&&locked&&P.buyT>0&&buyInZone()&&(!SD.on||SD.state==='live'))}
 function buyRender(){const g=P.gn||{};
  $('buy').innerHTML='<h4><span>خرید</span><span style="color:#8fe06b;direction:ltr">$'+(P.money|0)+'</span></h4>'+BUY_ITEMS.map((it,i)=>{const own=(g[it.k]|0)>0,no=!own&&(P.money|0)<it.p;
-  return '<div class="bi'+(own?' own':no?' no':'')+'"><b>'+(i+1)+'</b>'+ICON[it.ic]+'<span>'+it.n+'</span><em>'+(own?'داری':'$'+it.p)+'</em></div>'}).join('')+'<small>شماره = خرید • B = بستن • '+Math.max(0,Math.ceil(P.buyT))+' ثانیه</small>'}
+  return '<div class="bi'+(own?' own':no?' no':'')+'"><b>'+(i+1)+'</b>'+ICON[it.ic]+'<span>'+it.n+'</span><em>'+(own?'داری':'$'+it.p)+'</em></div>'}).join('')+'<small>شماره = خرید • '+keyLabel(SET.bind.buy)+' = بستن • '+Math.max(0,Math.ceil(P.buyT))+' ثانیه</small>'}
 function buySet(v){buyOpen=v;$('buy').style.display=v?'block':'none';if(v){buySig='';buyRender()}}
 function buyItem(i){const it=BUY_ITEMS[i];if(!it||!buyAllowed())return;if(!P.gn)P.gn={4:0,5:0,6:0,7:0};
  if((P.gn[it.k]|0)>0){buyToast('از هر نارنجک فقط یکی می‌شه داشت');return}
@@ -2962,7 +3017,7 @@ function buyHud(){
  const tt=$('toast');if(tt&&tt.style.display==='block'&&performance.now()>toastUntil)tt.style.display='none'}
 addEventListener('keydown',e=>{   // capture: قبل از هندلر اصلی، تا عددها وسط خرید اسلحه عوض نکنن
  if(!inMatch||!P||!locked)return;
- if(e.code==='KeyB'){e.stopImmediatePropagation();if(e.repeat)return;
+ if(e.code===SET.bind.buy){e.stopImmediatePropagation();if(e.repeat)return;
   if(buyOpen){buySet(false);return}
   if(P.dead)return;
   if(buyAllowed())buySet(true);else buyToast(SD.on&&SD.state!=='live'?'الان نمی‌شه خرید کرد':(P&&P.buyT>0&&!buyInZone()?'از منطقه‌ی خرید خارج شدی':'وقت خرید تموم شده'));
@@ -2970,12 +3025,13 @@ addEventListener('keydown',e=>{   // capture: قبل از هندلر اصلی، 
  if(buyOpen){const m=/^Digit([1-4])$/.exec(e.code);if(m){e.stopImmediatePropagation();e.preventDefault();if(!e.repeat)buyItem(+m[1]-1)}}
 },true);
 function nadesHud(){const el=$('nades');if(!el)return;const w=P.wp||0,g=P.gn||{};
- const h=P.dead?'':[[4,'nade','5'],[5,'smoke','6'],[6,'flash','7'],[7,'fire','8']].map(a=>'<span class="ng'+(w===a[0]?' on':'')+((g[a[0]]|0)?'':' no')+'">'+ICON[a[1]]+'<b>'+(g[a[0]]|0)+'</b><i>'+a[2]+'</i></span>').join('');
+ const h=P.dead?'':[[4,'nade',keyLabel(SET.bind.g5)],[5,'smoke',keyLabel(SET.bind.g6)],[6,'flash',keyLabel(SET.bind.g7)],[7,'fire',keyLabel(SET.bind.g8)]].map(a=>'<span class="ng'+(w===a[0]?' on':'')+((g[a[0]]|0)?'':' no')+'">'+ICON[a[1]]+'<b>'+(g[a[0]]|0)+'</b><i>'+a[2]+'</i></span>').join('');
  if(h!==_ngS){_ngS=h;el.innerHTML=h}}
 let POSV=true;   // نمایش مختصات (F6 = روشن/خاموش)
 addEventListener('keydown',e=>{if(e.code==='F6'){e.preventDefault();POSV=!POSV;const q=$('pos');if(q)q.style.display=POSV?'block':'none'}});
 function render(dt){
- const specT=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:null;
+ const specT=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:null;FRN++;const RF=(specT||P).p;
+ if(QL.shN>1&&FRN%QL.shN===0)ren.shadowMap.needsUpdate=true;
  sun.target.position.set(P.p.x,P.p.y,P.p.z);sun.position.set(P.p.x+40,P.p.y+80,P.p.z+20);
  for(const e of ents){const m=e.mesh,u=m.userData;
   m.position.set(e.p.x,e.p.y-(e.sdip||0),e.p.z);m.rotation.y=e.yaw;
@@ -2983,6 +3039,8 @@ function render(dt){
   if(e.dead)e.fall=Math.min(1,e.fall+dt*2.6);else e.fall=0;
   if(sp>1&&!e.dead&&e.on)e.walk+=dt*Math.min(sp,7)*1.6;
   {const n=Math.floor((e.walk*1.4-Math.PI/2)/Math.PI),was=e.fsN;e.fsN=n;if(was!==undefined&&n!==was&&!e.dead&&e.on&&sp>3.6)footstep(e,sp)}
+  /* LOD: بازیکن دور فقط جابه‌جا می‌شه؛ انیمیشن پا/دست/کمر حساب نمی‌شه */
+  if(!e.isP&&e!==specT&&!e.dead&&!u.fpOn&&((e.p.x-RF.x)**2+(e.p.z-RF.z)**2)>QL.anim*QL.anim){m.visible=true;continue}
   const rg=e.dead&&e.rag;
   if(rg){if(u.spine)u.spine.rotation.x=0;ragRender(e,u,dt)}
   else{u.body.rotation.x=-e.fall*1.5;u.body.rotation.z=0;if(u.limbsZ){u.body.position.set(0,0,0);if(u.knees)for(const q of u.knees)q.quaternion.identity();if(u.arms)for(const q of u.arms)q.rotation.z=0;if(u.legs)for(const q of u.legs){q.rotation.y=0;q.rotation.z=0}u.limbsZ=false}}
@@ -3054,15 +3112,21 @@ function render(dt){
   if(P.dead){cam.lookAt(P.p.x,P.p.y+.35,P.p.z)}else cam.rotation.set(pitch,P.yaw,0);
  }else{cam.position.set(P.p.x,ey,P.p.z);cam.rotation.set(pitch,P.yaw,0)}
  if(SD.shake>0){const a=SD.shake*.06;cam.position.x+=(R()-.5)*a;cam.position.y+=(R()-.5)*a;cam.position.z+=(R()-.5)*a;cam.rotation.z=(R()-.5)*a*.5}
+ /* کالینگ: بازیکن‌های خارج از دید یا دورتر از فاصله‌ی کیفیت رندر (و سایه) نمی‌شن */
+ cam.updateMatrixWorld();_cf.setFromProjectionMatrix(_cm.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse));
+ for(const e of ents){if(e.isP||e===specT)continue;const m=e.mesh;if(!m||!m.visible)continue;
+  const dx=m.position.x-cam.position.x,dz=m.position.z-cam.position.z;
+  if(dx*dx+dz*dz>QL.ent*QL.ent){m.visible=false;continue}
+  _cs.center.set(m.position.x,m.position.y+1,m.position.z);_cs.radius=3;if(!_cf.intersectsSphere(_cs))m.visible=false}
  vmUpdate(dt);
- try{mmDraw()}catch(e){}
+ if(FRN%QL.mmN===0)try{mmDraw()}catch(e){}
  {const fb=$('fb');if(fb){const a=(P.fl>0&&!P.dead)?Math.min(1,P.fl/Math.max(.3,(P.fd||1)*.4)):0;fb.style.display=a>0?'block':'none';fb.style.opacity=a}}
  try{nadesHud()}catch(e){}try{buyHud()}catch(e){}
  if(POSV){const q=$('pos'),w=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:P;if(q)q.textContent='X '+w.p.x.toFixed(2)+'\nY '+w.p.y.toFixed(2)+'\nZ '+w.p.z.toFixed(2)}
  bloodUpdate(dt);
  for(let i=tr.length-1;i>=0;i--){tr[i].t-=dt;if(tr[i].t<=0){scene.remove(tr[i].l);tr[i].l.geometry.dispose();tr.splice(i,1)}}
  mfT-=dt;if(mfT<=0)mflash.intensity=0;
- hm-=dt;if(hm<=0)$('cross').style.borderColor='#3f3';
+ hm-=dt;crossFrame(dt);
  $('dmg').style.opacity=0;if(P.hp<35&&!P.dead)$('dmg').style.opacity=.6;
  $('hpv').textContent=Math.max(0,Math.ceil(P.hp));
  $('ammo').textContent=(P.wp||0)>=4?NK[P.wp].n+' x'+((P.gn&&P.gn[P.wp])|0):(P.wp||0)===1?'KNIFE':(P.wp||0)===3?'C4':P.rl>0?'RELOAD':P.ammo+' / ∞';
@@ -3071,7 +3135,8 @@ function render(dt){
  renderWithViewmodel()}
 
 let last=performance.now();
-(function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;
+(function loop(now){requestAnimationFrame(loop);if(SET.fps>0&&now-last<1000/SET.fps-1.5)return;const dt=Math.min(.05,(now-last)/1000);last=now;
+ {const st=(inMatch?1:0)+(inLobby?2:0);if(st!==_lvS){_lvS=st;layoutView()}FPC.n++;if(now-FPC.t>=500){if(SET.showFps)$('fpsc').textContent=Math.round(FPC.n*1000/(now-FPC.t))+' FPS';FPC.n=0;FPC.t=now}}
  if(READY){if(inMatch){if(locked||netLive())simulate(dt);NET.frame(dt);render(dt)}/* ✦ آنلاین با دوست: پاز بازی رو برای بقیه متوقف نمی‌کنه */else if(inLobby){NET.frame(dt);lobbyFrame(dt)}}})(last);
 
 /* ================= BOOT: لود مپ + کاراکترها + ساخت مسیرها ================= */
@@ -3215,4 +3280,61 @@ addEventListener('keydown',e=>{if(e.code==='F10'&&READY&&!e.repeat&&!TUNE.on){
   const tri=o.isMesh&&o.geometry?Math.round((o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3):0;
   console.log((o.name||o.type||'(بی‌نام)').padEnd(24),'cam=[',lc.x.toFixed(2),lc.y.toFixed(2),lc.z.toFixed(2),']','vis='+vis,'tris='+tri)});
  console.log('--- END DUMP ---')}});
+
+/* ================= UI تنظیمات + کراس‌هیر ================= */
+const BN={fwd:'جلو',back:'عقب',left:'چپ',right:'راست',jump:'پرش',walk:'آهسته‌راه رفتن',crouch:'نشستن',fire:'شلیک / ضربه',alt:'شلیک دوم (ضربه‌ی سنگین / پرتاب آروم)',reload:'ریلود',use:'پلنت / خنثی‌سازی بمب',w1:'تفنگ',w2:'پیستول',w3:'چاقو',w4:'بمب C4',g5:'نارنجک HE',g6:'اسموک',g7:'فلش',g8:'مولوتف',last:'سلاح قبلی',buy:'منوی خرید',tp:'دید سوم‌شخص'};
+const TABS=[['ctl','ماوس و کنترل'],['keys','کلیدها'],['cx','کراس‌هیر'],['gfx','گرافیک'],['hud','HUD و صدا']];
+const TK={ctl:['sens','sensY','invY','raw','wheel','crouchTog','walkTog'],keys:['bind'],cx:['cx'],gfx:['q','ar','arMode','fov','fovAxis','res','shadow','vd','fog','lights','bright','aa','fps','showFps'],hud:['hudScale','showMM','mmSize','showKF','showPos','vign','vol']};
+const S_ITEMS={
+ ctl:[['r','sens','حساسیت ماوس',.05,5,.01],['r','sensY','ضریب حساسیت عمودی',.3,2,.05,'۱ = برابر حساسیت افقی'],['t','invY','معکوس کردن محور عمودی (Invert Y)'],['t','raw','ورودی خام ماوس (بدون شتاب ویندوز)','دفعه‌ی بعدی که ماوس قفل بشه اعمال می‌شه'],['s','wheel','چرخ ماوس',[['off','خاموش'],['weapon','عوض کردن سلاح'],['jump','پرش']]],['t','crouchTog','نشستن به‌صورت تاگل (یک‌بار بزن)'],['t','walkTog','آهسته‌راه رفتن به‌صورت تاگل']],
+ gfx:[['s','q','کیفیت کلی',[['low','کم'],['mid','متوسط'],['high','بالا'],['ultra','خیلی بالا']]],
+  ['s','ar','نسبت تصویر (داخل بازی)',[['auto','خودکار'],['16:9','16:9'],['16:10','16:10'],['3:2','3:2'],['4:3','4:3'],['5:4','5:4'],['21:9','21:9']]],
+  ['s','arMode','حالت نسبت تصویر',[['stretch','کشیده تا کل صفحه'],['bars','نوار سیاه کنار تصویر']],'«کشیده» مثل ۴:۳ استرچ کانتره'],
+  ['r','fov','میدان دید (FOV)',50,130,1],['s','fovAxis','نوع FOV',[['v','عمودی'],['h','افقی (مثل کانتر)']],'افقی: مقدار معمول ۹۰ تا ۱۰۶'],
+  ['r','res','رزولوشن رندر (٪)',40,150,5,'پایین‌تر = FPS بیشتر'],['s','shadow','سایه‌ها',[['preset','طبق کیفیت'],['off','خاموش'],['low','کم'],['mid','متوسط'],['high','بالا'],['ultra','خیلی بالا']]],
+  ['r','vd','فاصله‌ی دید (متر)',0,650,10,'۰ = طبق کیفیت کلی'],['t','fog','مه (Fog)'],['t','lights','نور شلیک و انفجار'],['r','bright','روشنایی',.6,1.6,.05],['t','aa','ضدلبه‌پریدگی (AA)','بعد از رفرش صفحه اعمال می‌شه'],
+  ['s','fps','محدودیت FPS',[[0,'بدون'],[30,'30'],[60,'60'],[90,'90'],[120,'120'],[144,'144'],[240,'240']]],['t','showFps','نمایش FPS']],
+ hud:[['r','hudScale','اندازه‌ی HUD (٪)',60,150,5],['t','showMM','مینی‌مپ'],['r','mmSize','اندازه‌ی مینی‌مپ',120,320,10],['t','showKF','کیل‌فید'],['t','showPos','مختصات (X Y Z)'],['t','vign','سایه‌ی گوشه‌های صفحه (Vignette)'],['r','vol','صدای کل (٪)',0,100,1]],
+ cx:[['s','cx.style','شکل',[['cross','+'],['tshape','T'],['dot','نقطه'],['circle','دایره']]],['c','cx.color','رنگ'],['r','cx.size','طول خط‌ها',1,30,1],['r','cx.thick','ضخامت',1,6,1],['r','cx.gap','فاصله از مرکز',0,20,1],['t','cx.outline','حاشیه‌ی مشکی'],['r','cx.alpha','شفافیت (٪)',20,100,5],['t','cx.dot','نقطه‌ی مرکزی'],['r','cx.ds','اندازه‌ی نقطه',1,8,1],['t','cx.dyn','باز شدن موقع حرکت و شلیک'],['c','cx.hit','رنگ هنگام ضربه به دشمن']]};
+const CXP=[['کلاسیک',{}],['فیروزه‌ای',{color:'#00ffff',size:6,thick:1,gap:2}],['T شکل',{style:'tshape',color:'#ffff00',gap:2}],['نقطه',{style:'dot',color:'#ff3333',ds:4}],['دایره (قبلی)',{style:'circle',size:4,thick:1,gap:0,outline:false,dyn:false}]];
+const SUI={open:false,tab:'ctl',cap:null,nc:0},RES=['KeyG','F5','F6','F10','F11','F12','MetaLeft','MetaRight'];
+const gp=p=>p.split('.').reduce((o,k)=>o&&o[k],SET),sp=(p,v)=>{const a=p.split('.'),k=a.pop();a.reduce((o,x)=>o[x],SET)[k]=v};
+function keyLabel(c){if(!c)return'—';const M={Mouse0:'کلیک چپ',Mouse1:'کلیک وسط',Mouse2:'کلیک راست',Mouse3:'ماوس ۴',Mouse4:'ماوس ۵',ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→',Backquote:'`'};return M[c]||(/^(Shift|Control|Alt)/.test(c)?nk(c):c.replace(/^(Key|Digit)/,'').replace(/^Numpad/,'Num '))}
+function refreshHints(){const L=keyLabel,b=SET.bind;$('keyhint').innerHTML=`حرکت: ${L(b.fwd)} ${L(b.left)} ${L(b.back)} ${L(b.right)} &nbsp;|&nbsp; نگاه: ماوس &nbsp;|&nbsp; شلیک: ${L(b.fire)} &nbsp;|&nbsp; پرش: ${L(b.jump)} &nbsp;|&nbsp; آهسته: ${L(b.walk)} &nbsp;|&nbsp; نشستن: ${L(b.crouch)} &nbsp;|&nbsp; ریلود: ${L(b.reload)} &nbsp;|&nbsp; تفنگ ${L(b.w1)} ، پیستول ${L(b.w2)} ، چاقو ${L(b.w3)} &nbsp;|&nbsp; ${L(b.last)} = سلاح قبلی &nbsp;|&nbsp; سوم‌شخص: ${L(b.tp)} &nbsp;|&nbsp; خرید: ${L(b.buy)} &nbsp;|&nbsp; نارنجک: ${L(b.g5)} ${L(b.g6)} ${L(b.g7)} ${L(b.g8)} (${L(b.fire)} محکم، ${L(b.alt)} آروم)`}
+function applyHud(){const R=document.documentElement.style,h=$('hud').classList;R.setProperty('--hs',SET.hudScale/100);R.setProperty('--mm',SET.mmSize+'px');h.toggle('novig',!SET.vign);h.toggle('nomm',!SET.showMM);h.toggle('nokf',!SET.showKF);POSV=!!SET.showPos;$('pos').style.display=POSV?'block':'none';$('fpsc').style.display=SET.showFps?'block':'none'}
+const CXS={sp:0,l:-9};
+function crossPaint(el){const c=SET.cx,s=el.style;if(!el.firstChild)el.innerHTML='<i class="ct"></i><i class="cb"></i><i class="cl"></i><i class="cr"></i><i class="cdot"></i><i class="cring"></i>';
+ for(const[k,v]of Object.entries({c:c.color,hit:c.hit,sz:c.size+'px',th:c.thick+'px',gap:c.gap+'px',ol:(c.outline?c.ol:0)+'px',ds:c.ds+'px',rs:(c.size*2+c.gap*2)+'px'}))s.setProperty('--'+k,v);
+ s.opacity=c.alpha/100;const k=el.children,st=c.style,arm=st==='cross'||st==='tshape';k[0].style.display=st==='cross'?'':'none';k[1].style.display=k[2].style.display=k[3].style.display=arm?'':'none';k[4].style.display=st==='dot'||c.dot?'':'none';k[5].style.display=st==='circle'?'':'none'}
+function crossApply(){$('cross').classList.add('xh');crossPaint($('cross'));const p=$('xp');if(p)crossPaint(p)}
+function crossFrame(dt){const e=$('cross');e.classList.toggle('hit',hm>0);if(!SET.cx.dyn){if(CXS.sp){CXS.sp=0;e.style.setProperty('--sp','0px')}return}
+ const t=P&&!P.dead?Math.min(1,Math.hypot(P.vx||0,P.vz||0)/6.5)*5+(P.on?0:4)+Math.min(1,VM.kick/.11)*4:0;CXS.sp+=(t-CXS.sp)*Math.min(1,dt*14);
+ if(Math.abs(CXS.sp-CXS.l)>.25){CXS.l=CXS.sp;e.style.setProperty('--sp',CXS.sp.toFixed(1)+'px')}}
+let _sT=0;function sCommit(p){const c=p.startsWith('cx.');if(c)crossApply();clearTimeout(_sT);_sT=setTimeout(()=>{if(c)saveSet();else{applySet(true);applyHud();if(p==='bind')refreshHints()}},c?200:40)}
+const E=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+function sRow(it){const k=it[0],p=it[1],h=k==='r'?it[6]:k==='s'?it[4]:k==='t'?it[3]:'',row=E('div','sr','<label>'+it[2]+(h?'<small>'+h+'</small>':'')+'</label>'),box=E('div');row.append(box);const set=v=>{sp(p,v);sCommit(p)};
+ if(k==='r'){const mn=it[3],mx=it[4],r=E('input'),n=E('input');r.type='range';n.type='number';for(const e of[r,n]){e.min=mn;e.max=mx;e.step=it[5];e.value=gp(p)}
+  r.oninput=()=>{n.value=r.value;set(+r.value)};n.onchange=()=>{const v=Math.min(mx,Math.max(mn,+n.value||mn));n.value=r.value=v;set(v)};box.append(r,n)}
+ else if(k==='s'){for(const[v,t]of it[3]){const b=E('button','sb'+(String(gp(p))===String(v)?' on':''),t);b.onclick=()=>{set(v);[...box.children].forEach(x=>x.classList.toggle('on',x===b))};box.append(b)}}
+ else if(k==='t'){const w=E('label','sw','<input type=checkbox><span></span>'),i=w.firstChild;i.checked=!!gp(p);i.onchange=()=>set(i.checked);box.append(w)}
+ else{const cp=E('input');cp.type='color';cp.value=gp(p);cp.oninput=()=>set(cp.value);for(const col of['#33ff33','#00ffff','#ffff00','#ff3333','#ff66ff','#ffffff','#ff9900','#3399ff']){const b=E('button','scol');b.style.background=col;b.onclick=()=>{set(col);cp.value=col};box.append(b)}box.append(cp)}
+ return row}
+function sKeys(b){const g=E('div','sgrid');for(const a in BN){const r=E('div','sr','<label>'+BN[a]+'</label>'),d=E('div'),k=E('button','sb kb',keyLabel(SET.bind[a]));
+ k.onclick=()=>{if(performance.now()<SUI.nc)return;bindStop();SUI.cap={a,k};k.classList.add('cap');k.textContent='کلید یا ماوس رو بزن…';$('sstat').textContent='Esc = لغو  •  Backspace = برداشتن کلید'};d.append(k);r.append(d);g.append(r)}b.append(g)}
+function sTab(t){bindStop();SUI.tab=t;const b=$('sbd');b.innerHTML='';[...$('stb').children].forEach(x=>x.classList.toggle('on',x.dataset.t===t));
+ if(t==='keys'){sKeys(b);return}
+ if(t==='cx'){b.append(E('div','sr','<div class="xpv"><div class="xh" id="xp"></div></div>'));const pr=E('div','sr'),bx=E('div');for(const[n,o]of CXP){const x=E('button','sb',n);x.onclick=()=>{Object.assign(SET.cx,SET_DEF.cx,o);saveSet();sTab('cx')};bx.append(x)}pr.append(bx);b.append(pr)}
+ for(const it of S_ITEMS[t])b.append(sRow(it));if(t==='cx')crossApply()}
+function bindStop(){const c=SUI.cap;SUI.cap=null;if(c){c.k.classList.remove('cap');c.k.textContent=keyLabel(SET.bind[c.a])}}
+function bindSet(code){const a=SUI.cap.a;let mv='';if(code)for(const o in SET.bind)if(o!==a&&SET.bind[o]&&nk(SET.bind[o])===nk(code)){SET.bind[o]='';mv=BN[o]}
+ SET.bind[a]=code;bindStop();sCommit('bind');sTab('keys');$('sstat').textContent=mv?'«'+keyLabel(code)+'» از «'+mv+'» برداشته شد':''}
+function openSet(t){SUI.open=true;$('lbset').style.display='flex';sTab(t||SUI.tab)}
+function closeSet(){bindStop();SUI.open=false;$('lbset').style.display='none';$('sstat').textContent=''}
+function sReset(ts){for(const t of ts)for(const k of TK[t])SET[k]=JSON.parse(JSON.stringify(SET_DEF[k]));applySet(true);applyHud();crossApply();refreshHints();sTab(SUI.tab)}
+addEventListener('keydown',e=>{if(!SUI.open)return;e.stopImmediatePropagation();if(SUI.cap){e.preventDefault();if(e.repeat)return;if(e.code==='Escape'){bindStop();$('sstat').textContent=''}else if(e.code==='Backspace')bindSet('');else if(RES.includes(e.code))$('sstat').textContent='این کلید رزرو شده';else bindSet(e.code)}else if(e.code==='Escape')closeSet()},true);
+addEventListener('mousedown',e=>{if(SUI.open&&SUI.cap){e.preventDefault();e.stopImmediatePropagation();SUI.nc=performance.now()+300;bindSet('Mouse'+e.button)}},true);
+addEventListener('contextmenu',e=>{if(SUI.open&&SUI.cap)e.preventDefault()},true);
+$('stb').innerHTML=TABS.map(t=>'<button data-t="'+t[0]+'">'+t[1]+'</button>').join('');$('stb').onclick=e=>{const t=e.target.dataset.t;if(t)sTab(t)};
+$('sx').onclick=$('sok').onclick=closeSet;$('srt').onclick=()=>sReset([SUI.tab]);$('sra').onclick=()=>sReset(Object.keys(TK));$('pset').onclick=()=>openSet();$('lbset').onclick=e=>{if(e.target.id==='lbset')closeSet()};
+crossApply();applyHud();refreshHints();
 </script></body></html>
