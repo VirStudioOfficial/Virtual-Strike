@@ -20,6 +20,8 @@ canvas{display:block}
 .xh.hit i{background:var(--hit)}.xh.hit .cring{background:none;border-color:var(--hit)}
 #hud.novig::before{display:none}#hud.nomm #mm{display:none}#hud.nokf #kf{display:none}
 #hp,#ammo,#money,#nades,#score,#kf,#toast,#buy{zoom:var(--hs,1)}
+/* موقع تماشا (مرده‌ای): HUD شخصی (جون/مهمات/نارنجک/پول/خرید/نشانه‌گیر) مخفی؛ نوار بالا، مینی‌مپ، کیل‌فید و اسم تماشا‌شونده می‌مونن */
+#hud.spec #hp,#hud.spec #ammo,#hud.spec #nades,#hud.spec #money,#hud.spec #buy,#hud.spec #cross,#hud.spec #xp,#hud.spec #pbar{display:none!important}
 #fpsc{position:fixed;bottom:4px;left:50%;transform:translateX(-50%);white-space:nowrap;z-index:25;font:600 13px monospace;color:#9fe8a8;text-shadow:0 0 3px #000;display:none;pointer-events:none}
 .shd{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;font-size:19px;color:#fd6}
 .stb{display:flex;gap:4px;padding:0 14px;border-bottom:1px solid #fff2}
@@ -1513,6 +1515,12 @@ function botMuzzle(e){try{const u=e.mesh&&e.mesh.userData,g=u&&u.botGun;
   return{x:o.x+fx*.55+Math.cos(e.yaw)*.1,y:o.y+fy*.55-.13,z:o.z+fz*.55-Math.sin(e.yaw)*.1}}
  if(!g||!g.parent||u.gd)return null;
  g.updateWorldMatrix(true,false);_bmz.set(0,.015,-.7);g.localToWorld(_bmz);return{x:_bmz.x,y:_bmz.y,z:_bmz.z}}catch(x){return null}}
+/* ---- ریکوییل CS2-مانند ----
+   RC_AK: آفست تجمعیِ گلوله‌ی n‌ام (درجه): [بالا, راست]. شکلِ معروفِ AK (اول عمودی، بعد چپ، بعد راست، بعد چپ)؛ تقریبه، نه دیتای دقیق CS2.
+   آفست روی جهت گلوله اعمال می‌شه (باید با ماوس پایین بکشی)؛ دوربین فقط PV_VIS از اون رو نشون می‌ده (مثل view_recoil_tracking). RC_SCALE=1 کامل، کمتر = ساده‌تر برای موبایل. */
+const RC_SCALE=1,PV_VIS=.45,D2R=Math.PI/180,_rcO={p:0,y:0};
+const RC_AK=[[0,0],[.7,0],[1.9,.1],[3.6,.2],[5.8,.1],[8,-.2],[10,-.6],[11.6,-1.2],[12.8,-2],[13.7,-2.9],[14.3,-3.6],[14.7,-3.9],[15,-3.5],[15.2,-2.4],[15.3,-.9],[15.4,.8],[15.5,2.2],[15.6,3.2],[15.6,3.6],[15.6,3.3],[15.6,2.2],[15.6,.6],[15.6,-1.1],[15.6,-2.6],[15.6,-3.4],[15.6,-3.7],[15.6,-3.2],[15.6,-1.8],[15.6,-.3],[15.6,1]],RECOIL_MAX=RC_AK.length-1;
+function recoilAt(i,ps){const t=Math.max(0,Math.min(RECOIL_MAX,i)),a=Math.floor(t),b=Math.min(RECOIL_MAX,a+1),f=t-a,A=RC_AK[a],B=RC_AK[b],s=(ps?.4:1)*RC_SCALE*D2R;_rcO.p=(A[0]+(B[0]-A[0])*f)*s;_rcO.y=(A[1]+(B[1]-A[1])*f)*s;return _rcO}
 function fire(e,d){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z}
  const o0={x:ox,y:oy,z:oz};let hit=null,zone='body',trav=0,mul=1,walls=0,L=100,bh=false;
  for(;;){
@@ -2645,16 +2653,19 @@ function playerUpdate(dt){
  knifeUpdate(dt);bombUpdate(dt);nadeUpdate(dt);
  const ps=(P.wp||0)===2;if(ps){const pf=clickL;clickL=false;if(pf)P.pbuf=.15;P.pbuf=(P.pbuf||0)-dt}   // پیستول نیمه‌اتومات: هر کلیک یک تیر
  if(P.rl>0){P.rl-=dt;if(P.rl<=0){P.ammo=AMAX[P.wp||0];if((P.wp||0)===0){P.arm=P.armD=.55;P.s1=P.s2=0}}}   // بعد از ریلود AK: همون انیمیشن مسلح‌کردن، ولی سریع‌تر
- else if((ps?P.pbuf>0:mouse)&&P.cd<=0&&P.ammo>0&&(P.wp||0)!==1&&(P.wp||0)!==3&&(P.wp||0)<4&&!(P.arm>.32*P.armD)){P.cd=ps?.15:.11;P.ammo--;VM.kick=Math.min(ps?.085:.11,VM.kick+(ps?.05:.07));if(ps){P.pbuf=0;if(VM.pistolReady){PM.clip='firstperson_shoot_unsilenced_additive';PM.t=0}}const cp=Math.cos(pitch);
-  const spd=Math.hypot(P.vx,P.vz)/6.5,sp=(.003+Math.min(1,spd)*.055+(P.on?0:.09)+(P.spray||0))*(P.cr>.5?.6:1)*(ps?.7:1);   // حرکت/پرش/شلیک پشت‌سرهم دقت رو کم می‌کنه
-  let dx=-sy*cp+(R()-.5)*sp*2,dy=Math.sin(pitch)+(R()-.5)*sp*2,dz=-cy*cp+(R()-.5)*sp*2;const dn=Math.hypot(dx,dy,dz);
+ else if((ps?P.pbuf>0:mouse)&&P.cd<=0&&P.ammo>0&&(P.wp||0)!==1&&(P.wp||0)!==3&&(P.wp||0)<4&&!(P.arm>.32*P.armD)){P.cd=ps?.15:.1;P.ammo--;VM.kick=Math.min(ps?.085:.11,VM.kick+(ps?.05:.07));if(ps){P.pbuf=0;if(VM.pistolReady){PM.clip='firstperson_shoot_unsilenced_additive';PM.t=0}}const cp=Math.cos(pitch);
+   /* ---- CS2: الگوی ریکوییل ثابت (recoilAt) + اینکوراسی تصادفیِ کوچک که فقط با حرکت/پرش/شلیک زیاد می‌شه؛ تیر اول ایستاده تقریباً دقیق ---- */
+   const rec=recoilAt(P.ri||0,ps),spd=Math.hypot(P.vx,P.vz)/6.5,mv=Math.max(0,(spd-.34)/.66),sp=(.0009+mv*.045+(P.on?0:.11)+(P.rtmp||0))*(P.cr>.5?.6:1)*(ps?.8:1);
+   const ra=R()*6.2832,rr=Math.sqrt(R())*sp,ep=pitch+rec.p+Math.sin(ra)*rr,eyw=P.yaw-rec.y+Math.cos(ra)*rr,cpe=Math.cos(ep);   // +yaw = چپ؛ پس آفست راستِ الگو از yaw کم می‌شه
+   const dx=-Math.sin(eyw)*cpe,dy=Math.sin(ep),dz=-Math.cos(eyw)*cpe,dn=Math.hypot(dx,dy,dz);
   fire(P,{x:dx/dn,y:dy/dn,z:dz/dn});
   if(NET.mode==='client')NET.send({t:'fire',d:[+ (dx/dn).toFixed(3),+(dy/dn).toFixed(3),+(dz/dn).toFixed(3)],wp:P.wp||0});
-  P.spray=Math.min(.02,(P.spray||0)+(ps?.001:.0025));   // لگد: دوربین بالا می‌ره و کمی به طرفین
-  const rc=(ps?.014:.011)+Math.min(P.recAcc||0,.12)*.04;pitch=Math.min(1.5,pitch+rc);P.yaw+=(R()-.5)*.006;P.recAcc=(P.recAcc||0)+rc;P.fireT=.18;
-  if(P.ammo===0)reload()}
- P.fireT=(P.fireT||0)-dt;if(P.fireT<=0){P.spray=Math.max(0,(P.spray||0)-dt*.03);   // ول کردن ماشه: دوربین نصفه برمی‌گرده پایین
-  const back=Math.min(P.recAcc||0,dt*.35);if(back>0){pitch-=back*.6;P.recAcc-=back}}}
+   P.rtmp=Math.min(.012,(P.rtmp||0)+(ps?.003:.0016));   // اینکوراسی شلیک پشت‌سرهم (کوچک؛ لگد اصلی از الگوئه)
+   P.ri=Math.min(Math.floor(P.ri||0)+1,RECOIL_MAX);P.fireT=ps?.35:.22;   // تیر بعدی → خونه‌ی بعدیِ الگو
+   if(P.ammo===0)reload()}
+ P.fireT=(P.fireT||0)-dt;
+ if(P.fireT<=0){P.rtmp=Math.max(0,(P.rtmp||0)-dt*.05);P.ri=Math.max(0,(P.ri||0)-dt*(ps?10:16))}   // ول‌کردن ماشه: الگو همون مسیر رو برمی‌گرده
+ {const tg=recoilAt(P.ri||0,ps),pv=P.pv||(P.pv={p:0,y:0}),k=Math.min(1,dt*(P.fireT>0?34:10));pv.p+=(tg.p-pv.p)*k;pv.y+=(tg.y-pv.y)*k}}   // پانچ دیدیِ دوربین: نرم دنبال الگو (نشانه‌گیری واقعی دست‌نخورده می‌مونه)
 /* نقطه‌ی گشت: از بین چند گره‌ی تصادفی، اونی که از هدف هم‌تیمی‌ها دورتره (و کمی به سمت تیم مقابل) */
 const PICK_RND=14;   // رندوم بودن انتخاب نقطه‌ی گشت (قبلاً ۶)؛ بیشتر = پراکنده‌تر
 function pickRoam(e){
@@ -3293,8 +3304,8 @@ function render(dt){
   if(sp>1&&!e.dead&&e.on)e.walk+=dt*Math.min(sp,7)*1.6;
   {const n=Math.floor((e.walk*1.4-Math.PI/2)/Math.PI),was=e.fsN;e.fsN=n;if(was!==undefined&&n!==was&&!e.dead&&e.on&&sp>3.6)footstep(e,sp)}
   /* LOD: بازیکن دور فقط جابه‌جا می‌شه؛ انیمیشن پا/دست/کمر حساب نمی‌شه */
-  if(!e.isP&&e!==specT&&!e.dead&&!u.fpOn&&((e.p.x-RF.x)**2+(e.p.z-RF.z)**2)>QL.anim*QL.anim){m.visible=true;continue}
-  const rg=e.dead&&e.rag;
+  if(!e.isP&&e!==specT&&!e.dead&&!u.fpOn&&!u.limbsZ&&!u.wasDead&&((e.p.x-RF.x)**2+(e.p.z-RF.z)**2)>QL.anim*QL.anim){m.visible=true;continue}   /* !limbsZ/!wasDead: بات تازه‌ریسپاون‌شده یه بار پوز کامل رو حساب کنه تا پوز ragdoll/جسد روش نمونه */
+  u.wasDead=!!e.dead;const rg=e.dead&&e.rag;
   if(rg){if(u.spine)u.spine.rotation.x=0;ragRender(e,u,dt)}
   else{u.body.rotation.x=-e.fall*1.5;u.body.rotation.z=0;if(u.limbsZ){u.body.position.set(0,0,0);if(u.knees)for(const q of u.knees)q.quaternion.identity();if(u.arms)for(const q of u.arms)q.rotation.z=0;if(u.legs)for(const q of u.legs){q.rotation.y=0;q.rotation.z=0}u.limbsZ=false}}
   if(rg)u.limbsZ=true;
@@ -3363,14 +3374,14 @@ function render(dt){
   const oy=P.dead?P.p.y+.6:ey,t=castRay(P.p.x,oy,P.p.z,dx,dy,dz,L+.3,false),use=Math.max(.4,Math.min(L,t-.3));
   cam.position.set(P.p.x+dx*use,oy+dy*use,P.p.z+dz*use);
   if(P.dead){cam.lookAt(P.p.x,P.p.y+.35,P.p.z)}else cam.rotation.set(pitch,P.yaw,0);
- }else{cam.position.set(P.p.x,ey,P.p.z);cam.rotation.set(pitch,P.yaw,0)}
+ }else{cam.position.set(P.p.x,ey,P.p.z);{const pv=P.pv;cam.rotation.set(Math.min(1.55,pitch+(pv?PV_VIS*pv.p:0)),P.yaw-(pv?PV_VIS*pv.y:0),0)}}
  if(SD.shake>0){const a=SD.shake*.06;cam.position.x+=(R()-.5)*a;cam.position.y+=(R()-.5)*a;cam.position.z+=(R()-.5)*a;cam.rotation.z=(R()-.5)*a*.5}
  /* کالینگ: بازیکن‌های خارج از دید یا دورتر از فاصله‌ی کیفیت رندر (و سایه) نمی‌شن */
  cam.updateMatrixWorld();_cf.setFromProjectionMatrix(_cm.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse));
  for(const e of ents){if(e.isP||e===specT)continue;const m=e.mesh;if(!m||!m.visible)continue;
-  const dx=m.position.x-cam.position.x,dz=m.position.z-cam.position.z;
+  const dx=e.p.x-cam.position.x,dz=e.p.z-cam.position.z;   /* ragdoll موقع رندر m.position رو صفر می‌کنه؛ از e.p استفاده کن */
   if(dx*dx+dz*dz>QL.ent*QL.ent){m.visible=false;continue}
-  _cs.center.set(m.position.x,m.position.y+1,m.position.z);_cs.radius=3;if(!_cf.intersectsSphere(_cs))m.visible=false;
+  _cs.center.set(e.p.x,e.p.y+1,e.p.z);_cs.radius=3;if(!_cf.intersectsSphere(_cs))m.visible=false;
    /* دوربین رفته تو جسد (مثلاً موقع نشستن کنار بات مرده)؛ داخل مدل رو نشون نده */
    else if(e.dead&&e.rag&&e.rag.P&&!e.rag.bad){const cp=cam.position;for(const q of e.rag.P){if(q&&q.x!==undefined&&(q.x-cp.x)**2+(q.y-cp.y)**2+(q.z-cp.z)**2<.3){m.visible=false;break}}}}
  vmUpdate(dt);
@@ -3383,6 +3394,7 @@ function render(dt){
  mfT-=dt;if(mfT<=0)mflash.intensity=0;
  hm-=dt;crossFrame(dt);
  $('dmg').style.opacity=0;if(P.hp<35&&!P.dead)$('dmg').style.opacity=.6;
+ {const sp=!!(SD.on&&P.dead),hd=$('hud');if(hd&&hd._sp!==sp){hd._sp=sp;hd.classList.toggle('spec',sp)}}   // تماشا: HUD شخصی رو مخفی کن
  setTx('hpv',Math.max(0,Math.ceil(P.hp)));
  setTx('ammo',(P.wp||0)>=4?NK[P.wp].n+' x'+((P.gn&&P.gn[P.wp])|0):(P.wp||0)===1?'KNIFE':(P.wp||0)===3?'C4':P.rl>0?'RELOAD':P.ammo+' / ∞');
  if(SD.on)sdHud();else{$('sdbar').style.display='none';setTx('score',`تیم تو ${score[0]}  —  ${score[1]} دشمن`);
