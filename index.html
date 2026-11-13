@@ -3557,7 +3557,8 @@ if(TOUCH){
  document.body.appendChild(pn);
  const pq=q=>pn.querySelector(q);
  const cfg=id=>{SET.tpos=SET.tpos||{};return SET.tpos[id]||(SET.tpos[id]={})};
- const upd=()=>{const c=(SET.tpos&&SET.tpos[SEL])||{};pq('#tpn').textContent=NM[SEL]||'';pq('#tps').value=Math.round((c.s||1)*100);pq('#tpo').value=Math.round((c.o||1)*100);pq('#tph').checked=!!c.h;pq('#tpsv').textContent=pq('#tps').value+'٪';pq('#tpov').textContent=pq('#tpo').value+'٪'};
+ const MAXPX=150,baseOf=el=>{const t=el.id==='tgn'?el.firstElementChild:el;return (t&&t.offsetWidth)||46};
+ const upd=()=>{const c=(SET.tpos&&SET.tpos[SEL])||{};const el0=document.getElementById(SEL);if(el0){const ts=(SET.tsize||100)/100,mx=Math.max(100,Math.min(200,Math.floor(MAXPX/(baseOf(el0)*ts)*20)*5));pq('#tps').max=mx;if((c.s||1)*100>mx){c.s=mx/100;window.tcApply()}}pq('#tpn').textContent=NM[SEL]||'';pq('#tps').value=Math.round((c.s||1)*100);pq('#tpo').value=Math.round((c.o||1)*100);pq('#tph').checked=!!c.h;pq('#tpsv').textContent=pq('#tps').value+'٪';pq('#tpov').textContent=pq('#tpo').value+'٪'};
  const selBtn=id=>{SEL=id;tc.querySelectorAll('.sel').forEach(n=>n.classList.remove('sel'));const el=document.getElementById(id);if(el)el.classList.add('sel');upd()};
  pq('#tps').oninput=e=>{cfg(SEL).s=+e.target.value/100;window.tcApply();upd()};
  pq('#tpo').oninput=e=>{cfg(SEL).o=+e.target.value/100;window.tcApply();upd()};
