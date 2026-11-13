@@ -20,7 +20,7 @@ canvas{display:block}
 .xh.hit i{background:var(--hit)}.xh.hit .cring{background:none;border-color:var(--hit)}
 #hud.novig::before{display:none}#hud.nomm #mm{display:none}#hud.nokf #kf{display:none}
 #hp,#ammo,#money,#nades,#score,#kf,#toast,#buy{zoom:var(--hs,1)}
-#fpsc{position:fixed;bottom:4px;left:50%;transform:translateX(-50%);z-index:25;font:600 13px monospace;color:#9fe8a8;text-shadow:0 0 3px #000;display:none;pointer-events:none}
+#fpsc{position:fixed;bottom:4px;left:50%;transform:translateX(-50%);white-space:nowrap;z-index:25;font:600 13px monospace;color:#9fe8a8;text-shadow:0 0 3px #000;display:none;pointer-events:none}
 .shd{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;font-size:19px;color:#fd6}
 .stb{display:flex;gap:4px;padding:0 14px;border-bottom:1px solid #fff2}
 .stb button{background:none;border:0;border-bottom:3px solid transparent;color:#fffb;padding:9px 14px;font:inherit;font-size:14px;cursor:pointer}.stb button.on{color:#fff;border-color:#4aa3ff}
@@ -378,14 +378,17 @@ const MAP_SCALE=1.5;    // خروجی Sketchfab فشرده‌ست (‏~۶۰×۷�
 const CHAR_H=1.8;       // قد کاراکترها به متر
 
 /* ================= RENDER SETUP ================= */
+/* ===== بهینه‌سازی‌های ساختاری (OPT) — هر کدوم رو می‌شه با آدرس خاموش کرد: ?noopt=merge,ray,path,tracer,vm,alpha,sky,warm,ui,gl  یا ?noopt=all ===== */
+const OPT=(()=>{const o={merge:1,ray:1,path:1,tracer:1,vm:1,alpha:1,sky:1,warm:1,ui:1,gl:1};try{const q=new URLSearchParams(location.search).get('noopt');if(q){if(q==='all')for(const k in o)o[k]=0;else q.split(',').forEach(k=>{if(k in o)o[k]=0})}}catch(e){}return o})();
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xc7dbf2);scene.fog=new THREE.Fog(0xc7dbf2,70,330);   // مپ ×۱٫۵ بزرگ شد → مه هم دورتر
 const cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,650);cam.rotation.order='YXZ';scene.add(cam);   // far هم برای مپ بزرگ‌تر
-const ren=new THREE.WebGLRenderer({antialias:(()=>{try{const a=JSON.parse(localStorage.getItem('ms_set')||'{}').aa;return a===undefined?!matchMedia('(pointer:coarse)').matches:a!==false}catch(e){return true}})()});ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.shadowMap.enabled=true;ren.localClippingEnabled=true;ren.shadowMap.type=THREE.PCFSoftShadowMap;ren.toneMapping=THREE.ACESFilmicToneMapping;ren.toneMappingExposure=.95;document.body.prepend(ren.domElement);
+const ren=new THREE.WebGLRenderer({powerPreference:'high-performance',stencil:!OPT.gl,antialias:(()=>{try{const a=JSON.parse(localStorage.getItem('ms_set')||'{}').aa;return a===undefined?!matchMedia('(pointer:coarse)').matches:a!==false}catch(e){return true}})()});ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.shadowMap.enabled=true;ren.localClippingEnabled=true;ren.shadowMap.type=THREE.PCFSoftShadowMap;ren.toneMapping=THREE.ACESFilmicToneMapping;ren.toneMappingExposure=.95;document.body.prepend(ren.domElement);
 addEventListener('resize',()=>layoutView());
 
 /* ---- ویومدل (گان + دست‌ها) در پاس جدا رندر می‌شه تا هیچ‌وقت داخل دیوار/مپ فرو نره ----
    پاس ۱: مپ و بقیه‌ی دنیا (لایه ۰) | پاس ۲: بعد از پاک‌کردن depth فقط گان و دست‌ها (لایه ۱) روی تصویر کشیده می‌شن */
-const VM_LAYER=1;
+const VM_LAYER=1;const _vmH=[];
+function vmTop(o){while(o.parent&&o.parent!==scene)o=o.parent;return o}
 function renderWithViewmodel(){
  const setL=o=>o.layers.set(VM_LAYER);
  gun.traverse(setL);if(VM.arms)VM.arms.group.traverse(setL);   // هر فریم: چیزهایی که دیرتر لود می‌شن (پیستول، دست‌ها، خشاب) هم شامل بشن
@@ -395,14 +398,20 @@ function renderWithViewmodel(){
  const bg=scene.background,fg=scene.fog,sa=ren.shadowMap.autoUpdate;
  scene.background=null;scene.fog=null;ren.shadowMap.autoUpdate=false;   // پس‌زمینه رنگیِ صحنه پاس ۱ رو پاک نکنه
  ren.autoClear=false;ren.clearDepth();
- cam.layers.set(VM_LAYER);ren.render(scene,cam);
+ cam.layers.set(VM_LAYER);
+ if(OPT.vm){   // پاس ۲ فقط گان و دست‌ها رو می‌خواد: بقیه‌ی دنیا مخفی می‌شه تا three کل گراف صحنه رو دوباره پیمایش/ماتریس‌گیری نکنه
+  const ch=scene.children,kA=vmTop(gun),kB=VM.arms?vmTop(VM.arms.group):null,au=scene.autoUpdate;
+  _vmH.length=0;for(let i=0;i<ch.length;i++){const c=ch[i];if(c.isLight||c===kA||c===kB||!c.visible)continue;c.visible=false;_vmH.push(c)}
+  scene.autoUpdate=false;
+  try{ren.render(scene,cam)}finally{scene.autoUpdate=au;for(let i=0;i<_vmH.length;i++)_vmH[i].visible=true;_vmH.length=0}
+ }else ren.render(scene,cam);
  ren.autoClear=true;cam.layers.set(0);
  scene.background=bg;scene.fog=fg;ren.shadowMap.autoUpdate=sa}
 const hemiL=new THREE.HemisphereLight(0xdfeaff,0x80704f,.62);scene.add(hemiL);
 const sky=new THREE.Mesh(new THREE.SphereGeometry(500,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
  vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
  fragmentShader:'varying vec3 vP;void main(){float h=normalize(vP).y;vec3 hor=vec3(.78,.86,.95),top=vec3(.26,.50,.85);vec3 c=mix(hor,top,pow(clamp(h,0.,1.),.5));c=mix(c,vec3(.72,.70,.64),smoothstep(0.,-.25,h));float s=pow(max(dot(normalize(vP),normalize(vec3(60.,120.,30.))),0.),180.);c+=vec3(1.,.9,.7)*s*.8;gl_FragColor=vec4(c,1.);}'}));
-sky.renderOrder=-10;sky.frustumCulled=false;scene.add(sky);
+sky.renderOrder=OPT.sky?10:-10;sky.frustumCulled=false;scene.add(sky);
 const mflash=new THREE.PointLight(0xffb04a,0,14,2);scene.add(mflash);let mfT=0;
 const exL=new THREE.PointLight(0xff8a2a,0,28,2);scene.add(exL);let exI=0,exT=0;   // نور انفجار HE؛ آروم‌آروم خاموش می‌شه
 const sun=new THREE.DirectionalLight(0xfff0d0,1.05);sun.position.set(60,120,30);scene.add(sun,sun.target);
@@ -960,20 +969,27 @@ function normChar(root){let sk=false;root.traverse(o=>{if(o.isSkinnedMesh)sk=tru
 function hasAlpha(img){ // آیا تکسچر پیکسل شفاف داره؟ (درخت نخل، حصار...)
  try{const c=document.createElement('canvas');c.width=c.height=48;const x=c.getContext('2d');x.drawImage(img,0,0,48,48);
   const d=x.getImageData(0,0,48,48).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]<128)n++;return n/(d.length/4)}catch(e){}return 0}
-const MAXANI=ren.capabilities.getMaxAnisotropy();
+const MAXANI=Math.min(ren.capabilities.getMaxAnisotropy(),matchMedia('(pointer:coarse)').matches?4:64);
+const TEX_CAP=(()=>{try{if(!matchMedia('(pointer:coarse)').matches)return 0;const q=JSON.parse(localStorage.getItem('ms_set')||'{}').q||'mid';return{low:512,mid:1024,high:1536,ultra:2048}[q]||1024}catch(e){return 1024}})();
+function texCap(t){const im=t.image;if(!TEX_CAP||!im)return;const w=im.width||im.naturalWidth,h=im.height||im.naturalHeight;if(!w||!h||Math.max(w,h)<=TEX_CAP)return;   // تکسچر بزرگ روی گوشی: حافظه و پهنای باند GPU رو می‌خوره → کوچیک‌تر
+ const k=TEX_CAP/Math.max(w,h),c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));c.getContext('2d').drawImage(im,0,0,c.width,c.height);t.image=c}
 /* متریال‌های GLB رو به Lambert ساده تبدیل می‌کنیم (بدون env-map، PBR تیره می‌افتاد) */
+const ALPHA_RX=/palm|tree|leaf|leav|plant|foliage|bush|grass|fence|wire|vine/i;
+function hasAlphaFine(img){ // نمونه‌برداری نزدیک‌ترین‌همسایه (میانگین‌گیری نکنه تا سوراخ‌های ریز گم نشن)؛ هر مشکلی → فرض کن آلفا داره
+ try{const S=96,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d',{willReadFrequently:true});x.imageSmoothingEnabled=false;x.drawImage(img,0,0,S,S);
+  const d=x.getImageData(0,0,S,S).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]<250&&++n>=4)return n}catch(e){return 1}return 0}
 function simplify(root,def){
  const cache=new Map();
  root.traverse(o=>{if(!o.isMesh)return;
   if(!o.geometry.attributes.normal)o.geometry.computeVertexNormals();
   const one=m=>{if(cache.has(m))return cache.get(m);
-   let map=m.map||null,alpha=false,frac=0;
+   let map=m.map||null,alpha=false,frac=0,fracF=1;
    if(map&&!(map.image&&(map.image.width||map.image.videoWidth))){map=null}   // تکسچر لود نشده → رنگ ساده
-   if(map){map.encoding=THREE.LinearEncoding;map.anisotropy=MAXANI;map.needsUpdate=true;frac=hasAlpha(map.image);alpha=frac>0}
+   if(map){texCap(map);map.encoding=THREE.LinearEncoding;map.anisotropy=MAXANI;map.needsUpdate=true;frac=hasAlpha(map.image);alpha=frac>0;if(OPT.alpha)fracF=hasAlphaFine(map.image)}
    const glass=m.transparent||m.alphaMode==='BLEND';
    const bc=m.color&&(m.color.r+m.color.g+m.color.b)>.15?m.color.getHex():(def||0xd8d0bd);
    const n=new THREE.MeshLambertMaterial({map,color:map?0xffffff:bc,side:THREE.DoubleSide,
-     alphaTest:map&&!glass?.5:0,   // همیشه برش آلفا: تکسچر بدون آلفا که اثری نداره، ولی درخت‌ها دیگه سیاه نمی‌شن
+     alphaTest:map&&!glass&&(!OPT.alpha||m.alphaTest>0||fracF>0||ALPHA_RX.test((m.name||'')+(o.name||'')))?.5:0,   // همیشه برش آلفا: تکسچر بدون آلفا که اثری نداره، ولی درخت‌ها دیگه سیاه نمی‌شن
     transparent:glass,opacity:glass?.55:1,depthWrite:!glass});
    n.userData.alpha=frac>.04||/palm|tree|leaf|leav|plant|foliage|bush|grass|fence|wire|vine/i.test((m.name||'')+(o.name||''));cache.set(m,n);return n};
   o.material=Array.isArray(o.material)?o.material.map(one):one(o.material);
@@ -982,8 +998,57 @@ function simplify(root,def){
   o.receiveShadow=true;o.castShadow=!o.userData.noCol})}
 
 /* ================= MAP + COLLISION ================= */
-let T,TN,NT=0,CELL=2.5,GX0=0,GZ0=0,NX=0,NZ=0,CS,CT,STAMP,stamp=0,MAPMIN=0;
+let T,TN,NT=0,CELL=2.5,GX0=0,GZ0=0,NX=0,NZ=0,CS,CT,STAMP,stamp=0,MAPMIN=0,TB=null,CSW=null,CTW=null;
 let HNX=0,HNY=1,HNZ=0;
+/* ادغام مش‌های ثابت مپ: همه‌ی مش‌هایی که متریال یکسان دارن و توی یه بلوک ~۴۰ متری هستن → یه مش (مختصات جهانی پخته می‌شه).
+   نتیجه: Draw call چندین برابر کمتر (هم پاس اصلی هم پاس سایه)، پیمایش گراف صحنه‌ی سبک‌تر، و دیگه ماتریس هزاران نود هر فریم دوباره حساب نمی‌شه.
+   برخورد (buildCol) و مسیریابی قبل از این ساخته شدن و دست نمی‌خورن. نشانه‌های سایت بمب (markMeshes) و متریال‌های شفاف (شیشه) جدا می‌مونن. */
+function mergeStaticMap(root,keep){
+ if(!OPT.merge)return;
+ const t0=performance.now();root.updateMatrixWorld(true);
+ const groups=new Map(),CH=40,bb=new THREE.Box3(),sz=new THREE.Vector3(),ce=new THREE.Vector3(),rm=[];let nIn=0;
+ const visChain=o=>{for(let p=o;p&&p!==scene;p=p.parent)if(!p.visible)return false;return true};
+ root.traverse(o=>{
+  if(!o.isMesh||o.isSkinnedMesh||keep.has(o)||o.layers.mask!==1||o.frustumCulled===false||!visChain(o))return;
+  const m=o.material,g=o.geometry;if(!m||Array.isArray(m)||m.transparent||!g||!g.attributes.position||!g.attributes.normal)return;
+  if(g.morphAttributes&&g.morphAttributes.position)return;
+  if(!g.boundingBox)g.computeBoundingBox();bb.copy(g.boundingBox).applyMatrix4(o.matrixWorld);bb.getSize(sz);bb.getCenter(ce);
+  const big=Math.max(sz.x,sz.z)>CH*1.5,key=m.id+'|'+(o.castShadow?1:0)+'|'+(big?'B':Math.floor(ce.x/CH)+','+Math.floor(ce.z/CH));
+  let G=groups.get(key);if(!G){G={m,cast:o.castShadow,list:[]};groups.set(key,G)}G.list.push(o);nIn++});
+ const out=[],v=new THREE.Vector3(),nm=new THREE.Matrix3(),MAXV=200000;
+ const flush=(G,part,nv,ni,hasUV)=>{
+  const P=new Float32Array(nv*3),N=new Float32Array(nv*3),U=hasUV?new Float32Array(nv*2):null,I=nv>65535?new Uint32Array(ni):new Uint16Array(ni);
+  let vo=0,io=0;
+  for(const o of part){const g=o.geometry,pos=g.attributes.position,nor=g.attributes.normal,uv=g.attributes.uv,mw=o.matrixWorld,c=pos.count;
+   nm.getNormalMatrix(mw);const flip=mw.determinant()<0;
+   for(let i=0;i<c;i++){v.fromBufferAttribute(pos,i).applyMatrix4(mw);P[(vo+i)*3]=v.x;P[(vo+i)*3+1]=v.y;P[(vo+i)*3+2]=v.z;
+    v.fromBufferAttribute(nor,i).applyMatrix3(nm).normalize();N[(vo+i)*3]=v.x;N[(vo+i)*3+1]=v.y;N[(vo+i)*3+2]=v.z;
+    if(U){if(uv){U[(vo+i)*2]=uv.getX(i);U[(vo+i)*2+1]=uv.getY(i)}}}
+   const ix=g.index,cnt=ix?ix.count:c;
+   for(let k=0;k<cnt;k+=3){const a=ix?ix.getX(k):k,b=ix?ix.getX(k+1):k+1,d=ix?ix.getX(k+2):k+2;
+    if(flip){I[io++]=vo+a;I[io++]=vo+d;I[io++]=vo+b}else{I[io++]=vo+a;I[io++]=vo+b;I[io++]=vo+d}}
+   vo+=c}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(P,3));geo.setAttribute('normal',new THREE.BufferAttribute(N,3));
+  if(U)geo.setAttribute('uv',new THREE.BufferAttribute(U,2));geo.setIndex(new THREE.BufferAttribute(I,1));geo.computeBoundingBox();geo.computeBoundingSphere();
+  const me=new THREE.Mesh(geo,G.m);me.castShadow=G.cast;me.receiveShadow=true;me.matrixAutoUpdate=false;me.name='mapchunk';out.push(me)};
+ for(const G of groups.values()){
+  const hasUV=!!G.m.map;let part=[],nv=0,ni=0;
+  for(const o of G.list){const g=o.geometry,c=g.attributes.position.count,t=g.index?g.index.count:c;
+   if(part.length&&nv+c>MAXV){flush(G,part,nv,ni,hasUV);part=[];nv=ni=0}
+   part.push(o);nv+=c;ni+=t}
+  if(part.length)flush(G,part,nv,ni,hasUV)}
+ // همه‌چی بدون خطا ساخته شد → حالا جایگزین کن (اگه بالا خطایی می‌بود، صحنه‌ی اصلی دست‌نخورده می‌موند)
+ const dead=[];for(const G of groups.values())for(const o of G.list)dead.push(o);
+ for(const o of dead){if(o.parent)o.parent.remove(o);o.geometry.dispose()}
+ for(const me of out)scene.add(me);
+ root.traverse(o=>{o.updateMatrix();o.matrixAutoUpdate=false});
+ console.log('[merge]',nIn,'مش مپ →',out.length,'مش ادغام‌شده،',Math.round(performance.now()-t0),'ms')}
+/* پیش‌گرمایی GPU موقع لود: آپلود تکسچرها + کامپایل شیدرها؛ وگرنه اولین فریم‌های مچ (و اولین انفجار/شلیک) هیچکاپ چند‌ده/چند‌صد میلی‌ثانیه‌ای دارن */
+async function warmGPU(){
+ if(!OPT.warm)return;
+ try{const mats=new Set();scene.traverse(o=>{if(o.isMesh&&o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>mats.add(m))});
+  if(typeof ren.initTexture==='function'){let k=0;for(const m of mats){if(m.map){ren.initTexture(m.map);if(++k%2===0)await new Promise(r=>setTimeout(r,0))}}}
+  ren.compile(scene,cam)}catch(e){console.warn('[warm]',e)}}
 function buildCol(root){
  root.updateMatrixWorld(true);
  const arr=[],nr=[],a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3();
@@ -1007,7 +1072,16 @@ function buildCol(root){
  for(let i=0;i<NX*NZ;i++)cnt2[i+1]+=cnt2[i];
  CS=cnt2;CT=new Int32Array(CS[NX*NZ]);const fill=CS.slice(0,NX*NZ);
  for(let i=0;i<NT;i++){const r=rng(i);for(let z=r[2];z<=r[3];z++)for(let x=r[0];x<=r[1];x++)CT[fill[z*NX+x]++]=i}
- STAMP=new Int32Array(NT)}
+ STAMP=new Int32Array(NT);TB=CSW=CTW=null;
+ if(OPT.ray){   // ایندکس کمکی ۱) جعبه‌ی XZ هر مثلث برای پرتوهای عمودی ۲) شبکه‌ی فقط-دیوار برای پرتوهای حرکت (کف/سقف توش نیست)
+  TB=new Float32Array(NT*4);const cw=new Int32Array(NX*NZ+1),isW=new Uint8Array(NT);
+  for(let i=0;i<NT;i++){const j=i*9,x0=Math.min(T[j],T[j+3],T[j+6]),x1=Math.max(T[j],T[j+3],T[j+6]),y0=Math.min(T[j+1],T[j+4],T[j+7]),y1=Math.max(T[j+1],T[j+4],T[j+7]),z0=Math.min(T[j+2],T[j+5],T[j+8]),z1=Math.max(T[j+2],T[j+5],T[j+8]),
+    pd=4e-5*Math.max(x1-x0,y1-y0,z1-z0)+2e-5;   // حاشیه‌ی تحمل: rt مثلث رو تا ۱e-5 بیرون از لبه هم می‌پذیره
+   TB[i*4]=x0-pd;TB[i*4+1]=x1+pd;TB[i*4+2]=z0-pd;TB[i*4+3]=z1+pd;
+   const ny=TN[i*3+1];if(!(ny>.7||ny<-.7)){isW[i]=1;const r=rng(i);for(let z=r[2];z<=r[3];z++)for(let x=r[0];x<=r[1];x++)cw[z*NX+x+1]++}}
+  for(let i=0;i<NX*NZ;i++)cw[i+1]+=cw[i];
+  CSW=cw;CTW=new Int32Array(cw[NX*NZ]);const fw=cw.slice(0,NX*NZ);
+  for(let i=0;i<NT;i++){if(!isW[i])continue;const r=rng(i);for(let z=r[2];z<=r[3];z++)for(let x=r[0];x<=r[1];x++)CTW[fw[z*NX+x]++]=i}}}
 function rt(ti,ox,oy,oz,dx,dy,dz){ // Möller–Trumbore دوطرفه
  const i=ti*9,ax=T[i],ay=T[i+1],az=T[i+2],e1x=T[i+3]-ax,e1y=T[i+4]-ay,e1z=T[i+5]-az,e2x=T[i+6]-ax,e2y=T[i+7]-ay,e2z=T[i+8]-az;
  const px=dy*e2z-dz*e2y,py=dz*e2x-dx*e2z,pz=dx*e2y-dy*e2x,det=e1x*px+e1y*py+e1z*pz;
@@ -1017,7 +1091,19 @@ function rt(ti,ox,oy,oz,dx,dy,dz){ // Möller–Trumbore دوطرفه
  if(v<-1e-5||u+v>1.00001)return -1;
  return(e2x*qx+e2y*qy+e2z*qz)*inv}
 /* نزدیک‌ترین برخورد پرتو با مپ؛ Infinity اگه چیزی نبود. wallOnly: سطح‌های تقریباً افقی (کف/سقف/سطح شیب‌دار) رو نادیده بگیر */
+let RAYN=0;
 function castRay(ox,oy,oz,dx,dy,dz,maxT,wallOnly){
+ RAYN++;
+ const useW=wallOnly&&CSW!==null,cs=useW?CSW:CS,ct=useW?CTW:CT,chk=wallOnly&&!useW;
+ if(TB!==null&&dx*dx+dz*dz<1e-18){   // پرتو عمودی (زمین‌یابی/سقف): فقط یه سلول؛ مثلث‌هایی که XZشون به نقطه نمی‌رسه بدون rt رد می‌شن
+  const cx=Math.floor((ox-GX0)/CELL),cz=Math.floor((oz-GZ0)/CELL);
+  if(cx<0||cx>=NX||cz<0||cz>=NZ)return Infinity;
+  const c=cz*NX+cx;let best=Infinity,bi=-1;
+  for(let k=cs[c],e=cs[c+1];k<e;k++){const ti=ct[k],b=ti*4;
+   if(ox<TB[b]||ox>TB[b+1]||oz<TB[b+2]||oz>TB[b+3])continue;
+   if(chk){const ny=TN[ti*3+1];if(ny>.7||ny<-.7)continue}
+   const t=rt(ti,ox,oy,oz,dx,dy,dz);if(t>=0&&t<best&&t<=maxT){best=t;bi=ti}}
+  if(bi<0)return Infinity;HNX=TN[bi*3];HNY=TN[bi*3+1];HNZ=TN[bi*3+2];return best}
  stamp++;let best=Infinity,bi=-1;
  let cx=Math.floor((ox-GX0)/CELL),cz=Math.floor((oz-GZ0)/CELL);
  const sx=dx>0?1:-1,sz=dz>0?1:-1,ax=Math.abs(dx),az=Math.abs(dz);
@@ -1025,8 +1111,8 @@ function castRay(ox,oy,oz,dx,dy,dz,maxT,wallOnly){
  let tmx=ax>1e-9?((dx>0?GX0+(cx+1)*CELL:GX0+cx*CELL)-ox)/dx:Infinity,tmz=az>1e-9?((dz>0?GZ0+(cz+1)*CELL:GZ0+cz*CELL)-oz)/dz:Infinity;
  for(let g=0;g<500;g++){
   if(cx>=0&&cx<NX&&cz>=0&&cz<NZ){const c=cz*NX+cx;
-   for(let k=CS[c],e=CS[c+1];k<e;k++){const ti=CT[k];if(STAMP[ti]===stamp)continue;STAMP[ti]=stamp;
-    if(wallOnly){const ny=TN[ti*3+1];if(ny>.7||ny<-.7)continue}
+   for(let k=cs[c],e=cs[c+1];k<e;k++){const ti=ct[k];if(STAMP[ti]===stamp)continue;STAMP[ti]=stamp;
+    if(chk){const ny=TN[ti*3+1];if(ny>.7||ny<-.7)continue}
     const t=rt(ti,ox,oy,oz,dx,dy,dz);if(t>=0&&t<best&&t<=maxT){best=t;bi=ti}}}
   else if(g>1)break;
   const tn=Math.min(tmx,tmz);if(best<=tn||tn>maxT)break;
@@ -1098,7 +1184,40 @@ function heapPop(){const n=hpN[0],ln=hpN.pop(),lf=hpF.pop();if(hpN.length){hpN[0
 /* ---- تنوع مسیر بات‌ها: هزینه‌ی هر ناحیه (سلول‌های ۱۰ متری) برای هر سفر یه ضریب تصادفی می‌گیره؛ پس بات‌ها همیشه کوتاه‌ترین (= یه) مسیر رو نمی‌رن ---- */
 const PATH_NOISE=2.2,PATH_CELL=24;   // PATH_NOISE: ۰ = همه کوتاه‌ترین مسیر | بیشتر = مسیرها متنوع‌تر و طولانی‌تر
 function pnoise(x,z,seed){let h=Math.imul(Math.floor(x/PATH_CELL)|0,73856093)^Math.imul(Math.floor(z/PATH_CELL)|0,19349663)^Math.imul(seed|0,83492791);h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return(h>>>0)/4294967296}
-function findPath(sx,sy,sz,tx,ty,tz,seed){
+/* همون A*ِ قبلی (همون ترتیب مقایسه‌ها → همون مسیرها)، ولی: هیپ تایپ‌دار بدون آرایه‌ی موقت، closed با stamp به‌جای Set، sqrt به‌جای Math.hypot،
+   و قابل‌ادامه (step): بات‌ها دیگه وسط فریم منتظر یه جستجوی ۵–۴۰ میلی‌ثانیه‌ای (روی گوشی) نمی‌مونن؛ جستجو بین فریم‌ها با بودجه‌ی زمانی پیش می‌ره */
+class PathSearch{
+ constructor(){this.gS=null;this.par=null;this.seen=null;this.clo=null;this.hn=null;this.hf=null;this.hs=0;this.id=0;this.g=-1;this.gx=0;this.gy=0;this.gz=0;this.seed=0;this.it=0;this.found=false;this.done=true}
+ push(n,f){const hn=this.hn,hf=this.hf;let i=this.hs++;while(i>0){const p=(i-1)>>1;if(hf[p]<=f)break;hf[i]=hf[p];hn[i]=hn[p];i=p}hf[i]=f;hn[i]=n}
+ pop(){const hn=this.hn,hf=this.hf,n0=hn[0],S=--this.hs;if(S>0){const ln=hn[S],lf=hf[S];let i=0;
+  for(;;){const l=2*i+1,r=l+1;let m=-1,mf=lf;if(l<S&&hf[l]<mf){m=l;mf=hf[l]}if(r<S&&hf[r]<mf){m=r;mf=hf[r]}if(m<0)break;hf[i]=mf;hn[i]=hn[m];i=m}
+  hf[i]=lf;hn[i]=ln}return n0}
+ begin(sx,sy,sz,tx,ty,tz,seed){const s=nearestNode(sx,sy,sz),g=nearestNode(tx,ty,tz);this.found=false;this.done=true;if(s<0||g<0)return false;
+  if(!this.gS||this.gS.length<NN){this.gS=new Float32Array(NN);this.par=new Int32Array(NN);this.seen=new Int32Array(NN);this.clo=new Int32Array(NN);this.id=0}
+  if(!this.hn||this.hn.length<adjT.length+8){this.hn=new Int32Array(adjT.length+8);this.hf=new Float64Array(adjT.length+8)}
+  this.id++;this.hs=0;this.gS[s]=0;this.par[s]=-1;this.seen[s]=this.id;this.push(s,0);
+  this.g=g;this.gx=nvx[g];this.gy=nvy[g];this.gz=nvz[g];this.seed=seed;this.it=0;this.done=false;return true}
+ step(n){const gS=this.gS,par=this.par,seen=this.seen,clo=this.clo,id=this.id,g=this.g,gx=this.gx,gy=this.gy,gz=this.gz,seed=this.seed;let k=0;
+  while(this.hs>0&&this.it<60000&&k<n){this.it++;k++;const u=this.pop();if(clo[u]===id)continue;clo[u]=id;if(u===g){this.found=true;this.done=true;return true}
+   const gu=gS[u];
+   for(let q=adjS[u],qe=adjS[u+1];q<qe;q++){const v=adjT[q],ng=gu+adjW[q]*(seed?1+PATH_NOISE*pnoise(nvx[v],nvz[v],seed):1);
+    if(seen[v]!==id||ng<gS[v]){seen[v]=id;gS[v]=ng;par[v]=u;const a=nvx[v]-gx,b=nvy[v]-gy,c=nvz[v]-gz;this.push(v,ng+Math.sqrt(a*a+b*b+c*c))}}}
+  if(this.hs===0||this.it>=60000)this.done=true;return this.done}
+ path(){if(!this.found)return null;const p=[];for(let n=this.g;n>=0;n=this.par[n])p.push(n);p.reverse();return p}}
+const PS_SYNC=new PathSearch(),PS_ASYNC=new PathSearch(),PQ=[];let PCUR=null,PJID=0;
+function findPathFast(sx,sy,sz,tx,ty,tz,seed){if(!PS_SYNC.begin(sx,sy,sz,tx,ty,tz,seed))return null;PS_SYNC.step(1e9);return PS_SYNC.path()}
+function findPath(sx,sy,sz,tx,ty,tz,seed){return OPT.path?findPathFast(sx,sy,sz,tx,ty,tz,seed):findPathOld(sx,sy,sz,tx,ty,tz,seed)}
+/* درخواست مسیر برای بات: نتیجه چند فریم بعد (قبل از آپدیت بات‌ها) روی e.path می‌شینه؛ تا اون موقع بات مسیر قبلی‌ش رو ادامه می‌ده */
+function pathAsync(e,sx,sy,sz,tx,ty,tz,seed){e.pj=++PJID;e.pjt=performance.now();PQ.push({e,id:e.pj,a:[sx,sy,sz,tx,ty,tz,seed]})}
+function pathApply(j,p){const e=j.e;if(e.pj!==j.id)return;e.pj=0;
+ if(p&&Math.hypot(nvx[p[0]]-e.p.x,nvz[p[0]]-e.p.z)>8){e.pt=0;return}   // وسط راه جابه‌جا شده (ریسپاون/نجات از گیر) → مسیر کهنه‌ست؛ دوباره بخواه
+ e.path=p;e.pi=0;if(p&&p.length>1)e.pi=1;if(!p)e.rgt=0}
+function pathPump(){const T0=performance.now(),BUD=window.TOUCH?2.5:5;
+ while(performance.now()-T0<BUD){
+  if(!PCUR){let j=null;while(PQ.length){const q=PQ.shift();if(q.e.pj===q.id){j=q;break}}if(!j)return;
+   if(!PS_ASYNC.begin(...j.a)){pathApply(j,null);continue}PCUR=j}
+  if(PS_ASYNC.step(96)){const j=PCUR;PCUR=null;pathApply(j,PS_ASYNC.path())}}}
+function findPathOld(sx,sy,sz,tx,ty,tz,seed){
  const s=nearestNode(sx,sy,sz),g=nearestNode(tx,ty,tz);if(s<0||g<0)return null;
  if(!gS){gS=new Float32Array(NN);par=new Int32Array(NN);seen=new Int32Array(NN)}
  seenId++;hpN.length=0;hpF.length=0;gS[s]=0;par[s]=-1;seen[s]=seenId;heapPush(s,0);
@@ -1130,8 +1249,10 @@ function phys(e,dt){
  e.sdip=(e.sdip||0)*Math.exp(-dt*6);   // پله: دوربین/بدن نرم دنبال ارتفاع جدید می‌آد
  const v0=e.vy;e.vy=Math.max(-40,v0-(v0>0?GRAV_UP:GRAV_DN)*dt);let ny=e.p.y+(v0+e.vy)*.5*dt;   // انتگرال‌گیری دقیق‌تر (میانگین سرعت)
  if(e.vy>0){const t=castRay(e.p.x,e.p.y+1.5,e.p.z,0,1,0,e.vy*dt+.3,false);if(t<Infinity){e.vy=0;ny=e.p.y}}
- let fh=-1e9;for(const[ox,oz]of GOFF){const t=castRay(e.p.x+ox,e.p.y+STEP+.02,e.p.z+oz,0,-1,0,150,false);   // چند پرتو: از درز بین مثلث‌ها رد نشه
-  if(t!==Infinity)fh=Math.max(fh,e.p.y+STEP+.02-t)}
+ let fh=-1e9;
+ if(e.on&&e.vy<=0&&e.fcy!==undefined&&e.fcx===e.p.x&&e.fcz===e.p.z&&Math.abs(e.p.y-e.fcy)<.001)fh=e.fcy;   // ایستاده و جابه‌جا نشده: ارتفاع زمین عوض نشده (مپ ثابته) → ۹ پرتو رو دوباره نزن
+ else{for(const[ox,oz]of GOFF){const t=castRay(e.p.x+ox,e.p.y+STEP+.02,e.p.z+oz,0,-1,0,150,false);   // چند پرتو: از درز بین مثلث‌ها رد نشه
+  if(t!==Infinity)fh=Math.max(fh,e.p.y+STEP+.02-t)}e.fcx=e.p.x;e.fcz=e.p.z;e.fcy=fh}
  if(e.vy<=0&&(ny<=fh||(e.on&&fh>=e.p.y-.4))){const dh=fh-e.p.y;if(e.on&&Math.abs(dh)>.03&&Math.abs(dh)<=STEP)e.sdip=Math.max(-.5,Math.min(.5,e.sdip+dh));e.p.y=fh;e.vy=0;e.on=true;e.gx=e.p.x;e.gy=e.p.y;e.gz=e.p.z}else{e.p.y=ny;e.on=false}
  if(e.gy!==undefined&&e.p.y<e.gy-2.5&&fh<-1e8){e.p.x=e.gx;e.p.y=e.gy+.05;e.p.z=e.gz;e.vy=0;e.sx=undefined}   // از زمین سوراخ‌نشده افتاد: برگرد به آخرین جای محکم
  if(e.p.y<MAPMIN-12){spawn(e,true);return}
@@ -1296,7 +1417,10 @@ function footstep(e,sp){const dist=e.isP?0:Math.hypot(e.p.x-P.p.x,e.p.z-P.p.z);i
  const pan=e.isP||dist<1?0:Math.max(-.85,Math.min(.85,((e.p.x-P.p.x)*Math.cos(P.yaw)-(e.p.z-P.p.z)*Math.sin(P.yaw))/dist));
  sfx('f'+k,v,.93+R()*.14,pan)}
 const tr=[];
-function tracer(a,b){const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x,a.y,a.z),new THREE.Vector3(b.x,b.y,b.z)]),new THREE.LineBasicMaterial({color:0xffee88}));scene.add(l);tr.push({l,t:.06})}
+const TRP=[],TRMAT=new THREE.LineBasicMaterial({color:0xffee88});
+function tracer(a,b){let l=OPT.tracer?TRP.pop():null;   // هر شلیک قبلاً یه Geometry+Material جدید و dispose می‌ساخت (آپلود بافر GPU + آشغال)؛ حالا دوباره‌استفاده می‌شه
+ if(!l){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3));l=new THREE.Line(g,OPT.tracer?TRMAT:new THREE.LineBasicMaterial({color:0xffee88}));l.frustumCulled=false}
+ const pp=l.geometry.attributes.position;pp.setXYZ(0,a.x,a.y,a.z);pp.setXYZ(1,b.x,b.y,b.z);pp.needsUpdate=true;scene.add(l);tr.push({l,t:.06})}
 /* ================= خون: پاشش ذرات + لکه‌ی روی در و دیوار/کف + حوض زیر جسد =================
    - ذره‌ها قطره‌های واقعی با جاذبه‌ان؛ هرکدوم به سطحی بخوره همون‌جا لکه (دکال) می‌ذاره، روی دیوار با رگه‌ی چکه‌ی رو به پایین
    - تکسچرها با canvas ساخته می‌شن (فایل بیرونی لازم نیست) | سقف تعداد: BL.N ذره و BL.MAXD لکه (قدیمی‌ترین‌ها بازیافت می‌شن) */
@@ -1778,18 +1902,18 @@ function sdHud(){
  if(!locked&&C4S.tickH){sndStop(C4S.tickH);C4S.tickH=null}   // توی منوی توقف صدا قطع بشه؛ بعد از ادامه دوباره با تایمر هم‌زمان می‌شه
  if(SD.state==='planted')SD.hb=true;else if(SD.state==='live')SD.hb=false;   // ✦ بعد از پایان راند تایمر به عدد بمب (یا زمان راند) یخ می‌کنه و ریست نمی‌شه
  const bm=SD.state==='planted'||(SD.state==='over'&&SD.hb),sec=Math.max(0,bm?SD.bt:SD.rt),tm=bm?'💣 '+Math.ceil(sec):Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');
- {$('score').textContent='';const bar=$('sdbar');bar.style.display='flex';   // ✦ نوار بالای صفحه مثل CS2: آواتار تیم‌ها + تایمر + امتیاز وسط
+ {setTx('score','');const bar=$('sdbar');bar.style.display='flex';   // ✦ نوار بالای صفحه مثل CS2: آواتار تیم‌ها + تایمر + امتیاز وسط
   const mk=t=>ents.filter(e=>e.team===t).sort((a,b)=>(b.isP?1:0)-(a.isP?1:0)).slice(0,5).map(e=>({n:e.name,d:!!e.dead,me:!!e.isP,t,pc:Math.max(0,Math.min(100,Math.round(e.hp/((e.team===1&&!e.isP)?EN.hp:100)*10)*10))}));
-  const L=mk(0),Rr=mk(1),pl=SD.state==='planted',sig=L.concat(Rr).map(a=>a.n+(a.d?'x':a.pc)).join('|')+'#'+tm+'#'+SD.wins[0]+SD.wins[1]+SD.round+SD.a0+SD.a1;
+  const pl=SD.state==='planted',nw=performance.now();let L,Rr,sig;if(nw-(SD._tb||0)>100||!SD._L){SD._tb=nw;L=SD._L=mk(0);Rr=SD._R=mk(1);sig=SD._sg=L.concat(Rr).map(a=>a.n+(a.d?'x':a.pc)).join('|')+'#'+tm+'#'+SD.wins[0]+SD.wins[1]+SD.round+SD.a0+SD.a1}else{L=SD._L;Rr=SD._R;sig=SD._sg}
   if(sig!==SD.barSig){SD.barSig=sig;
    const av=(a,c,bg)=>`<div class="sda${a.d?' dead':''}${a.me?' me':''}" style="--c:${c};background:${bg}" title="${esc(a.n)}">${ini(a.n)}${(!a.d&&a.t===0)?`<i style="width:${a.pc}%"></i>`:''}</div>`;
    bar.innerHTML=`<div class="sdt">${L.map(a=>av(a,'#5aa0e8','linear-gradient(145deg,#2f4d73,#1a2a40)')).join('')}</div><div class="sdc"><div class="tm${pl?' pl':''}">${tm}</div><div class="sc"><b>${SD.wins[0]}</b><b>${SD.wins[1]}</b></div><div class="sm">راند ${SD.round} • ${SD.a0}v${SD.a1}</div></div><div class="sdt">${Rr.map(a=>av(a,'#e8b23a','linear-gradient(145deg,#6e5726,#3a2f16)')).join('')}</div>`}}
- $('msg').textContent=SD.msgT>0?SD.msg:'';
+ setTx('msg',SD.msgT>0?SD.msg:'');
  let h='',hh=false;
  if(P.dead){if(SD.spec){h=ICON.eye+' '+SD.spec.name+(SD.spec.team===1?' <span style="color:#ff6b6b">(دشمن)</span>':'');hh=true}}
  else if(SD.state==='planted'&&SD.defT>0)h='⚠ '+Math.max(0,DEFUSE_T-SD.defT).toFixed(1);
  else if(SD.state==='live'&&SD.hasBomb&&!(P.pl>0)&&sdSiteAt(P.p.x,P.p.y,P.p.z)>=0)h='💣';
- const hn=$('sdhint');hn.style.display=h?'block':'none';if(hh)hn.innerHTML=h;else hn.textContent=h;hn.className=h==='💣'?'bl':'';
+ const hn=$('sdhint'),hs=h+'|'+hh;if(hs!==SD._hs){SD._hs=hs;hn.style.display=h?'block':'none';if(hh)hn.innerHTML=h;else hn.textContent=h;hn.className=h==='💣'?'bl':''}
  const pb=$('pbar');pb.style.display=(P.pl>0&&!P.dead)?'block':'none';pb.firstElementChild.style.width=Math.min(100,(P.pl||0)/PLANT_T*100)+'%'}
 function bombUpdate(dt){
  if(C4S.plantH&&!(P.pl>0)&&!(P.wp===3&&mouse)){sndStop(C4S.plantH);C4S.plantH=null}
@@ -1843,11 +1967,16 @@ function layoutView(){const W=innerWidth,H=innerHeight,A=inMatch&&!inLobby?AR_T[
 /* ---- پروفایل‌های کیفیت: هرچی پایین‌تر، بازی سبک‌تر (رزولوشن، سایه، مه/فاصله‌ی دید، حذف و ساده‌سازی بازیکن‌های دور) ---- */
 const QUAL={
  low:  {pr:.7,   sh:false,sm:1024,se:60, shT:1,shN:1,fogN:35,fogF:110,far:125,ent:105,anim:22,mmN:3,lights:false},
- mid:  {pr:1.25, sh:true, sm:1024,se:65, shT:1,shN:2,fogN:55,fogF:170,far:190,ent:165,anim:38,mmN:2,lights:true},
+ mid:  {pr:1.25, sh:true, sm:1024,se:45, shT:1,shN:2,fogN:55,fogF:170,far:190,ent:165,anim:38,mmN:2,lights:true},
  high: {pr:2,    sh:true, sm:2048,se:85, shT:2,shN:1,fogN:70,fogF:300,far:340,ent:300,anim:65,mmN:1,lights:true},
  ultra:{pr:2.25, sh:true, sm:4096,se:100,shT:2,shN:1,fogN:90,fogF:400,far:650,ent:1e9,anim:1e9,mmN:1,lights:true}};
 let QL=QUAL.high,FRN=0;const _cf=new THREE.Frustum(),_cm=new THREE.Matrix4(),_cs=new THREE.Sphere();
 let BASEPR=1,DRSF=1;const ADP={lo:0,hi:0,mx:1,sn:99};
+const PERF={sim:0,rnd:0,rays:0,n:0};ren.info.autoReset=false;
+const SNR=[0,0,0],SNU=[0,0,0];(()=>{const d=[40,80,20],l=Math.hypot(d[0],d[1],d[2]),z=d.map(v=>v/l);let r=[z[2],0,-z[0]];const rl=Math.hypot(r[0],r[2]);r=[r[0]/rl,0,r[2]/rl];
+ const u=[z[1]*r[2]-z[2]*r[1],z[2]*r[0]-z[0]*r[2],z[0]*r[1]-z[1]*r[0]];for(let i=0;i<3;i++){SNR[i]=r[i];SNU[i]=u[i]}})();   // محورهای راست/بالای دوربین سایه؛ برای چسباندن به شبکه‌ی تکسل (جلوگیری از لرزش سایه)
+const _fpP=new THREE.Vector3(),_fpN=new THREE.Vector3();
+const PFXP=new Map(),PFX_MAX=matchMedia('(pointer:coarse)').matches?100:400;
 function applySet(save){SENS=.0022*SET.sens;const d=devicePixelRatio||1,b=QUAL[SET.q]||QUAL.high,q=QL=Object.assign({},b);
  const SH={low:[1024,1],mid:[2048,1],high:[2048,2],ultra:[4096,2]}[SET.shadow];
  if(SET.shadow==='off')q.sh=false;else if(SH){q.sh=true;q.sm=SH[0];q.shT=SH[1]}
@@ -2560,13 +2689,13 @@ function botUpdate(e,dt){
    if(tw>3&&Math.hypot(e.p.x-a[0],e.p.z-a[1])<2.2){e.unst=2.5;e.rgt=0;e.jumpTry=1;H.length=0}}}
  e.unst=Math.max(0,(e.unst||0)-dt);e._jc=Math.max(0,(e._jc||0)-dt);
  let fw=0,sd=0,vis=false,dir=null;
- if(tg){const o=eye(e),dx=tg.p.x-e.p.x,dy=tg.p.y+1.1-o.y,dz=tg.p.z-e.p.z,Ln=Math.hypot(dx,dy,dz);dir={x:dx/Ln,y:dy/Ln,z:dz/Ln};vis=Ln<70&&!(e.fl>0)&&wallDist(o,dir)>Ln&&!smokeBlocks(o,dir,Ln)}
+ if(tg){const o=eye(e),dx=tg.p.x-e.p.x,dy=tg.p.y+1.1-o.y,dz=tg.p.z-e.p.z,Ln=Math.hypot(dx,dy,dz);dir={x:dx/Ln,y:dy/Ln,z:dz/Ln};vis=Ln<70&&!(e.fl>0)&&castRay(o.x,o.y,o.z,dir.x,dir.y,dir.z,OPT.ray?Ln:200,false)>Ln&&!smokeBlocks(o,dir,Ln)}
  const dP=(e.team===0&&!P.dead)?Math.hypot(P.p.x-e.p.x,P.p.z-e.p.z):0;
  let da=0;
  if(vis){da=Math.atan2(-(tg.p.x-e.p.x),-(tg.p.z-e.p.z))-e.yaw;da=Math.atan2(Math.sin(da),Math.cos(da));
   if(!(Math.abs(da)<BOT_FOV||td<BOT_HEAR||e.mem>0))vis=false}   // خارج از میدان دید (پشت سرش) و صدایی هم نبوده → ندیده
  e.mem=Math.max(0,(e.mem||0)-dt);
- if(vis){if(!e.seen){e.seen=true;e.react=(BOT_REACT[0]+R()*(BOT_REACT[1]-BOT_REACT[0]))*(e.team===1?EN.react:1)}e.mem=Math.max(e.mem,1.2);e.lk=[tg.p.x,tg.p.z]}else e.seen=false;
+ if(vis){if(!e.seen){e.seen=true;e.react=(BOT_REACT[0]+R()*(BOT_REACT[1]-BOT_REACT[0]))*(e.team===1?EN.react:1)}e.mem=Math.max(e.mem,1.2);if(e.lk){e.lk[0]=tg.p.x;e.lk[1]=tg.p.z}else e.lk=[tg.p.x,tg.p.z]}else e.seen=false;
  if(vis){ // دشمن رو می‌بینه: بایست/نزدیک شو و استرف کن
   {const st=BOT_TURN*dt*(e.team===1?EN.turn:1);e.yaw+=Math.max(-st,Math.min(st,da))}   // چرخش محدود، نه یهویی
   e.react-=dt;
@@ -2581,18 +2710,18 @@ function botUpdate(e,dt){
   if(e.team===0&&!P.dead){if(dP>40)e.goal=1;else if(dP<20)e.goal=0;if(e.goal===1){gx=P.p.x;gy=P.p.y;gz=P.p.z;follow=true}}
   if((follow&&dP<5)||sdHold(e,dt)){/* کنار بازیکنه / پلنت / خنثی‌سازی: بایسته */}
   else{
-   e.pt-=dt;if(!e.path||e.pt<=0){e.pt=.7+R()*.5;const p=findPath(e.p.x,e.p.y,e.p.z,gx,gy,gz,follow?0:e.pseed);e.path=p;e.pi=0;
-     if(p&&p.length>1){e.pi=1}}
+   e.pt-=dt;let _df=false;if(!e.path||e.pt<=0){if(OPT.path){if(!e.pj||performance.now()-e.pjt>3000){e.pt=.7+R()*.5;pathAsync(e,e.p.x,e.p.y,e.p.z,gx,gy,gz,follow?0:e.pseed)}_df=!e.path}else{e.pt=.7+R()*.5;const p=findPath(e.p.x,e.p.y,e.p.z,gx,gy,gz,follow?0:e.pseed);e.path=p;e.pi=0;
+     if(p&&p.length>1){e.pi=1}}}
    if(e.path&&e.pi<e.path.length){
     let n=e.path[e.pi];
     while(e.pi<e.path.length-1&&Math.hypot(nvx[n]-e.p.x,nvz[n]-e.p.z)<.75){e.pi++;n=e.path[e.pi]}
-    const prev=e.path[Math.max(0,e.pi-1)],edgeKey=prev+':'+n;
+    const prev=e.path[Math.max(0,e.pi-1)],edgeKey=prev*131072+n;
     const dx=nvx[n]-e.p.x,dz=nvz[n]-e.p.z,dist=Math.hypot(dx,dz);
     if(navJumpEdge(prev,n)&&nvy[n]>e.p.y+STEP-.08&&dist<1.25&&dist>.2&&e.on&&(e._jumpEdge!==edgeKey||e._jc<=0)){
      e.vy=JUMP;e.on=false;e._jumpEdge=edgeKey;e._jc=1.2;
     }
     if(dist>.2){const want=Math.atan2(-dx,-dz);let d=want-e.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));{const st=BOT_TURN_ROAM*dt;e.yaw+=Math.max(-st,Math.min(st,d*Math.min(1,dt*10)))}fw=1;e._rm=1}
-   }else e.rgt=0; // مسیر پیدا نشد: نقطه‌ی گشت جدید انتخاب کن
+   }else if(!_df)e.rgt=0; // مسیر پیدا نشد (اگه فقط منتظر جواب A* هستیم، مقصد رو عوض نکن): نقطه‌ی گشت جدید انتخاب کن
   }
  }
  if(e.unst>0&&!e.sdHeld){sd=e.s;if(e.on&&e.jumpTry){e.vy=JUMP;e.on=false;e.jumpTry=0}}
@@ -2614,6 +2743,7 @@ function botUpdate(e,dt){
  if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){e.cd=(.35+R()*.3)*(e.team===1?EN.cd:1);const hs=R()<(e.team===1?EN.hs:.15),j=(hs?.02:.03)*(e.team===1?EN.jit:1),o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,d={x:bd.x+(R()-.5)*j*2,y:bd.y+(R()-.5)*j*2,z:bd.z+(R()-.5)*j*2},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;e.yaw=Math.atan2(-bd.x,-bd.z);e.vp=Math.asin(Math.max(-1,Math.min(1,bd.y)));   // دید بات (و کراس‌هیر تماشاچی) لحظه‌ی شلیک دقیقاً روی همون جهتی می‌ره که گلوله می‌ره
  fire(e,d)}}
 function simulate(dt){
+ if(OPT.path)pathPump();
  nadesStep(dt);
  if(SD.on){if(NET.mode==='client')sdClientUpdate(dt);else sdUpdate(dt)}
  for(const e of ents){
@@ -3028,12 +3158,14 @@ function mkScorchTex(){const c=document.createElement('canvas');c.width=c.height
  for(let i=0;i<6;i++){const a=R()*6.28,r=i?R()*16:0,cx=64+Math.cos(a)*r,cy=64+Math.sin(a)*r,g=x.createRadialGradient(cx,cy,2,cx,cy,44+R()*16);
   g.addColorStop(0,'rgba(0,0,0,.55)');g.addColorStop(.6,'rgba(0,0,0,.28)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,128,128)}
  return new THREE.CanvasTexture(c)}
-function pfx(tex,x,y,z,vx,vy,vz,o){const q=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,fog:false,opacity:0,rotation:R()*6.28,blending:o.add?THREE.AdditiveBlending:THREE.NormalBlending}));
+function pfx(tex,x,y,z,vx,vy,vz,o){if(PFX.length>=PFX_MAX)return;const bl=o.add?THREE.AdditiveBlending:THREE.NormalBlending,pl=PFXP.get(tex);let q=pl&&pl.pop();
+ if(q){const m=q.material;m.blending=bl;m.opacity=0;m.rotation=R()*6.28;m.color.setRGB(1,1,1)}
+ else q=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,fog:false,opacity:0,rotation:R()*6.28,blending:bl}));
  q.position.set(x,y,z);q.scale.set(o.s0,o.s0,1);scene.add(q);
- PFX.push({q,vx,vy,vz,age:-(o.delay||0),life:o.life,s0:o.s0,s1:o.s1,op:o.op,c0:o.c0,c1:o.c1,drag:o.drag||0,grav:o.grav||0,gy:o.gy,fp:o.fp||1,rs:(R()-.5)*(o.rot===undefined?.7:o.rot)})}
+ PFX.push({q,tx:tex,vx,vy,vz,age:-(o.delay||0),life:o.life,s0:o.s0,s1:o.s1,op:o.op,c0:o.c0,c1:o.c1,drag:o.drag||0,grav:o.grav||0,gy:o.gy,fp:o.fp||1,rs:(R()-.5)*(o.rot===undefined?.7:o.rot)})}
 function pfxStep(dt){
  for(let i=PFX.length-1;i>=0;i--){const f=PFX[i];f.age+=dt;if(f.age<0)continue;const u=f.age/f.life;
-  if(u>=1){scene.remove(f.q);f.q.material.dispose();PFX.splice(i,1);continue}
+  if(u>=1){scene.remove(f.q);let pl=PFXP.get(f.tx);if(!pl){pl=[];PFXP.set(f.tx,pl)}if(pl.length<160)pl.push(f.q);else f.q.material.dispose();PFX.splice(i,1);continue}
   const dm=Math.exp(-f.drag*dt),p=f.q.position;f.vx*=dm;f.vz*=dm;f.vy=f.vy*dm-f.grav*dt;p.x+=f.vx*dt;p.y+=f.vy*dt;p.z+=f.vz*dt;
   if(f.gy!==undefined&&f.gy!==null&&p.y<f.gy){p.y=f.gy;f.vy=Math.abs(f.vy)*.35;f.vx*=.55;f.vz*=.55}
   const sc=f.s0+(f.s1-f.s0)*(1-Math.pow(1-u,2.2)),m=f.q.material,t=Math.min(1,u*1.6);f.q.scale.set(sc,sc,1);
@@ -3141,10 +3273,14 @@ function nadesHud(){const el=$('nades');if(!el)return;const w=P.wp||0,g=P.gn||{}
  if(h!==_ngS){_ngS=h;el.innerHTML=h}}
 let POSV=true;   // نمایش مختصات (F6 = روشن/خاموش)
 addEventListener('keydown',e=>{if(e.code==='F6'){e.preventDefault();POSV=!POSV;const q=$('pos');if(q)q.style.display=POSV?'block':'none'}});
+const _tx={};function setTx(id,v){if(_tx[id]!==v){_tx[id]=v;$(id).textContent=v}}
 function render(dt){
  const specT=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:null;FRN++;const RF=(specT||P).p;
  if(QL.shN>1&&FRN%QL.shN===0)ren.shadowMap.needsUpdate=true;
- sun.target.position.set(P.p.x,P.p.y,P.p.z);sun.position.set(P.p.x+40,P.p.y+80,P.p.z+20);
+ {const ts=2*QL.se/(sun.shadow.mapSize.x||1024);let tx=P.p.x,ty=P.p.y,tz=P.p.z;   // دوربین سایه روی شبکه‌ی تکسل می‌چسبه: سایه‌ی مپ موقع حرکت نمی‌لرزه
+  const a=tx*SNR[0]+ty*SNR[1]+tz*SNR[2],b=tx*SNU[0]+ty*SNU[1]+tz*SNU[2],da=Math.round(a/ts)*ts-a,db=Math.round(b/ts)*ts-b;
+  tx+=SNR[0]*da+SNU[0]*db;ty+=SNR[1]*da+SNU[1]*db;tz+=SNR[2]*da+SNU[2]*db;
+  sun.target.position.set(tx,ty,tz);sun.position.set(tx+40,ty+80,tz+20)}
  for(const e of ents){const m=e.mesh,u=m.userData;
   m.position.set(e.p.x,e.p.y-(e.sdip||0),e.p.z);m.rotation.y=e.yaw;
   const sp=Math.hypot(e.p.x-e.lx,e.p.z-e.lz)/Math.max(dt,1e-3);e.lx=e.p.x;e.lz=e.p.z;
@@ -3207,9 +3343,9 @@ function render(dt){
    if(fp){const df=e.isP?Math.max(0,Math.min(1,-pitch/1.0)):0,sh=e.isP?-FP_LEG_BACK+FP_LEG_FWD*df:-FP_LEG_BACK;   // هرچی بیشتر پایین رو نگاه کنی، بدن به عقب خم می‌شه و پاها جلوتر میان (مثل CS)
     m.position.x-=Math.sin(e.yaw)*sh;m.position.z-=Math.cos(e.yaw)*sh;m.rotation.x=e.isP?FP_LEG_TILT*df:0;u.ring.visible=false;
     let up,pt;   // سر رو از گردن می‌بُریم تا دوربین توی سر نیفته؛ گردن با خم شدن کمر و نشستن جابه‌جا می‌شه
-    if(u.neckM){m.updateMatrixWorld(true);pt=u.neckM.getWorldPosition(new THREE.Vector3());up=_dv.set(0,0,1).transformDirection(u.neckM.matrixWorld);up.x*=.25;up.y=.25*up.y+.75;up.z*=.25;up.normalize()}   // صفحه‌ی برش رو بیشتر افقی نگه می‌داریم؛ وقتی نشستی و به پایین نگاه می‌کنی با کمر خم‌شده، صفحه‌ی کج پاها/تنه‌ی خودت رو هم می‌برید
-    else{up=_dv.set(0,1,0).applyQuaternion(m.quaternion);const nh=CHAR_H*FP_NECK*(1-.26*e.cr);pt=new THREE.Vector3(m.position.x+up.x*nh,m.position.y+up.y*nh,m.position.z+up.z*nh)}
-    u.fpPlane.setFromNormalAndCoplanarPoint(up.clone().negate(),pt)}
+    if(u.neckM){m.updateMatrixWorld(true);pt=u.neckM.getWorldPosition(_fpP);up=_dv.set(0,0,1).transformDirection(u.neckM.matrixWorld);up.x*=.25;up.y=.25*up.y+.75;up.z*=.25;up.normalize()}   // صفحه‌ی برش رو بیشتر افقی نگه می‌داریم؛ وقتی نشستی و به پایین نگاه می‌کنی با کمر خم‌شده، صفحه‌ی کج پاها/تنه‌ی خودت رو هم می‌برید
+    else{up=_dv.set(0,1,0).applyQuaternion(m.quaternion);const nh=CHAR_H*FP_NECK*(1-.26*e.cr);pt=_fpP.set(m.position.x+up.x*nh,m.position.y+up.y*nh,m.position.z+up.z*nh)}
+    u.fpPlane.setFromNormalAndCoplanarPoint(_fpN.copy(up).negate(),pt)}
    if(u.botGun&&(e.isP||isSp||u.fpGunHid)){const hg=e.isP?fp:(isSp&&!e.dead);u.botGun.visible=!hg;u.fpGunHid=hg&&!e.isP}
    m.visible=e.isP?(fp||tp||e.dead):true}
   else m.visible=true}
@@ -3234,28 +3370,28 @@ function render(dt){
    else if(e.dead&&e.rag&&e.rag.P&&!e.rag.bad){const cp=cam.position;for(const q of e.rag.P){if(q&&q.x!==undefined&&(q.x-cp.x)**2+(q.y-cp.y)**2+(q.z-cp.z)**2<.3){m.visible=false;break}}}}
  vmUpdate(dt);
  if(FRN%QL.mmN===0)try{mmDraw()}catch(e){}
- {const fb=$('fb');if(fb){const a=(P.fl>0&&!P.dead)?Math.min(1,P.fl/Math.max(.3,(P.fd||1)*.4)):0;fb.style.display=a>0?'block':'none';fb.style.opacity=a}}
+ {const fb=$('fb');if(fb){const a=(P.fl>0&&!P.dead)?Math.min(1,P.fl/Math.max(.3,(P.fd||1)*.4)):0;if(!OPT.ui||fb._a!==a){fb._a=a;fb.style.display=a>0?'block':'none';fb.style.opacity=a}}}
  try{nadesHud()}catch(e){}try{buyHud()}catch(e){}
- if(POSV){const q=$('pos'),w=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:P;if(q)q.textContent='X '+w.p.x.toFixed(2)+'\nY '+w.p.y.toFixed(2)+'\nZ '+w.p.z.toFixed(2)}
+ if(POSV){const q=$('pos'),w=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:P;if(q)setTx('pos','X '+w.p.x.toFixed(2)+'\nY '+w.p.y.toFixed(2)+'\nZ '+w.p.z.toFixed(2))}
  bloodUpdate(dt);
- for(let i=tr.length-1;i>=0;i--){tr[i].t-=dt;if(tr[i].t<=0){scene.remove(tr[i].l);tr[i].l.geometry.dispose();tr.splice(i,1)}}
+ for(let i=tr.length-1;i>=0;i--){tr[i].t-=dt;if(tr[i].t<=0){scene.remove(tr[i].l);if(OPT.tracer)TRP.push(tr[i].l);else tr[i].l.geometry.dispose();tr.splice(i,1)}}
  mfT-=dt;if(mfT<=0)mflash.intensity=0;
  hm-=dt;crossFrame(dt);
  $('dmg').style.opacity=0;if(P.hp<35&&!P.dead)$('dmg').style.opacity=.6;
- $('hpv').textContent=Math.max(0,Math.ceil(P.hp));
- $('ammo').textContent=(P.wp||0)>=4?NK[P.wp].n+' x'+((P.gn&&P.gn[P.wp])|0):(P.wp||0)===1?'KNIFE':(P.wp||0)===3?'C4':P.rl>0?'RELOAD':P.ammo+' / ∞';
- if(SD.on)sdHud();else{$('sdbar').style.display='none';$('score').textContent=`تیم تو ${score[0]}  —  ${score[1]} دشمن`;
-  $('msg').textContent=P.dead?`مُردی! ریسپاون تا ${Math.ceil(P.rt)} ثانیه`:''}
+ setTx('hpv',Math.max(0,Math.ceil(P.hp)));
+ setTx('ammo',(P.wp||0)>=4?NK[P.wp].n+' x'+((P.gn&&P.gn[P.wp])|0):(P.wp||0)===1?'KNIFE':(P.wp||0)===3?'C4':P.rl>0?'RELOAD':P.ammo+' / ∞');
+ if(SD.on)sdHud();else{$('sdbar').style.display='none';setTx('score',`تیم تو ${score[0]}  —  ${score[1]} دشمن`);
+  setTx('msg',P.dead?`مُردی! ریسپاون تا ${Math.ceil(P.rt)} ثانیه`:'')}
  renderWithViewmodel()}
 
 let last=performance.now();
 (function loop(now){requestAnimationFrame(loop);if(SET.fps>0&&now-last<1000/SET.fps-1.5)return;const dt=Math.min(.05,(now-last)/1000);last=now;
- {const st=(inMatch?1:0)+(inLobby?2:0);if(st!==_lvS){_lvS=st;layoutView()}FPC.n++;if(now-FPC.t>=500){const fp=FPC.n*1000/(now-FPC.t);if(SET.showFps)$('fpsc').textContent=Math.round(fp)+' FPS';
+ {const st=(inMatch?1:0)+(inLobby?2:0);if(st!==_lvS){_lvS=st;layoutView()}FPC.n++;if(now-FPC.t>=500){const fp=FPC.n*1000/(now-FPC.t);if(SET.showFps){const rf=ren.info.render,nn=Math.max(1,PERF.n);$('fpsc').textContent=Math.round(fp)+' FPS | '+rf.calls+' dc | '+Math.round(rf.triangles/1000)+'k tri | sim '+(PERF.sim/nn).toFixed(1)+' rnd '+(PERF.rnd/nn).toFixed(1)+' ms | ray '+Math.round(PERF.rays/nn)}PERF.sim=PERF.rnd=PERF.rays=PERF.n=0;
   if(window.TOUCH&&SET.adapt!==false&&inMatch&&!inLobby&&locked&&!document.hidden&&FPC.t>0){const tg=SET.fps>0&&SET.fps<60?SET.fps:60;ADP.sn++;
    if(fp<tg*.7){ADP.hi=0;if(++ADP.lo>=2&&DRSF>.55){ADP.lo=0;if(ADP.sn<14)ADP.mx=Math.max(.55,DRSF-.05);DRSF=Math.max(.55,+(DRSF-.1).toFixed(2));ren.setPixelRatio(BASEPR*DRSF)}}
    else if(fp>=tg*.92){ADP.lo=0;if(++ADP.hi>=10&&DRSF<ADP.mx){ADP.hi=0;ADP.sn=0;DRSF=Math.min(ADP.mx,+(DRSF+.05).toFixed(2));ren.setPixelRatio(BASEPR*DRSF)}}else{ADP.lo=ADP.hi=0}}
   FPC.n=0;FPC.t=now}}
- if(READY){if(inMatch){if(locked||netLive())simulate(dt);NET.frame(dt);render(dt)}/* ✦ آنلاین با دوست: پاز بازی رو برای بقیه متوقف نمی‌کنه */else if(inLobby){NET.frame(dt);lobbyFrame(dt)}}})(last);
+ if(READY){if(inMatch){const t0=performance.now();if(locked||netLive())simulate(dt);NET.frame(dt);const t1=performance.now();ren.info.reset();render(dt);PERF.sim+=t1-t0;PERF.rnd+=performance.now()-t1;PERF.rays+=RAYN;RAYN=0;PERF.n++}/* ✦ آنلاین با دوست: پاز بازی رو برای بقیه متوقف نمی‌کنه */else if(inLobby){NET.frame(dt);ren.info.reset();lobbyFrame(dt)}}})(last);
 
 /* ================= BOOT: لود مپ + کاراکترها + ساخت مسیرها ================= */
 /* ---- راه رفتن: مدل‌ها اسکلت ندارن، پس پاها و دست‌ها رو از بدنه جدا می‌کنیم و دور باسن/شونه می‌چرخونیم ---- */
@@ -3360,6 +3496,8 @@ async function boot(){
   buildCol(pv);
   const info=buildNav();console.log('nav',info);
   pickSpawns();pickSites();
+   try{mergeStaticMap(pv,new Set(SD.markMeshes||[]))}catch(err){console.warn('[merge] انجام نشد، مپ مثل قبل می‌مونه:',err)}
+   st('در حال آماده‌سازی GPU...');await warmGPU();
   initBall();   // توپ فوتبال وسط مپ
   window.__g={ents,get P(){return P},get BALL(){return BALL},info,scene,cam,castRay,findPath,nearestNode,nav:()=>({NN,nvx,nvy,nvz,ncF,ncN,NGX,NGZ,GX0,GZ0,ncomp,mainComp,adjS,adjT}),SPAWN:()=>SPAWN,simulate,render,
    setLock:v=>{locked=v},setTp:v=>{tp=v},setPitch:v=>{pitch=v},tris:()=>NT,SD,sdSetSite};
@@ -3464,7 +3602,7 @@ $('sx').onclick=$('sok').onclick=closeSet;$('srt').onclick=()=>sReset([SUI.tab])
    روی گوشی Pointer Lock نداریم؛ پس «locked» رو دستی true می‌کنیم و بقیه‌ی منطق بازی همون می‌مونه. */
 const TOUCH=window.TOUCH;
 if(TOUCH){
- try{if(!localStorage.getItem('ms_set')){SET.hudScale=75;SET.mmSize=110;SET.showPos=false;SET.q='mid';SET.aa=false;SET.res=90;SET.mq=1;applySet(false)}else if(!SET.mq){SET.mq=1;if(SET.q==='high'){SET.q='mid';applySet(true)}else saveSet()}}catch(e){}
+ try{if(!localStorage.getItem('ms_set')){SET.hudScale=75;SET.mmSize=110;SET.showPos=false;SET.q='mid';SET.aa=false;SET.res=90;SET.fps=60;SET.mq=2;applySet(false)}else if((SET.mq|0)<2){const m0=SET.mq|0;SET.mq=2;if(m0<1&&SET.q==='high')SET.q='mid';if(SET.fps===0)SET.fps=60;applySet(true)}}catch(e){}
  const st=document.createElement('style');st.textContent=`
 #tc{position:fixed;inset:0;z-index:45;display:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;font-family:inherit;direction:rtl}
 #tc .tb{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(30,32,38,.42);border:0;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.14);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);color:#fff;font-size:13px;font-weight:600;text-shadow:0 0 3px #000;touch-action:none;box-sizing:border-box;transition:background .08s,transform .08s}
