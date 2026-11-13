@@ -212,6 +212,13 @@ canvas{display:block}
 #lbset .sw input:checked+span::after{right:23px}
 #lbset .sw input:checked+span{background:linear-gradient(135deg,#34d399,#16a870)}
 #lbset .sft{padding:12px 20px;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:12.5px}
+#rbanner{position:absolute;top:84px;left:50%;transform:translateX(-50%);display:none;min-width:min(86vw,540px);box-sizing:border-box;padding:10px 40px 9px;text-align:center;background:linear-gradient(90deg,transparent,rgba(8,12,18,.88) 14%,rgba(8,12,18,.88) 86%,transparent);border-top:2px solid var(--bc);border-bottom:2px solid var(--bc);z-index:5;pointer-events:none;animation:rbin .35s ease-out}
+#rbanner.tw{--bc:#e8b23a;color:#ffd36a}#rbanner.cw{--bc:#5aa0e8;color:#8cc4ff}
+#rbanner b{display:block;font-size:30px;letter-spacing:3px;font-weight:700;text-shadow:0 2px 10px #000;direction:ltr}
+#rbanner small{display:block;margin-top:2px;font-size:14px;color:#dfe7ee;opacity:.85;direction:rtl}
+@keyframes rbin{from{opacity:0;transform:translateX(-50%) scale(.92)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+@media (max-height:520px){#rbanner{top:74px;padding:6px 34px}#rbanner b{font-size:21px}#rbanner small{font-size:12px}}
+#mm.big{position:fixed;top:50%;left:50%;right:auto;transform:translate(-50%,-50%);border-radius:12px;z-index:6;box-shadow:0 0 0 2px rgba(255,255,255,.25),0 12px 44px rgba(0,0,0,.75)}
 </style></head><body>
 <div id="hud"><div id="sdbar"></div><div id="fb"></div><div id="pos"></div><canvas id="mm"></canvas><div id="kf"></div><div id="flash"></div><div id="pbar"><i></i></div><div id="sdhint"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="nades"></div><div id="money" class="t"><span id="mv"></span><i id="mgain"></i></div><div id="buy"></div><div id="toast"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
 <div id="menu"><h1>Mini Strike</h1>
@@ -423,6 +430,12 @@ sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);sun.shadow.bias=-.0008;sun
 const gun=new THREE.Group();gun.position.set(.17,-.2,-.385);cam.add(gun);
 const gunBox=new THREE.Mesh(new THREE.BoxGeometry(.08,.11,.55),new THREE.MeshLambertMaterial({color:0x222222}));gun.add(gunBox);
 let AKW=null;   // نسخه‌ی سالم مدل واقعی AK برای وقتی که تفنگ موقع مرگ می‌افته
+/* سر لوله‌ی واقعی مدل AK (فضای گان): جلوترین رأس‌های مدل (محور لوله = -z) میانگین‌گیری می‌شن؛ ترسر و فلش دقیقاً از اینجا می‌یان */
+function vmFindMuzzle(m){gun.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(gun.matrixWorld).invert(),v=new THREE.Vector3(),M=new THREE.Matrix4(),pts=[];let mz=1e9;
+ m.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||!o.geometry||!o.geometry.attributes.position)return;const p=o.geometry.attributes.position;M.multiplyMatrices(inv,o.matrixWorld);
+  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).applyMatrix4(M);pts.push(v.x,v.y,v.z);if(v.z<mz)mz=v.z}});
+ let sx=0,sy=0,sz=0,n=0;for(let i=0;i<pts.length;i+=3)if(pts[i+2]<mz+.012){sx+=pts[i];sy+=pts[i+1];sz+=pts[i+2];n++}
+ if(n)VM.mzG=new THREE.Vector3(sx/n,sy/n,sz/n)}
 new THREE.GLTFLoader().load(FILES.gun,g=>{
  const m=g.scene,b=new THREE.Box3().setFromObject(m),c=b.getCenter(new THREE.Vector3()),sz=b.getSize(new THREE.Vector3());
  m.position.sub(c);
@@ -436,7 +449,7 @@ new THREE.GLTFLoader().load(FILES.gun,g=>{
  pv.scale.setScalar(.88/Math.max(sz.x,sz.y,sz.z));   // طول اسلحه ≈ ۰٫۷
  pv.rotation.y=Math.PI/2+.03;                        // لوله به سمت جلو و کمی به سمت مرکز
  pv.position.set(0,0,0);
- gun.remove(gunBox);gun.add(pv);VM.model=pv;AKW=pv.clone(true);setupMag(m);setupHandle(m)
+ gun.remove(gunBox);gun.add(pv);VM.model=pv;AKW=pv.clone(true);try{vmFindMuzzle(m)}catch(e){console.warn('[muzzle]',e)}setupMag(m);setupHandle(m)
 },undefined,err=>console.warn('ak-47.glb لود نشد:',err));
 
 /* ---- چاقو: M9 Bayonet (فایل m9_bayonet_knife.glb کنار HTML) — تیغه توی مدل به +X و دسته به -X ---- */
@@ -1000,7 +1013,7 @@ function simplify(root,def){
   o.receiveShadow=true;o.castShadow=!o.userData.noCol})}
 
 /* ================= MAP + COLLISION ================= */
-let T,TN,NT=0,CELL=2.5,GX0=0,GZ0=0,NX=0,NZ=0,CS,CT,STAMP,stamp=0,MAPMIN=0,TB=null,CSW=null,CTW=null;
+let T,TN,NT=0,CELL=2.5,GX0=0,GZ0=0,NX=0,NZ=0,CS,CT,STAMP,stamp=0,MAPMIN=0,TB=null,CSW=null,CTW=null,MBX0=0,MBX1=0,MBZ0=0,MBZ1=0;
 let HNX=0,HNY=1,HNZ=0;
 /* ادغام مش‌های ثابت مپ: همه‌ی مش‌هایی که متریال یکسان دارن و توی یه بلوک ~۴۰ متری هستن → یه مش (مختصات جهانی پخته می‌شه).
    نتیجه: Draw call چندین برابر کمتر (هم پاس اصلی هم پاس سایه)، پیمایش گراف صحنه‌ی سبک‌تر، و دیگه ماتریس هزاران نود هر فریم دوباره حساب نمی‌شه.
@@ -1066,7 +1079,7 @@ function buildCol(root){
  T=new Float32Array(arr);TN=new Float32Array(nr);NT=TN.length/3;
  let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9,y0=1e9;
  for(let i=0;i<T.length;i+=3){x0=Math.min(x0,T[i]);x1=Math.max(x1,T[i]);y0=Math.min(y0,T[i+1]);z0=Math.min(z0,T[i+2]);z1=Math.max(z1,T[i+2])}
- GX0=x0-1;GZ0=z0-1;MAPMIN=y0;NX=Math.ceil((x1-GX0)/CELL)+2;NZ=Math.ceil((z1-GZ0)/CELL)+2;
+ GX0=x0-1;GZ0=z0-1;MAPMIN=y0;MBX0=x0;MBX1=x1;MBZ0=z0;MBZ1=z1;NX=Math.ceil((x1-GX0)/CELL)+2;NZ=Math.ceil((z1-GZ0)/CELL)+2;
  const cnt2=new Int32Array(NX*NZ+1),rng=i=>{const j=i*9;
   const mnx=Math.min(T[j],T[j+3],T[j+6]),mxx=Math.max(T[j],T[j+3],T[j+6]),mnz=Math.min(T[j+2],T[j+5],T[j+8]),mxz=Math.max(T[j+2],T[j+5],T[j+8]);
   return[Math.floor((mnx-GX0)/CELL),Math.floor((mxx-GX0)/CELL),Math.floor((mnz-GZ0)/CELL),Math.floor((mxz-GZ0)/CELL)]};
@@ -1165,6 +1178,8 @@ function buildNav(){
  for(let s=0;s<NN;s++){if(ncomp[s]>=0)continue;const q=[s];ncomp[s]=id;let n=0;
   for(let h=0;h<q.length;h++){const u=q[h];n++;for(let k=adjS[u];k<adjS[u+1];k++){const v=adjT[k];if(ncomp[v]<0){ncomp[v]=id;q.push(v)}}}
   if(n>bs){bs=n;best=id}id++}
+ {let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;for(let n=0;n<NN;n++){if(ncomp[n]!==best)continue;a0=Math.min(a0,nvx[n]);a1=Math.max(a1,nvx[n]);b0=Math.min(b0,nvz[n]);b1=Math.max(b1,nvz[n])}
+ if(a1>a0){const M=BOUND_PAD;MBX0=Math.max(MBX0,a0-M);MBX1=Math.min(MBX1,a1+M);MBZ0=Math.max(MBZ0,b0-M);MBZ1=Math.min(MBZ1,b1+M)}}   // مرز دیوار نامرئی = ناحیه‌ی قابل‌راه‌رفتن + حاشیه
  mainComp=best;return{nodes:NN,main:bs,comps:id,edges:EA.length/2}}
 function nearestNode(x,y,z){
  const gx=Math.floor((x-GX0)/NAVC),gz=Math.floor((z-GZ0)/NAVC);
@@ -1247,6 +1262,10 @@ function move(e,dx,dz){
   let nl=Math.hypot(bnx,bnz);if(nl<1e-4)return;bnx/=nl;bnz/=nl;if(bnx*ux+bnz*uz>0){bnx=-bnx;bnz=-bnz}
   const rem=len-adv,dot=ux*bnx+uz*bnz;dx=(ux-dot*bnx)*rem;dz=(uz-dot*bnz)*rem}}
 const GOFF=[[0,0],[.34,0],[-.34,0],[0,.34],[0,-.34],[.24,.24],[.24,-.24],[-.24,.24],[-.24,-.24]];
+const BOUND_PAD=6;   // فاصله‌ی دیوار نامرئی از آخرین نقطه‌ی قابل‌راه‌رفتن (متر)
+function clampBounds(e){if(MBX1<=MBX0||MBZ1<=MBZ0)return;const m=.45;   // دیوار نامرئی دور مپ: هیچ‌کس (بازیکن/بات) از این مستطیل بیرون نمی‌ره
+ if(e.p.x<MBX0+m){e.p.x=MBX0+m;if(e.vx<0)e.vx=0}else if(e.p.x>MBX1-m){e.p.x=MBX1-m;if(e.vx>0)e.vx=0}
+ if(e.p.z<MBZ0+m){e.p.z=MBZ0+m;if(e.vz<0)e.vz=0}else if(e.p.z>MBZ1-m){e.p.z=MBZ1-m;if(e.vz>0)e.vz=0}}
 function phys(e,dt){
  e.sdip=(e.sdip||0)*Math.exp(-dt*6);   // پله: دوربین/بدن نرم دنبال ارتفاع جدید می‌آد
  const v0=e.vy;e.vy=Math.max(-40,v0-(v0>0?GRAV_UP:GRAV_DN)*dt);let ny=e.p.y+(v0+e.vy)*.5*dt;   // انتگرال‌گیری دقیق‌تر (میانگین سرعت)
@@ -1258,6 +1277,7 @@ function phys(e,dt){
  if(e.vy<=0&&(ny<=fh||(e.on&&fh>=e.p.y-.4))){const dh=fh-e.p.y;if(e.on&&Math.abs(dh)>.03&&Math.abs(dh)<=STEP)e.sdip=Math.max(-.5,Math.min(.5,e.sdip+dh));e.p.y=fh;e.vy=0;e.on=true;e.gx=e.p.x;e.gy=e.p.y;e.gz=e.p.z}else{e.p.y=ny;e.on=false}
  if(e.gy!==undefined&&e.p.y<e.gy-2.5&&fh<-1e8){e.p.x=e.gx;e.p.y=e.gy+.05;e.p.z=e.gz;e.vy=0;e.sx=undefined}   // از زمین سوراخ‌نشده افتاد: برگرد به آخرین جای محکم
  if(e.p.y<MAPMIN-12){spawn(e,true);return}
+ clampBounds(e);
  guardEnt(e)}
 /* ---- محافظ ضد فرو رفتن توی دیوار: اگه جابه‌جایی این فریم از وسط یه سطح (در ارتفاع سینه) رد شده باشه، برگرد به جای قبلی ---- */
 let _gw=0,_gwT=0,_gwN=0;
@@ -1521,12 +1541,24 @@ function botMuzzle(e){try{const u=e.mesh&&e.mesh.userData,g=u&&u.botGun;
 const RC_SCALE=1,PV_VIS=.45,D2R=Math.PI/180,_rcO={p:0,y:0};
 const RC_AK=[[0,0],[.7,0],[1.9,.1],[3.6,.2],[5.8,.1],[8,-.2],[10,-.6],[11.6,-1.2],[12.8,-2],[13.7,-2.9],[14.3,-3.6],[14.7,-3.9],[15,-3.5],[15.2,-2.4],[15.3,-.9],[15.4,.8],[15.5,2.2],[15.6,3.2],[15.6,3.6],[15.6,3.3],[15.6,2.2],[15.6,.6],[15.6,-1.1],[15.6,-2.6],[15.6,-3.4],[15.6,-3.7],[15.6,-3.2],[15.6,-1.8],[15.6,-.3],[15.6,1]],RECOIL_MAX=RC_AK.length-1;
 function recoilAt(i,ps){const t=Math.max(0,Math.min(RECOIL_MAX,i)),a=Math.floor(t),b=Math.min(RECOIL_MAX,a+1),f=t-a,A=RC_AK[a],B=RC_AK[b],s=(ps?.4:1)*RC_SCALE*D2R;_rcO.p=(A[0]+(B[0]-A[0])*f)*s;_rcO.y=(A[1]+(B[1]-A[1])*f)*s;return _rcO}
+/* هیت‌باکس: ابعاد نسبت به پای کاراکتر (قد ۱٫۸). قبلاً کره‌های بزرگ (تنه شعاع ۰٫۴) بود و کنار بدن هم هیت می‌خورد؛ حالا کپسول‌های فشرده‌تر.
+   اگه گلوله‌ای که به‌نظر خورده، نخورد: شعاع‌ها رو کمی بزرگ‌تر کن */
+const HB={head:.17,torso:.24,t0:.78,t1:1.22,legs:.19,l0:.20,l1:.55};
+function rayCap(o,d,ax,ay,az,bx,by,bz,r){   // برخورد پرتو با کپسول A→B؛ نزدیک‌ترین t ≥ 0 یا Infinity
+ const bax=bx-ax,bay=by-ay,baz=bz-az,oax=o.x-ax,oay=o.y-ay,oaz=o.z-az;
+ const baba=bax*bax+bay*bay+baz*baz,bard=bax*d.x+bay*d.y+baz*d.z,baoa=bax*oax+bay*oay+baz*oaz,rdoa=d.x*oax+d.y*oay+d.z*oaz,oaoa=oax*oax+oay*oay+oaz*oaz;
+ const a=baba-bard*bard;let best=Infinity;
+ if(a>1e-9){const b=baba*rdoa-baoa*bard,c=baba*oaoa-baoa*baoa-r*r*baba,h=b*b-a*c;
+  if(h>=0){const t=(-b-Math.sqrt(h))/a,y=baoa+t*bard;if(t>=0&&y>0&&y<baba)return t}}
+ for(let k=0;k<2;k++){const cx=k?o.x-bx:oax,cy=k?o.y-by:oay,cz=k?o.z-bz:oaz,b2=d.x*cx+d.y*cy+d.z*cz,c2=cx*cx+cy*cy+cz*cz-r*r,h2=b2*b2-c2;
+  if(h2>=0){const t2=-b2-Math.sqrt(h2);if(t2>=0&&t2<best)best=t2}}
+ return best}
 function fire(e,d){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z}
  const o0={x:ox,y:oy,z:oz};let hit=null,zone='body',trav=0,mul=1,walls=0,L=100,bh=false;
  for(;;){
   const org={x:ox,y:oy,z:oz},wd=Math.min(castRay(ox,oy,oz,d.x,d.y,d.z,200,false),1e8),ny=HNY;let best=wd;
   for(const t of ents){if(t===e||t.dead||t.team===e.team)continue;
-   const c=t.cr||0,a=raySph(org,d,{x:t.p.x,y:t.p.y+1.62-CROUCH_D*c,z:t.p.z},.25),b=raySph(org,d,{x:t.p.x,y:t.p.y+.98-.27*c,z:t.p.z},.4),g=raySph(org,d,{x:t.p.x,y:t.p.y+.36-.1*c,z:t.p.z},.32);
+   const c=t.cr||0,tx=t.p.x,ty=t.p.y,tz=t.p.z,a=raySph(org,d,{x:tx,y:ty+1.62-CROUCH_D*c,z:tz},HB.head),b=rayCap(org,d,tx,ty+HB.t0-.27*c,tz,tx,ty+HB.t1-.27*c,tz,HB.torso),g=rayCap(org,d,tx,ty+HB.l0-.05*c,tz,tx,ty+HB.l1-.12*c,tz,HB.legs);
    if(a<best){best=a;hit=t;zone='head'}if(b<best){best=b;hit=t;zone='body'}if(g<best){best=g;hit=t;zone='legs'}}
   if(!hit&&BALL){const bt=raySph(org,d,{x:BALL.p.x,y:BALL.p.y,z:BALL.p.z},BALL_R);if(bt<best){best=bt;bh=true}}   // توپ جلوی مسیره؟
   if(hit||bh){L=trav+best;break}
@@ -1548,6 +1580,8 @@ function fire(e,d){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;o
 const _mv=new THREE.Vector3(),_me=new THREE.Euler(0,0,0,'YXZ');
 function muzzlePos(){ // موقعیت سر لوله‌ی AK در فضای دنیا
  if(tp)return{x:P.p.x,y:P.p.y+1.45-CROUCH_D*P.cr,z:P.p.z};
+ if((P.wp||0)===0&&VM.mzG){_mv.copy(VM.mzG);gun.localToWorld(_mv);return{x:_mv.x,y:_mv.y,z:_mv.z}}   // AK: سر لوله‌ی واقعی مدل (با چرخش/لگد/راه رفتن گان)
+ if((P.wp||0)===2){_mv.set(PMUZ[0],PMUZ[1],PMUZ[2]);gun.localToWorld(_mv);return{x:_mv.x,y:_mv.y,z:_mv.z}}
  _me.set(pitch,P.yaw,0);_mv.set(gun.position.x+((P.wp||0)===2?PMUZ[0]:-.013),gun.position.y+((P.wp||0)===2?PMUZ[1]:.07),gun.position.z+((P.wp||0)===2?PMUZ[2]:-.44)).applyEuler(_me);
  return{x:P.p.x+_mv.x,y:P.p.y+1.6-CROUCH_D*P.cr-P.dip-(P.sdip||0)+_mv.y,z:P.p.z+_mv.z}}
 let hm=0;
@@ -1689,6 +1723,12 @@ let SD_SWAPPED=false;
 function sdSideSwap(){const want=SD.round>SD_SWAP_AFTER;if(want===SD_SWAPPED)return;SPAWN.reverse();SD_SWAPPED=want;if(want)sdMsg('🔄 جاها عوض شد',4)}
 const BOMB_ENT={name:'C4',team:0,isP:false,wp:3,p:{x:0,y:0,z:0}};
 const sdMsg=(t,s)=>{SD.msg=t;SD.msgT=s||3};
+const SD_FREEZE_T=5;   // ثانیه‌ی فریز اول هر راند: همه (بازیکن و بات) ثابت می‌ایستن، تایمر راند هم نمی‌شمره
+function sdFrozen(){return SD.on&&SD.state==='live'&&SD.frz>0}
+const SD_T0_NAME='Terrorists';   // تیم ۰ (تیم تو) بمب می‌کاره = تروریست؛ تیم ۱ بمب رو خنثی می‌کنه = کانتر
+function sdBannerHide(){const b=document.getElementById('rbanner');if(b)b.style.display='none'}
+function sdBanner(w,why){let b=document.getElementById('rbanner');if(!b){b=document.createElement('div');b.id='rbanner';(document.getElementById('hud')||document.body).appendChild(b)}
+ const t=w===0;b.className=t?'tw':'cw';b.innerHTML='<b>'+(t?'TERRORISTS WIN':'COUNTER-TERRORISTS WIN')+'</b>'+(why?'<small>'+esc(why)+'</small>':'');b.style.display='block'}
 const sdSiteAt=(x,y,z)=>{for(let i=0;i<SD.sites.length;i++){const s=SD.sites[i];if(Math.hypot(x-s.x,z-s.z)<SITE_R&&Math.abs(y-s.y)<3.2)return i}return -1};
 /* ---- پیدا کردن سایت‌ها: نقطه‌های باز و دور (از نظر مسیر) از اسپاون مهاجم‌ها؛ دقیق‌ترش با F7/F8 (ایستادن وسط سایت) ثبت می‌شه ---- */
 function sdAutoSites(){
@@ -1784,7 +1824,7 @@ function sdBombClear(){sdSndStop();if(KIT){KIT.g.visible=false;KIT.ext=0}nadesCl
  for(const f of SD.fx){scene.remove(f.m);if(f.m.geometry)f.m.geometry.dispose();f.m.material.dispose()}SD.fx.length=0}
 const SD_BOMB_BOTS=false;   // ✦ بمب هر راند بین همه‌ی هم‌تیمی‌ها (بات‌ها هم) رندوم پخش می‌شه؛ false = فقط بازیکن‌های واقعی
 function sdBeginRound(){
- sdBombClear();bloodClear();SD.round++;sdSideSwap();SD.state='live';SD.rt=SD_ROUND_T;SD.bt=0;SD.defT=0;SD.overT=0;SD.hasBomb=true;SD.carrier=null;SD.defuser=null;SD.spec=null;SD.final=false;SD.target=R()<.5?0:1;SD.shake=0;
+ sdBombClear();bloodClear();SD.round++;sdSideSwap();SD.state='live';SD.rt=SD_ROUND_T;SD.bt=0;SD.defT=0;SD.overT=0;SD.hasBomb=true;SD.carrier=null;SD.defuser=null;SD.spec=null;SD.final=false;SD.target=R()<.5?0:1;SD.shake=0;SD.frz=SD_FREEZE_T;sdBannerHide();
  P.wp=0;P.pw=undefined;P.pl=0;P.pld=-1;P.sl=0;P.dr=0;P.arm=0;P.wAmmo={0:30,2:12};clickL=clickR=false;
  const off=R()<.5?0:1;let di=0;
  for(const e of ents){spawn(e);e.rg=null;e.path=null;e.plantT=0;e.defT=0;e.mem=0;e.seen=false;if(e.team===1)e.sdSite=(di++ +off)%2}
@@ -1796,11 +1836,11 @@ function sdBeginRound(){
   const pos={};for(const e of ents){pos[e.name]=[+e.p.x.toFixed(2),+e.p.y.toFixed(2),+e.p.z.toFixed(2),+e.yaw.toFixed(3)];if(e.net)e.tg={x:e.p.x,y:e.p.y,z:e.p.z,yaw:e.yaw}}
   NET.send({t:'sdr',round:SD.round,wins:SD.wins.slice(),target:SD.target,ow:o.name,pos})}}
 function sdEndRound(w,why){if(SD.state==='over')return;SD.state='over';SD.wins[w]++;SD.overT=SD_OVER_T;SD.final=SD.wins[w]>=SD_WIN;P.pl=0;sdSndStop();
- sdMsg(w===0?'تیم تو برد':'دشمن برد',SD_OVER_T);beep(w===0?660:180,.08,.3);if(NET.mode==='host')NET.send({t:'sdend',w,wins:SD.wins.slice(),final:SD.final?1:0})}
+ sdMsg(w===0?'تیم تو برد':'دشمن برد',SD_OVER_T);sdBanner(w,why);beep(w===0?660:180,.08,.3);if(NET.mode==='host')NET.send({t:'sdend',w,wins:SD.wins.slice(),final:SD.final?1:0})}
 function sdFinish(){const win=SD.wins[0]>SD.wins[1];if(document.pointerLockElement)document.exitPointerLock();if(NET.mode==='host')NET.send({t:'sdfin',w:SD.wins.slice()});
  const st=endsMake(SD.wins);if(st)ENDS=st;leaveMatch();
  if(st)endsShow();else setTimeout(()=>lbMsg((win?'بردی ':'باختی ')+SD.wins[0]+' : '+SD.wins[1]),50)}
-function sdCleanup(){SD.on=false;SD.state='idle';sdBombClear();sdClearMarkers();for(const id of['pbar','sdhint','flash'])$(id).style.display='none'}
+function sdCleanup(){SD.on=false;SD.state='idle';SD.frz=0;sdBannerHide();sdBombClear();sdClearMarkers();for(const id of['pbar','sdhint','flash'])$(id).style.display='none'}
 /* ---- بمب‌بر، پلنت، خنثی‌سازی، انفجار ---- */
 function sdDrop(p){if(SD.drop||SD.state!=='live')return;const t=castRay(p.x,p.y+.4,p.z,0,-1,0,2,false),fy=t<Infinity?p.y+.4-t:p.y,len=.42,bm=bombMake(len);
  bm.g.position.set(p.x,fy+.087*len/BOMB_BASE_LEN/2+.01,p.z);bm.g.rotation.y=R()*6.28;scene.add(bm.g);SD.drop={x:p.x,y:fy,z:p.z,g:bm.g};if(NET.mode==='host')NET.send({t:'sddrop',x:+p.x.toFixed(2),y:+fy.toFixed(2),z:+p.z.toFixed(2)})}
@@ -1898,7 +1938,7 @@ function sdUpdate(dt){
   if(C4S.plantH){sndStop(C4S.plantH);C4S.plantH=null}
   if(clickL){clickL=false;sdSpecCycle(1)}if(clickR){clickR=false;sdSpecCycle(-1)}if(!SD.spec||SD.spec.dead)sdSpecCycle(1)}
  let a0=0,a1=0,dm=0;SD.defE=null;for(const e of ents){if(e.dead)continue;if(e.team===0)a0++;else{a1++;if((e.defT||0)>dm)SD.defE=e;dm=Math.max(dm,e.defT||0)}}SD.a0=a0;SD.a1=a1;SD.defT=dm;sdKitUpdate(dt);
- if(SD.state==='live'){SD.rt-=dt;sdCarrierUpdate();
+ if(SD.state==='live'){if(SD.frz>0)SD.frz=Math.max(0,SD.frz-dt);else SD.rt-=dt;sdCarrierUpdate();
   if(a1===0)sdEndRound(0,'همه‌ی دشمن‌ها کشته شدن');else if(a0===0)sdEndRound(1,'همه‌ی تیم تو کشته شدن');else if(SD.rt<=0)sdEndRound(1,'زمان تموم شد')}
  else if(SD.state==='planted'){SD.bt-=dt;sdBombTick(dt);
   if(!SD.defuser||SD.defuser.dead){let best=null,bd=1e9;for(const e of ents){if(e.dead||e.team!==1)continue;const d=Math.hypot(e.p.x-SD.bomb.x,e.p.z-SD.bomb.z);if(d<bd){bd=d;best=e}}SD.defuser=best;if(best){best.rg=null;best.path=null}}
@@ -1916,7 +1956,7 @@ function sdHud(){
   if(sig!==SD.barSig){SD.barSig=sig;
    const av=(a,c,bg)=>`<div class="sda${a.d?' dead':''}${a.me?' me':''}" style="--c:${c};background:${bg}" title="${esc(a.n)}">${ini(a.n)}${(!a.d&&a.t===0)?`<i style="width:${a.pc}%"></i>`:''}</div>`;
    bar.innerHTML=`<div class="sdt">${L.map(a=>av(a,'#5aa0e8','linear-gradient(145deg,#2f4d73,#1a2a40)')).join('')}</div><div class="sdc"><div class="tm${pl?' pl':''}">${tm}</div><div class="sc"><b>${SD.wins[0]}</b><b>${SD.wins[1]}</b></div><div class="sm">راند ${SD.round} • ${SD.a0}v${SD.a1}</div></div><div class="sdt">${Rr.map(a=>av(a,'#e8b23a','linear-gradient(145deg,#6e5726,#3a2f16)')).join('')}</div>`}}
- setTx('msg',SD.msgT>0?SD.msg:'');
+ setTx('msg',sdFrozen()?'⏱ '+Math.ceil(SD.frz):(SD.msgT>0?SD.msg:''));
  let h='',hh=false;
  if(P.dead){if(SD.spec){h=ICON.eye+' '+SD.spec.name+(SD.spec.team===1?' <span style="color:#ff6b6b">(دشمن)</span>':'');hh=true}}
  else if(SD.state==='planted'&&SD.defT>0)h='⚠ '+Math.max(0,DEFUSE_T-SD.defT).toFixed(1);
@@ -2252,7 +2292,7 @@ function netClientMsg(conn,m){
  if(m.t==='snap')netApplySnap(m)}
 /* ---- مهمان آنلاین، حالت «گشتن و نابود کردن»: هاست همه‌ی منطق (راند، بات‌ها، بمب، دمیج) رو اجرا می‌کنه؛ مهمان فقط وضعیت رو نشون می‌ده ---- */
 function sdClientRound(m){
- sdBombClear();bloodClear();SD.round=m.round;sdSideSwap();SD.state='live';SD.rt=SD_ROUND_T;SD.bt=0;SD.defT=0;SD.overT=0;SD.defE=null;SD.carrier=null;SD.defuser=null;SD.spec=null;SD.final=false;SD.target=m.target;SD.shake=0;
+ sdBombClear();bloodClear();SD.round=m.round;sdSideSwap();SD.state='live';SD.rt=SD_ROUND_T;SD.bt=0;SD.defT=0;SD.overT=0;SD.defE=null;SD.carrier=null;SD.defuser=null;SD.spec=null;SD.final=false;SD.target=m.target;SD.shake=0;SD.frz=SD_FREEZE_T;sdBannerHide();
  SD.wins=m.wins.slice();SD.hasBomb=(m.ow===NET.myName);SD.plT=0;
  P.wp=0;P.pw=undefined;P.pl=0;P.pld=-1;P.sl=0;P.dr=0;P.arm=0;P.wAmmo={0:30,2:12};clickL=clickR=false;pitch=0;
  for(const e of ents){spawn(e);const q=m.pos&&m.pos[e.name];if(q){e.p.x=q[0];e.p.y=q[1];e.p.z=q[2];e.yaw=q[3];if(!e.isP)e.tg={x:q[0],y:q[1],z:q[2],yaw:q[3]}}e.rg=null;e.path=null;e.plantT=0;e.defT=0}}
@@ -2262,7 +2302,7 @@ function sdClientUpdate(dt){
   if(C4S.plantH){sndStop(C4S.plantH);C4S.plantH=null}
   if(clickL){clickL=false;sdSpecCycle(1)}if(clickR){clickR=false;sdSpecCycle(-1)}if(!SD.spec||SD.spec.dead)sdSpecCycle(1)}
  let a0=0,a1=0,dm=0;SD.defE=null;for(const e of ents){if(e.dead)continue;if(e.team===0)a0++;else{a1++;if((e.defT||0)>dm)SD.defE=e;dm=Math.max(dm,e.defT||0)}}SD.a0=a0;SD.a1=a1;SD.defT=dm;sdKitUpdate(dt);
- if(SD.state==='live')SD.rt-=dt;
+ if(SD.state==='live'){if(SD.frz>0)SD.frz=Math.max(0,SD.frz-dt);else SD.rt-=dt}
  else if(SD.state==='planted'){SD.bt-=dt;sdBombTick(dt)}
  else if(SD.state==='over')SD.overT-=dt}
 function netApplySnap(m){
@@ -2397,7 +2437,8 @@ function lbfPrep(o){
   const mk=t=>{const mm=t?new THREE.MeshLambertMaterial({map:t,color:0xffffff}):new THREE.MeshLambertMaterial({vertexColors:true,color:0xffffff});mm.skinning=true;return mm};
   let texE=null;   // تکسچر تیم دشمن (برای صحنه‌ی Defeat که دشمن برنده‌ست)؛ اگه نبود همون ally
   if(LBF_TEX&&typeof TMPL!=='undefined'&&TMPL.enemy){let bv=0;TMPL.enemy.traverse(x=>{if(x.isMesh&&x.material){for(const q of(Array.isArray(x.material)?x.material:[x.material]))if(q.map&&q.map.image){const v=x.geometry.attributes.position.count;if(v>bv){bv=v;texE=q.map}}}})}
-  LBF.matA=mk(tex);LBF.matE=texE?mk(texE):LBF.matA;mesh.material=LBF.matA}
+  LBF.matA=mk(tex);{const me=LBF.matA.clone();me.skinning=true;me.color.setRGB(1,.80,.60);LBF.matE=me}   // تکسچر دشمن با UVهای این مدل نمی‌خونه (لکه‌لکه می‌شد) → همون تکسچر سالم با تُن متفاوت
+   mesh.material=LBF.matA}
  /* نمونه‌برداری از پوز آخر انیمیشن: جای باسن، جهت سر، و دو دست (برای گان) */
  const tw=new THREE.Group();tw.scale.setScalar(sc);const to=THREE.SkeletonUtils.clone(o);tw.add(to);
  const mx=new THREE.AnimationMixer(to),ac=mx.clipAction(clip);ac.play();
@@ -2629,7 +2670,7 @@ function knifeUpdate(dt){if((P.wp||0)!==1)return;
  if(P.sl>0&&!P.hitDone&&1-P.sl/P.sd>=(P.sk?.5:.4)){P.hitDone=true;meleeHit()}}
 function playerUpdate(dt){
  if(P.dead)return;
- const f=(isDown('fwd')?1:0)-(isDown('back')?1:0),r=(isDown('right')?1:0)-(isDown('left')?1:0),L=Math.hypot(f,r)||1;
+ const FZ=sdFrozen(),f=FZ?0:(isDown('fwd')?1:0)-(isDown('back')?1:0),r=FZ?0:(isDown('right')?1:0)-(isDown('left')?1:0),L=Math.hypot(f,r)||1;
  const sy=Math.sin(P.yaw),cy=Math.cos(P.yaw);
  /* نشستن: Shift چپ یا C (نگه‌داشتن؛ Ctrl نه، چون Ctrl+W تب رو می‌بنده). زیر سقف کوتاه نمی‌ذاره بلند شی */
  const want=crouchDown()||(P.cr>.02&&!canStand())?1:0;
@@ -2643,6 +2684,7 @@ function playerUpdate(dt){
   const ax=(P.p.x-ox)/dt,az=(P.p.z-oz)/dt;             // اگه به دیوار خورد، سرعت همون‌قدر که واقعاً جابه‌جا شد می‌مونه (سر خوردن کنار دیوار)
   if(Math.hypot(ax,az)<Math.hypot(P.vx,P.vz)*.9){P.vx=ax;P.vz=az}}
  /* پرش: coyote-time (۰٫۱ ثانیه بعد از لبه)، بافر فشار (۰٫۱۲ ثانیه قبل از فرود)، پرش متغیر (زود رها کنی کوتاه‌تر) */
+ if(FZ)P.jb=0;
  if(P.on)P.coy=.1;else P.coy-=dt;
  P.jb-=dt;
  if(P.jb>0&&P.coy>0&&P.vy<=.5){P.vy=JUMP;P.jb=0;P.coy=0;P.jh=true;P.on=false}
@@ -2650,10 +2692,11 @@ function playerUpdate(dt){
  if(P.vy<=0)P.jh=false;
  P.dip*=Math.exp(-dt*10);                              // ضربه‌ی فرود روی دوربین
  P.cd-=dt;
+ if(FZ)clickL=clickR=false;
  knifeUpdate(dt);bombUpdate(dt);nadeUpdate(dt);
  const ps=(P.wp||0)===2;if(ps){const pf=clickL;clickL=false;if(pf)P.pbuf=.15;P.pbuf=(P.pbuf||0)-dt}   // پیستول نیمه‌اتومات: هر کلیک یک تیر
  if(P.rl>0){P.rl-=dt;if(P.rl<=0){P.ammo=AMAX[P.wp||0];if((P.wp||0)===0){P.arm=P.armD=.55;P.s1=P.s2=0}}}   // بعد از ریلود AK: همون انیمیشن مسلح‌کردن، ولی سریع‌تر
- else if((ps?P.pbuf>0:mouse)&&P.cd<=0&&P.ammo>0&&(P.wp||0)!==1&&(P.wp||0)!==3&&(P.wp||0)<4&&!(P.arm>.32*P.armD)){P.cd=ps?.15:.1;P.ammo--;VM.kick=Math.min(ps?.085:.11,VM.kick+(ps?.05:.07));if(ps){P.pbuf=0;if(VM.pistolReady){PM.clip='firstperson_shoot_unsilenced_additive';PM.t=0}}const cp=Math.cos(pitch);
+ else if(!FZ&&(ps?P.pbuf>0:mouse)&&P.cd<=0&&P.ammo>0&&(P.wp||0)!==1&&(P.wp||0)!==3&&(P.wp||0)<4&&!(P.arm>.32*P.armD)){P.cd=ps?.15:.1;P.ammo--;VM.kick=Math.min(ps?.085:.11,VM.kick+(ps?.05:.07));if(ps){P.pbuf=0;if(VM.pistolReady){PM.clip='firstperson_shoot_unsilenced_additive';PM.t=0}}const cp=Math.cos(pitch);
    /* ---- CS2: الگوی ریکوییل ثابت (recoilAt) + اینکوراسی تصادفیِ کوچک که فقط با حرکت/پرش/شلیک زیاد می‌شه؛ تیر اول ایستاده تقریباً دقیق ---- */
    const rec=recoilAt(P.ri||0,ps),spd=Math.hypot(P.vx,P.vz)/6.5,mv=Math.max(0,(spd-.34)/.66),sp=(.0009+mv*.045+(P.on?0:.11)+(P.rtmp||0))*(P.cr>.5?.6:1)*(ps?.8:1);
    const ra=R()*6.2832,rr=Math.sqrt(R())*sp,ep=pitch+rec.p+Math.sin(ra)*rr,eyw=P.yaw-rec.y+Math.cos(ra)*rr,cpe=Math.cos(ep);   // +yaw = چپ؛ پس آفست راستِ الگو از yaw کم می‌شه
@@ -2690,6 +2733,7 @@ const EN={dmg:1.2,react:.8,turn:1.2,cd:.85,hs:.2,jit:.8,spd:1.05,hp:115,chase:.1
 const BOT_HOLD_DIST=30; // تا این فاصله بات موقع دیدن دشمن ثابت می‌ایسته و شلیک می‌کنه
 function botUpdate(e,dt){
  e.sdHeld=false;if(e.fl>0)e.fl-=dt;
+ if(sdFrozen()){e.cd=Math.max(e.cd,.3);e.seen=false;return}   // فریز اول راند: بات ثابت می‌ایسته و شلیک نمی‌کنه
  let tg=null,td=1e9;for(const t of ents){if(t.dead||t.team===e.team)continue;const d=Math.hypot(t.p.x-e.p.x,t.p.z-e.p.z,(t.p.y-e.p.y)*.5);if(d<td){td=d;tg=t}}
  e.st-=dt;if(e.st<=0){e.st=1+R()*1.5;e.s=R()<.5?-1:1}
  /* تشخیص گیرکردن/سد کردن در: اگه ۲ ثانیه تقریباً جابه‌جا نشد، چند ثانیه مجبور می‌شه جلو بره و مقصد گشت جدید می‌گیره */
@@ -2756,7 +2800,7 @@ function botUpdate(e,dt){
    else if(e.defT>0&&SD.bomb){const o3=eye(e),b3=SD.bomb;tp2=Math.atan2((b3.y+.05)-o3.y,Math.max(.15,Math.hypot(b3.x-o3.x,b3.z-o3.z)))}}
   e.vp=(e.vp||0)+(tp2-(e.vp||0))*Math.min(1,dt*8)}   // زاویه‌ی نگاه (برای تماشاچی)
  e.cd-=dt;
- if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){e.cd=(.35+R()*.3)*(e.team===1?EN.cd:1);const hs=R()<(e.team===1?EN.hs:.15),j=(hs?.02:.03)*(e.team===1?EN.jit:1),o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,d={x:bd.x+(R()-.5)*j*2,y:bd.y+(R()-.5)*j*2,z:bd.z+(R()-.5)*j*2},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;e.yaw=Math.atan2(-bd.x,-bd.z);e.vp=Math.asin(Math.max(-1,Math.min(1,bd.y)));   // دید بات (و کراس‌هیر تماشاچی) لحظه‌ی شلیک دقیقاً روی همون جهتی می‌ره که گلوله می‌ره
+ if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){e.cd=(.35+R()*.3)*(e.team===1?EN.cd:1)*(1+.7*(tg.isP?Math.min(1,Math.hypot(P.vx||0,P.vz||0)/4.5):0));const pm=tg.isP?Math.min(1,Math.hypot(P.vx||0,P.vz||0)/4.5+(P.on?0:.5)):0,hs=R()<(e.team===1?EN.hs:.15)*(1-.75*pm),j=(hs?.02:.03)*(e.team===1?EN.jit:1)*(1+3.2*pm),o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,d={x:bd.x+(R()-.5)*j*2,y:bd.y+(R()-.5)*j*2,z:bd.z+(R()-.5)*j*2},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;e.yaw=Math.atan2(-bd.x,-bd.z);e.vp=Math.asin(Math.max(-1,Math.min(1,bd.y)));   // دید بات (و کراس‌هیر تماشاچی) لحظه‌ی شلیک دقیقاً روی همون جهتی می‌ره که گلوله می‌ره
  fire(e,d)}}
 function simulate(dt){
  if(OPT.path)pathPump();
@@ -2978,33 +3022,54 @@ function mmBuild(){
   if(m<.05)continue;g.moveTo(X(P3[a][0]),Z(P3[a][1]));g.lineTo(X(P3[b][0]),Z(P3[b][1]))}
  g.stroke();MM.base=cv}
 function mmDraw(){
- if(!MM.c){MM.c=$('mm');if(!MM.c)return;MM.x=MM.c.getContext('2d');MM.d=Math.min(devicePixelRatio||1,2);MM.c.width=MM.c.height=Math.round(MM.S*MM.d)}
+ if(!MM.c){MM.c=$('mm');if(!MM.c)return;MM.x=MM.c.getContext('2d');MM.d=Math.min(devicePixelRatio||1,2)}
  if(!NT)return;
  if(MM.T!==T){MM.T=T;MM.base=null;try{mmBuild()}catch(e){console.warn('[minimap]',e)}}
  if(!MM.base)return;
+ if(!inMatch)MM.big=false;
+ const big=!!MM.big,cs=big?Math.max(240,Math.round(Math.min(innerWidth,innerHeight)*.84)):MM.S;
+ if(MM.cs!==cs){MM.cs=cs;MM.c.width=MM.c.height=Math.round(cs*MM.d);const st=MM.c.style;if(big){st.width=st.height=cs+'px'}else{st.width=st.height=''}MM.c.classList.toggle('big',big)}
  const sp=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:null,o=sp||P,yaw=sp?sp.yaw:P.yaw;
- const g=MM.x,d=MM.d,S=MM.S*d,h=S/2,k=h/MM.R,co=Math.cos(yaw),si=Math.sin(yaw);
+ const g=MM.x,d=MM.d,S=cs*d,h=S/2,k=h/MM.R,co=Math.cos(yaw),si=Math.sin(yaw),u=big?1.6:1;
  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,S,S);
- g.save();g.beginPath();g.arc(h,h,h-1,0,6.2832);g.clip();
- g.fillStyle='rgba(8,12,18,.8)';g.fillRect(0,0,S,S);
- g.translate(h,h);g.rotate(yaw);g.scale(k,k);g.translate(-o.p.x,-o.p.z);
- g.globalAlpha=.92;g.drawImage(MM.base,GX0,GZ0,NX*CELL,NZ*CELL);g.globalAlpha=1;
- g.setTransform(1,0,0,1,0,0);
- const pos=(x,z,clamp)=>{const dx=x-o.p.x,dz=z-o.p.z;let rx=(dx*co-dz*si)*k,rz=(dx*si+dz*co)*k;const L=Math.hypot(rx,rz),lim=h-11*d;
-  if(L>lim){if(!clamp)return null;rx*=lim/L;rz*=lim/L}return[h+rx,h+rz]};
- const arrow=(p,ang,r,col)=>{g.save();g.translate(p[0],p[1]);g.rotate(ang);g.beginPath();g.moveTo(0,-r*1.4);g.lineTo(r*.95,r);g.lineTo(0,r*.45);g.lineTo(-r*.95,r);g.closePath();
+ g.save();
+ let pos;
+ if(big){   // نقشه‌ی کامل (شمال بالا)
+  const W0=NX*CELL,H0=NZ*CELL,sc=(S-14*d)/Math.max(W0,H0),ox=(S-W0*sc)/2,oy=(S-H0*sc)/2;
+  g.beginPath();if(g.roundRect)g.roundRect(0,0,S,S,12*d);else g.rect(0,0,S,S);g.clip();
+  g.fillStyle='rgba(8,12,18,.94)';g.fillRect(0,0,S,S);
+  g.globalAlpha=.95;g.drawImage(MM.base,ox,oy,W0*sc,H0*sc);g.globalAlpha=1;
+  pos=(x,z)=>[ox+(x-GX0)*sc,oy+(z-GZ0)*sc]}
+ else{
+  g.beginPath();g.arc(h,h,h-1,0,6.2832);g.clip();
+  g.fillStyle='rgba(8,12,18,.8)';g.fillRect(0,0,S,S);
+  g.translate(h,h);g.rotate(yaw);g.scale(k,k);g.translate(-o.p.x,-o.p.z);
+  g.globalAlpha=.92;g.drawImage(MM.base,GX0,GZ0,NX*CELL,NZ*CELL);g.globalAlpha=1;
+  g.setTransform(1,0,0,1,0,0);
+  pos=(x,z,clamp)=>{const dx=x-o.p.x,dz=z-o.p.z;let rx=(dx*co-dz*si)*k,rz=(dx*si+dz*co)*k;const L=Math.hypot(rx,rz),lim=h-11*d;
+   if(L>lim){if(!clamp)return null;rx*=lim/L;rz*=lim/L}return[h+rx,h+rz]}}
+ const ang=a=>big?-a:yaw-a;
+ const arrow=(p,an,r,col)=>{g.save();g.translate(p[0],p[1]);g.rotate(an);g.beginPath();g.moveTo(0,-r*1.4);g.lineTo(r*.95,r);g.lineTo(0,r*.45);g.lineTo(-r*.95,r);g.closePath();
   g.fillStyle=col;g.fill();g.lineWidth=1.2*d;g.strokeStyle='rgba(0,0,0,.75)';g.stroke();g.restore()};
- if(SD.on&&SD.sites){g.font='bold '+Math.round(11*d)+'px sans-serif';g.textAlign='center';g.textBaseline='middle';
-  for(let i=0;i<SD.sites.length;i++){const q=SD.sites[i],p=pos(q.x,q.z,true);g.beginPath();g.arc(p[0],p[1],8*d,0,6.2832);g.fillStyle='rgba(0,0,0,.6)';g.fill();g.lineWidth=1.6*d;g.strokeStyle='#ffb020';g.stroke();g.fillStyle='#ffb020';g.fillText(SITE_NAME[i],p[0],p[1]+.5*d)}
-  const bb=SD.bomb||SD.drop;if(bb){const p=pos(bb.x,bb.z,true),on=SD.bomb&&(Math.floor(performance.now()/350)%2===0);g.fillStyle=SD.bomb?(on?'#ff3030':'#7a1010'):'#ffd23a';g.fillRect(p[0]-4*d,p[1]-4*d,8*d,8*d);g.lineWidth=1*d;g.strokeStyle='#000';g.strokeRect(p[0]-4*d,p[1]-4*d,8*d,8*d)}}
+ if(SD.on&&SD.sites){g.font='bold '+Math.round(11*d*u)+'px sans-serif';g.textAlign='center';g.textBaseline='middle';
+  for(let i=0;i<SD.sites.length;i++){const q=SD.sites[i],p=pos(q.x,q.z,true);g.beginPath();g.arc(p[0],p[1],8*d*u,0,6.2832);g.fillStyle='rgba(0,0,0,.6)';g.fill();g.lineWidth=1.6*d;g.strokeStyle='#ffb020';g.stroke();g.fillStyle='#ffb020';g.fillText(SITE_NAME[i],p[0],p[1]+.5*d)}
+  const bb=SD.bomb||SD.drop;if(bb){const p=pos(bb.x,bb.z,true),on=SD.bomb&&(Math.floor(performance.now()/350)%2===0),q=4*d*u;g.fillStyle=SD.bomb?(on?'#ff3030':'#7a1010'):'#ffd23a';g.fillRect(p[0]-q,p[1]-q,q*2,q*2);g.lineWidth=1*d;g.strokeStyle='#000';g.strokeRect(p[0]-q,p[1]-q,q*2,q*2)}}
  const ob=eye(o);
  for(const e of ents){if(e.dead||e===o||e.isP)continue;
   const al=e.team===o.team;
   if(!al){const tx=e.p.x-ob.x,ty=e.p.y+1.0-ob.y,tz=e.p.z-ob.z,L=Math.hypot(tx,ty,tz);if(L<.1||castRay(ob.x,ob.y,ob.z,tx/L,ty/L,tz/L,L,false)<L-.3||smokeBlocks(ob,{x:tx/L,y:ty/L,z:tz/L},L))continue}   // دشمن فقط با خط دید
-  const p=pos(e.p.x,e.p.z,false);if(!p)continue;arrow(p,yaw-e.yaw,4.6*d,al?'#4aa3ff':'#ff4a4a')}
- arrow([h,h],0,5.6*d,'#fff4c2');
- g.beginPath();g.arc(h,h,h-1.5*d,0,6.2832);g.lineWidth=2*d;g.strokeStyle='rgba(255,255,255,.35)';g.stroke();
+  const p=pos(e.p.x,e.p.z,false);if(!p)continue;arrow(p,ang(e.yaw),4.6*d*u,al?'#4aa3ff':'#ff4a4a')}
+ if(big)arrow(pos(o.p.x,o.p.z),ang(yaw),5.6*d*u,'#fff4c2');else arrow([h,h],0,5.6*d,'#fff4c2');
+ if(big){g.lineWidth=2*d;g.strokeStyle='rgba(255,255,255,.3)';g.strokeRect(1*d,1*d,S-2*d,S-2*d)}
+ else{g.beginPath();g.arc(h,h,h-1.5*d,0,6.2832);g.lineWidth=2*d;g.strokeStyle='rgba(255,255,255,.35)';g.stroke()}
  g.restore()}
+/* مپ بزرگ: کلید M (کامپیوتر) یا تپ روی مینی‌مپ (گوشی)؛ وقتی بازه، با M یا تپ بعدی بسته می‌شه */
+addEventListener('keydown',e=>{if(e.code==='KeyM'&&inMatch&&!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&!TUNE.on&&!(e.target&&/^(INPUT|TEXTAREA)$/.test(e.target.tagName))){MM.big=!MM.big;e.preventDefault()}});
+function mmTap(t){if(!inMatch||!MM.c)return false;
+ if(MM.big){MM.big=false;return true}
+ const r=MM.c.getBoundingClientRect();if(r.width<2)return false;const pad=10;
+ if(t.clientX>=r.left-pad&&t.clientX<=r.right+pad&&t.clientY>=r.top-pad&&t.clientY<=r.bottom+pad){MM.big=true;return true}
+ return false}
 /* ================= نارنجک: HE / اسموک / فلش‌بنگ =================
    کلید ۵ = HE | ۶ = اسموک | ۷ = فلش. کلیک چپ = پرتاب محکم، کلیک راست = پرتاب آروم.
    هر نارنجک با فیزیک واقعی (جاذبه + برخورد و پرش از دیوار/زمین) حرکت می‌کنه.
@@ -3774,7 +3839,7 @@ if(TOUCH){
   if(EDIT){for(const t of e.changedTouches){const tg=t.target.closest&&t.target.closest('.te div');
     if(tg){if(tg.id==='tedone')window.tcEdit(false);else{SET.tpos={};saveSet();window.tcApply()}continue}
     const el=hitBtn(t);if(!el)continue;const r=el.closest('#twp')||el.closest('#tgn')||el.closest('#tbuyk')||el;selBtn(r.id);const rc=r.getBoundingClientRect();T[t.identifier]={k:'d',r,ox:rc.left+rc.width/2-t.clientX,oy:rc.top+rc.height/2-t.clientY}}return}
-  for(const t of e.changedTouches){const el=hitBtn(t);
+  for(const t of e.changedTouches){if(mmTap(t))continue;const el=hitBtn(t);
    if(!el&&buyOpen){const rows=[...document.querySelectorAll('#buy .bi')];const bx=document.getElementById('buy').getBoundingClientRect();const i=rows.findIndex(r=>{const q=r.getBoundingClientRect();return t.clientX>=q.left-4&&t.clientX<=q.right+4&&t.clientY>=q.top-3&&t.clientY<=q.bottom+3});
     if(i>=0){buyItem(i);continue}
     if(t.clientX<bx.left||t.clientX>bx.right||t.clientY<bx.top||t.clientY>bx.bottom){buySet(false);continue}}
