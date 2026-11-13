@@ -3454,21 +3454,28 @@ if(TOUCH){
  try{if(!localStorage.getItem('ms_set')){SET.hudScale=75;SET.mmSize=110;SET.showPos=false}}catch(e){}
  const st=document.createElement('style');st.textContent=`
 #tc{position:fixed;inset:0;z-index:45;display:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;font-family:inherit;direction:rtl}
-#tc .tb{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(20,28,40,.45);border:2px solid rgba(255,255,255,.4);color:#fff;font-size:13px;font-weight:600;text-shadow:0 0 3px #000;touch-action:none;box-sizing:border-box}
-#tc .tb.on,#tc .tb:active{background:rgba(80,160,255,.55);border-color:#fff}
-#tc .tw{border-radius:9px;width:38px;height:34px;font-size:14px}
-#tc #tfire{right:max(22px,env(safe-area-inset-right));bottom:max(46px,env(safe-area-inset-bottom));width:92px;height:92px;font-size:16px;background:rgba(220,60,50,.5)}
-#tc #tjump{right:max(132px,calc(env(safe-area-inset-right) + 110px));bottom:max(28px,env(safe-area-inset-bottom));width:66px;height:66px}
-#tc #tcrouch{right:max(22px,env(safe-area-inset-right));bottom:max(150px,calc(env(safe-area-inset-bottom) + 104px));width:58px;height:58px}
-#tc #treload{right:max(98px,calc(env(safe-area-inset-right) + 90px));bottom:max(110px,calc(env(safe-area-inset-bottom) + 100px));width:58px;height:58px}
-#tc #tuse{right:max(170px,calc(env(safe-area-inset-right) + 150px));bottom:max(104px,calc(env(safe-area-inset-bottom) + 100px));width:56px;height:56px}
-#tc #talt{right:max(22px,env(safe-area-inset-right));bottom:max(218px,calc(env(safe-area-inset-bottom) + 170px));width:52px;height:52px;font-size:11px}
-#tc #tbuy{left:50%;margin-left:-70px;top:84px;width:62px;height:34px;border-radius:9px;font-size:13px}
-#tc #tpause{left:50%;margin-left:12px;top:84px;width:44px;height:34px;border-radius:9px;font-size:15px}
-#tc #twp{position:absolute;left:50%;top:44px;transform:translateX(-50%);display:flex;gap:4px;direction:ltr}
+#tc .tb{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(30,32,38,.42);border:0;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.14);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);color:#fff;font-size:13px;font-weight:600;text-shadow:0 0 3px #000;touch-action:none;box-sizing:border-box;transition:background .08s,transform .08s}
+#tc .tb.on,#tc .tb:active{background:rgba(255,255,255,.3);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.55)}
+#tc .tw{border-radius:12px;width:44px;height:40px}
+#tc #tfire{right:max(26px,env(safe-area-inset-right));bottom:max(44px,env(safe-area-inset-bottom));width:100px;height:100px;background:rgba(30,32,38,.42)}
+#tc #tfire.on,#tc #tfire:active{background:rgba(230,70,55,.5)}
+#tc #tjump{right:max(150px,calc(env(safe-area-inset-right) + 128px));bottom:max(36px,env(safe-area-inset-bottom));width:62px;height:62px}
+#tc #tcrouch{right:max(30px,env(safe-area-inset-right));bottom:max(158px,calc(env(safe-area-inset-bottom) + 112px));width:54px;height:54px}
+#tc #treload{right:max(108px,calc(env(safe-area-inset-right) + 98px));bottom:max(122px,calc(env(safe-area-inset-bottom) + 110px));width:54px;height:54px}
+#tc #tuse{right:max(190px,calc(env(safe-area-inset-right) + 170px));bottom:max(112px,calc(env(safe-area-inset-bottom) + 108px));width:50px;height:50px;display:none}
+#tc #talt{right:max(30px,env(safe-area-inset-right));bottom:max(222px,calc(env(safe-area-inset-bottom) + 176px));width:46px;height:46px;font-size:11px}
+#tc #twt{right:max(96px,calc(env(safe-area-inset-right) + 92px));top:26%;width:46px;height:46px}
+#tc #tgn{position:absolute;right:max(152px,calc(env(safe-area-inset-right) + 148px));top:calc(26% + 3px);display:none;gap:5px;direction:ltr}
+#tc #tgn .tb{position:static}
+#tc.edit #tgn{display:flex}
+#tc #tbuy{left:34%;top:34%;width:56px;height:56px;display:none;animation:tbin .25s ease-out}
+@keyframes tbin{from{opacity:0;scale:.6}to{opacity:1;scale:1}}
+#tc #tpause{left:max(14px,env(safe-area-inset-left));top:12px;width:40px;height:40px}
+#tc #twp{position:absolute;right:max(152px,calc(env(safe-area-inset-right) + 148px));top:calc(26% + 54px);display:none;gap:5px;direction:ltr;padding:5px;border-radius:15px;background:rgba(20,22,28,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#tc.wpo #twp,#tc.edit #twp{display:flex}
 #tc #twp .tb{position:static}
 #tc #tbuyk{position:absolute;left:50%;top:124px;transform:translateX(-50%);display:none;gap:8px;direction:ltr}
-#tc #tbuyk .tb{position:static;width:54px;height:44px;border-radius:10px;font-size:18px}
+#tc #tbuyk .tb{position:static;width:54px;height:44px;border-radius:12px;font-size:18px}
 #tc .tb svg{width:58%;height:58%;fill:#fff;filter:drop-shadow(0 0 2px #000);pointer-events:none}#tc .tw svg{width:66%;height:78%}#tc #tfire svg{width:54%;height:54%}
 #tc .tb{scale:var(--ts,1);opacity:var(--ta,1)}#tc .tw,#tc #tbuyk .tb{scale:1;opacity:1}#tc #twp,#tc #tbuyk{scale:var(--ts,1);opacity:var(--ta,1)}
 #tc.edit{background:rgba(0,0,0,.35)}#tc.edit .tb,#tc.edit #twp,#tc.edit #tbuyk{outline:2px dashed #fd6;outline-offset:3px}
@@ -3490,8 +3497,8 @@ if(TOUCH){
  const tc=document.createElement('div');tc.id='tc';
  const B=(id,a,m,t,cls)=>'<div class="tb '+(cls||'')+'" id="'+id+'" data-a="'+a+'" data-m="'+m+'">'+t+'</div>';
  tc.innerHTML=B('tfire','fire','hold',IX.fire)+B('tjump','jump','hold',IX.jump)+B('tcrouch','crouch','crouch',IX.crouch)+B('treload','reload','tap',IX.reload)+B('tuse','use','hold',IX.use)+B('talt','alt','hold',IX.alt)
-  +B('tbuy','buy','buy',IX.buy)+B('tpause','pause','pause',IX.pause)
-  +'<div id="twp">'+['w1','w2','w3','w4','g5','g6','g7','g8'].map((a,i)=>B('t'+a,a,'tap',IX[a],'tw')).join('')+'</div>'
+  +B('tbuy','buy','buy',IX.buy)+B('tpause','pause','pause',IX.pause)+B('twt','wpt','tap',IX.w1)
+  +'<div id="twp">'+['w1','w2','w3','w4'].map((a,i)=>B('t'+a,a,'tap',IX[a],'tw')).join('')+'</div><div id="tgn">'+['g5','g6','g7','g8'].map((a,i)=>B('t'+a,a,'tap',IX[a],'tw')).join('')+'</div>'
   +'<div class="te"><div id="tedone">تمام</div><div id="tereset">پیش‌فرض</div></div>'+'<div id="tbuyk">'+[1,2,3,4].map(n=>'<div class="tb" data-d="'+n+'">'+n+'</div>').join('')+'</div>';
  document.body.appendChild(tc);
  const jb=document.createElement('div'),jk=document.createElement('div');jb.id='tjb';jk.id='tjk';document.body.appendChild(jb);document.body.appendChild(jk);
@@ -3502,12 +3509,14 @@ if(TOUCH){
  const down=(el,id)=>{const a=el.dataset.a,m=el.dataset.m,d=el.dataset.d;el.classList.add('on');
   if(d){window.dispatchEvent(new KeyboardEvent('keydown',{code:'Digit'+d,bubbles:true}));return}
   if(a==='pause'){unlockMouse();return}
+  if(a==='wpt'){tc.classList.toggle('wpo');return}
+  if(el.classList.contains('tw'))tc.classList.remove('wpo');
   if(a==='buy'){window.dispatchEvent(new KeyboardEvent('keydown',{code:SET.bind.buy,bubbles:true}));return}
   if(m==='crouch'){if(SET.crouchTog)act('crouch',true);else{const c=code('crouch');keys[c]=keys[c]?0:1;el.classList.toggle('on',!!keys[c])}return}
   if(m==='hold')act(a,true);else{const c=code(a);if(c)press(c)}};
  const up=el=>{const a=el.dataset.a,m=el.dataset.m;if(m==='crouch'){if(SET.crouchTog)el.classList.remove('on');return}
   el.classList.remove('on');if(m==='hold')act(a,false)};
- const DR=['tfire','tjump','tcrouch','treload','tuse','talt','tbuy','tpause','twp','tbuyk'];let EDIT=false;
+ const DR=['tfire','tjump','tcrouch','treload','tuse','talt','tbuy','tpause','twt','twp','tgn','tbuyk'];let EDIT=false;
  const place=(r,x,y)=>{const q=r.style;q.left=x+'%';q.top=y+'%';q.right='auto';q.bottom='auto';q.margin='0';q.transform='translate(-50%,-50%)'};
  window.tcApply=()=>{const R=document.documentElement.style;R.setProperty('--ts',(SET.tsize||100)/100);R.setProperty('--ta',(SET.talpha||100)/100);
   for(const id of DR){const el=document.getElementById(id);if(!el)continue;const q=el.style;q.left=q.top=q.right=q.bottom=q.margin=q.transform='';const o=SET.tpos&&SET.tpos[id];if(o)place(el,o.x,o.y)}};
@@ -3515,7 +3524,7 @@ if(TOUCH){
  tc.addEventListener('touchstart',e=>{e.preventDefault();
   if(EDIT){for(const t of e.changedTouches){const tg=t.target.closest&&t.target.closest('.te div');
     if(tg){if(tg.id==='tedone')window.tcEdit(false);else{SET.tpos={};saveSet();window.tcApply()}continue}
-    const el=t.target.closest&&t.target.closest('.tb');if(!el)continue;const r=el.closest('#twp')||el.closest('#tbuyk')||el;T[t.identifier]={k:'d',r}}return}
+    const el=t.target.closest&&t.target.closest('.tb');if(!el)continue;const r=el.closest('#twp')||el.closest('#tgn')||el.closest('#tbuyk')||el;T[t.identifier]={k:'d',r}}return}
   for(const t of e.changedTouches){const el=t.target.closest&&t.target.closest('.tb');
    if(el){T[t.identifier]={k:'b',el};down(el);continue}
    if(t.clientX<innerWidth*.45){T[t.identifier]={k:'m',ox:t.clientX,oy:t.clientY};jb.style.cssText=jk.style.cssText='display:block;left:'+t.clientX+'px;top:'+t.clientY+'px'}
@@ -3532,6 +3541,7 @@ if(TOUCH){
   if(s.k==='d'){const q=s.r.style;SET.tpos[s.r.id]={x:parseFloat(q.left),y:parseFloat(q.top)};saveSet()}
   else if(s.k==='b')up(s.el);else if(s.k==='m'){setMove(0,0);jb.style.display=jk.style.display='none'}}};
  tc.addEventListener('touchend',end,{passive:false});tc.addEventListener('touchcancel',end,{passive:false});
+ const cx=id=>tc.querySelector('#'+id);setInterval(()=>{const E=EDIT;try{cx('tuse').style.display=E||(SD.on&&SD.state==='planted'&&locked)?'flex':'none';const gn=(P&&P.gn)||{};let any=false;[['tg5',4],['tg6',5],['tg7',6],['tg8',7]].forEach(([id,k])=>{const ok=E||(gn[k]|0)>0;if(ok)any=true;cx(id).style.display=ok?'':'none'});cx('tgn').style.display=E||(any&&locked)?'flex':'none';cx('tw4').style.display=E||(SD.on&&SD.hasBomb)?'':'none';cx('tbuy').style.display=E||(typeof buyAllowed==='function'&&buyAllowed())?'flex':'none';const w=P&&P.wp||0;cx('talt').style.display=E||w===0||w===2?'flex':'none';if(!locked)tc.classList.remove('wpo')}catch(e){}},250);
  const bk=tc.querySelector('#tbuyk');setInterval(()=>{if(bk)bk.style.display=EDIT||(typeof buyOpen!=='undefined'&&buyOpen&&locked)?'flex':'none'},250);
  window.tcShow=()=>{const on=(inMatch&&locked)||EDIT;tc.style.display=on?'block':'none';
   if(!inMatch&&locked)locked=false;
