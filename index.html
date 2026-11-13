@@ -3526,6 +3526,9 @@ if(TOUCH){
     if(tg){if(tg.id==='tedone')window.tcEdit(false);else{SET.tpos={};saveSet();window.tcApply()}continue}
     const el=t.target.closest&&t.target.closest('.tb');if(!el)continue;const r=el.closest('#twp')||el.closest('#tgn')||el.closest('#tbuyk')||el;T[t.identifier]={k:'d',r}}return}
   for(const t of e.changedTouches){const el=t.target.closest&&t.target.closest('.tb');
+   if(!el&&buyOpen){const rows=[...document.querySelectorAll('#buy .bi')];const bx=document.getElementById('buy').getBoundingClientRect();const i=rows.findIndex(r=>{const q=r.getBoundingClientRect();return t.clientX>=bx.left&&t.clientX<=bx.right&&t.clientY>=q.top-3&&t.clientY<=q.bottom+3});
+    if(i>=0){buyItem(i);continue}
+    if(t.clientX<bx.left||t.clientX>bx.right||t.clientY<bx.top||t.clientY>bx.bottom){buySet(false);continue}}
    if(el){T[t.identifier]={k:'b',el};down(el);continue}
    if(t.clientX<innerWidth*.45){T[t.identifier]={k:'m',ox:t.clientX,oy:t.clientY};jb.style.cssText=jk.style.cssText='display:block;left:'+t.clientX+'px;top:'+t.clientY+'px'}
    else T[t.identifier]={k:'l',x:t.clientX,y:t.clientY}}},{passive:false});
@@ -3542,7 +3545,7 @@ if(TOUCH){
   else if(s.k==='b')up(s.el);else if(s.k==='m'){setMove(0,0);jb.style.display=jk.style.display='none'}}};
  tc.addEventListener('touchend',end,{passive:false});tc.addEventListener('touchcancel',end,{passive:false});
  const cx=id=>tc.querySelector('#'+id);setInterval(()=>{const E=EDIT;try{cx('tuse').style.display=E||(SD.on&&SD.state==='planted'&&locked)?'flex':'none';const gn=(P&&P.gn)||{};let any=false;[['tg5',4],['tg6',5],['tg7',6],['tg8',7]].forEach(([id,k])=>{const ok=E||(gn[k]|0)>0;if(ok)any=true;cx(id).style.display=ok?'':'none'});cx('tgn').style.display=E||(any&&locked)?'flex':'none';cx('tw4').style.display=E||(SD.on&&SD.hasBomb)?'':'none';cx('tbuy').style.display=E||(typeof buyAllowed==='function'&&buyAllowed())?'flex':'none';const w=P&&P.wp||0;cx('talt').style.display=E||w===0||w===2?'flex':'none';if(!locked)tc.classList.remove('wpo')}catch(e){}},250);
- const bk=tc.querySelector('#tbuyk');setInterval(()=>{if(bk)bk.style.display=EDIT||(typeof buyOpen!=='undefined'&&buyOpen&&locked)?'flex':'none'},250);
+ const bk=tc.querySelector('#tbuyk');setInterval(()=>{if(bk)bk.style.display=EDIT?'flex':'none'},250);
  window.tcShow=()=>{const on=(inMatch&&locked)||EDIT;tc.style.display=on?'block':'none';
   if(!inMatch&&locked)locked=false;
   if(!on){setMove(0,0);jb.style.display=jk.style.display='none';for(const id in T)delete T[id]}};
