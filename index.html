@@ -2454,7 +2454,7 @@ function resumeLoad(){
 setInterval(resumeSave,1000);
 addEventListener('pagehide',resumeSave);addEventListener('beforeunload',resumeSave);
 function leaveMatch(){if(NET.mode==='host')NET.send({t:'tolobby'});if(NET.mode==='client')NET.send({t:'clleave'});leaveMatchMP()}
-const unlockMouse=()=>{if(document.pointerLockElement)document.exitPointerLock();showMenu();locked=false;mouse=false;mouse2=false;for(const k in keys)keys[k]=0};   // رفتن به تب/پنجره‌ی دیگه: ماوس آزاد بشه
+const unlockMouse=()=>{if(document.pointerLockElement)document.exitPointerLock();locked=false;mouse=false;mouse2=false;for(const k in keys)keys[k]=0;showMenu()};   // رفتن به تب/پنجره‌ی دیگه: ماوس آزاد بشه
 addEventListener('blur',unlockMouse);document.addEventListener('visibilitychange',()=>{if(document.hidden)unlockMouse()});
 document.addEventListener('pointerlockerror',()=>{locked=false;showMenu()});
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===ren.domElement;skipMM=2;if(locked)$('menu').style.display='none';else showMenu();if(!locked){mouse=false;mouse2=false;for(const k in keys)keys[k]=0}});
