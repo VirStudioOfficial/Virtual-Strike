@@ -232,7 +232,74 @@ canvas{display:block}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+/* ===== جایگزین PeerJS با Trystero =====
+   یه کلاس Peer هم‌شکل PeerJS (new Peer(id) / peer.connect(id) / conn.on('open'|'data'|'close') / conn.send) روی Trystero.
+   سیگنالینگ از رله‌های عمومی (Nostr) رد می‌شه، نه سرور PeerJS؛ بعدش اتصال WebRTC مستقیمه.
+   هر Peer با id یه «اتاق» به اسم همون id داره؛ صاحبش (owner) خودش رو معرفی می‌کنه و بقیه بهش وصل می‌شن. */
+(function(){
+ const TRY='https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm',APP='ministrike-fps-v1',WAIT=15000;
+ let libP=null;const lib=()=>libP||(libP=import(TRY));
+ const ROOMS=new Map();   // اتاق‌های مشترک (یه اتاق رو نمی‌شه دو بار join کرد → refcount)
+ class Ev{on(e,f){(this._h||(this._h={}))[e]=(this._h[e]||[]).concat(f);return this}
+  emit(e,...a){for(const f of ((this._h||{})[e]||[]))try{f(...a)}catch(x){console.error('[net-ev]',e,x)}}}
+ function cfg(){const c={appId:APP};try{if(typeof PEER_OPTS!=='undefined'&&PEER_OPTS.config)c.rtcConfig=PEER_OPTS.config}catch(e){}return c}
+ async function getRoom(id){
+  let en=ROOMS.get(id);if(en){en.ref++;return en}
+  const L=await lib();en=ROOMS.get(id);if(en){en.ref++;return en}
+  const room=L.joinRoom(cfg(),'p:'+id);
+  en={id,room,ref:1,owner:null,srv:new Map(),cl:new Set(),known:new Set(),old:false,send:null};
+  const act=room.makeAction('m');
+  if(Array.isArray(act)){en.old=true;en.send=(d,t)=>act[0](d,t);act[1]((d,p)=>onMsg(en,d,p))}
+  else{en.send=(d,t)=>act.send(d,{target:t});act.onMessage=(d,meta)=>onMsg(en,d,meta&&typeof meta==='object'?meta.peerId:meta)}
+  en.poll=setInterval(()=>sweep(en),400);
+  ROOMS.set(id,en);return en}
+ function put(en,p,d){try{const r=en.send(d,p);if(r&&r.catch)r.catch(()=>{})}catch(e){}}
+ function sweep(en){let cur;try{cur=new Set(Object.keys(en.room.getPeers()))}catch(e){return}
+  for(const p of cur)if(!en.known.has(p)){en.known.add(p);if(en.owner)put(en,p,{k:'own'})}
+  for(const p of [...en.known])if(!cur.has(p)){en.known.delete(p);
+   const s=en.srv.get(p);if(s){en.srv.delete(p);s._closed()}
+   for(const c of [...en.cl])if(c._op===p)c._closed()}}
+ function onMsg(en,d,p){if(!d||typeof d!=='object')return;
+  if(d.k==='own'){en.opeer=p;for(const c of en.cl)if(!c.open&&!c._cl){c._op=p;put(en,p,{k:'hi'});c._opened()}}
+  else if(d.k==='hi'&&en.owner){let s=en.srv.get(p);if(s)s._closed();
+   s=new Conn(en,p,true);en.srv.set(p,s);en.owner.emit('connection',s);setTimeout(()=>s._opened(),0)}
+  else if(d.k==='d'){const s=en.srv.get(p);if(s)return s._data(d.m);
+   for(const c of en.cl)if(c._op===p)c._data(d.m)}
+  else if(d.k==='bye'){const s=en.srv.get(p);if(s){en.srv.delete(p);s._closed()}
+   for(const c of [...en.cl])if(c._op===p)c._closed()}}
+ function release(en){if(--en.ref>0)return;clearInterval(en.poll);ROOMS.delete(en.id);try{en.room.leave()}catch(e){}}
+ class Conn extends Ev{
+  constructor(en,p,srv){super();this.en=en;this._op=p;this._srv=srv;this.open=false;this._cl=false;this.peerConnection=null}
+  _opened(){if(this.open||this._cl)return;this.open=true;this.emit('open');const q=this._q||[];this._q=null;for(const m of q)this.emit('data',m)}
+  _data(m){if(this.open)this.emit('data',m);else if(!this._cl)(this._q||(this._q=[])).push(m)}
+  _closed(){if(this._cl)return;this._cl=true;const was=this.open;this.open=false;if(this.en)this.en.cl.delete(this);
+   clearTimeout(this._to);if(this._rel){this._rel=false;release(this.en)}this.emit('close');return was}
+  send(m){if(!this.open)return;put(this.en,this._op,{k:'d',m})}
+  close(){if(this._cl)return;if(this._op&&this.open)put(this.en,this._op,{k:'bye'});
+   if(this._srv&&this.en)this.en.srv.delete(this._op);this._closed()}}
+ class Peer extends Ev{
+  constructor(a){super();this.id=typeof a==='string'?a:null;this.destroyed=false;this.disconnected=false;this._conns=new Set();this._ens=[];
+   setTimeout(()=>{if(this.destroyed)return;
+    if(!this.id){lib().then(()=>{if(!this.destroyed)this.emit('open','')}).catch(e=>this._fail(e));return}
+    getRoom(this.id).then(en=>{if(this.destroyed){release(en);return}this._ens.push(en);en.owner=this;
+     for(const p of Object.keys((()=>{try{return en.room.getPeers()}catch(e){return{}}})()))put(en,p,{k:'own'});
+     this.emit('open',this.id)}).catch(e=>this._fail(e))},0)}
+  _fail(e){console.warn('[trystero]',e);this.emit('error',{type:'network',message:String(e&&e.message||e)})}
+  connect(id){const c=new Conn(null,null,false);this._conns.add(c);
+   getRoom(id).then(en=>{if(this.destroyed||c._cl){release(en);return}c.en=en;c._rel=true;en.cl.add(c);
+    if(en.opeer&&en.known.has(en.opeer)){c._op=en.opeer;put(en,c._op,{k:'hi'});setTimeout(()=>c._opened(),0)}
+    c._to=setTimeout(()=>{if(!c.open&&!c._cl){this.emit('error',{type:'peer-unavailable',message:'no owner for '+id});c._cl=true;en.cl.delete(c);if(c._rel){c._rel=false;release(en)}}},WAIT);
+    sweep(en)}).catch(e=>this._fail(e));
+   return c}
+  reconnect(){}
+  destroy(){if(this.destroyed)return;this.destroyed=true;
+   for(const c of [...this._conns])try{c.close()}catch(e){}
+   for(const en of this._ens){if(en.owner===this){en.owner=null;for(const s of [...en.srv.values()])try{s.close()}catch(e){}}release(en)}
+   this._ens=[]}}
+ window.Peer=Peer;
+})();
+</script>
 <script>
 /* ===== کش فایل‌های سنگین (GLB/FBX/MP3) توی IndexedDB مرورگر =====
    بار اول از سرور دانلود می‌شه و ذخیره می‌شه؛ دفعه‌های بعد مستقیم از دیسک لود می‌شه.
@@ -1866,7 +1933,7 @@ document.addEventListener('click',e=>{if(!inLobby)return;const t=e.target,b=t.cl
    - هاست روم می‌سازه (کد ۵ کاراکتری) و مرجع اصلیه: بات‌ها، دمیج و امتیاز روی دستگاه هاست شبیه‌سازی می‌شن.
    - کلاینت‌ها حرکت خودشون رو محلی اجرا می‌کنن و ۲۰ بار در ثانیه می‌فرستن؛ اسنپ‌شات ۱۵ هرتزی هاست همه‌چیز رو می‌ره.
    - درخواست دوستی واقعی: هر بازیکن یه «حضوری» ثابت با اسم خودش داره؛ ادد کردن با اسم، مستقیم P2P می‌ره. */
-const NET_VER='v10';
+const NET_VER='v11';
 const PEER_OPTS={debug:0,config:{iceServers:[
  {urls:'stun:stun.l.google.com:19302'},
  {urls:'stun:stun.relay.metered.ca:80'},
@@ -1919,7 +1986,7 @@ function netPresenceMsg(c,m){
   lbMsg(n+' تو رو به رومش دعوت کرد — روی آواتارش بزن','info');lbRenderUI()}}
 function netFriendReq(n){netEnsurePresence(ok=>{if(!ok){delete LB.pend[n];lbRenderUI();return}
  const c=NET.pres.connect(rid(n),{reliable:true});let fin=false;
- const to=setTimeout(()=>{if(!fin){fin=true;delete LB.pend[n];lbMsg(n+' آنلاین نیست (یا اسمش دقیقاً همین نیست)','alert');lbRenderUI();try{c.close()}catch(e){}}},8000);
+ const to=setTimeout(()=>{if(!fin){fin=true;delete LB.pend[n];lbMsg(n+' آنلاین نیست (یا اسمش دقیقاً همین نیست)','alert');lbRenderUI();try{c.close()}catch(e){}}},16000);
  c.on('open',()=>{try{c.send({t:'freq',from:NET.myName})}catch(e){}});
  c.on('data',m=>{if(fin)return;
   if(m.t==='fac'){fin=true;clearTimeout(to);delete LB.pend[n];
@@ -1934,7 +2001,7 @@ function netJoinFriend(nIn){const n=String(nIn||'').trim().slice(0,14);
  if(NET.on){lbMsg('اول از روم فعلی خارج شو','alert');return}
  netEnsurePresence(ok=>{if(!ok)return;
   const c=NET.pres.connect(rid(n),{reliable:true});let fin=false;
-  const to=setTimeout(()=>{if(!fin){fin=true;lbMsg(n+' آنلاین نیست یا رومی نداره','alert');try{c.close()}catch(e){}}},8000);
+  const to=setTimeout(()=>{if(!fin){fin=true;lbMsg(n+' آنلاین نیست یا رومی نداره','alert');try{c.close()}catch(e){}}},16000);
   c.on('open',()=>{try{c.send({t:'jn',from:NET.myName})}catch(e){}});
   c.on('data',m=>{if(fin)return;
    if(m.t==='jok'){fin=true;clearTimeout(to);lbMsg('وارد روم '+n+' می‌شی…','info');try{c.close()}catch(e){}netJoinRoom(m.room)}
