@@ -3547,9 +3547,9 @@ if(TOUCH){
  const up=el=>{const a=el.dataset.a,m=el.dataset.m;if(m==='crouch'){if(SET.crouchTog)el.classList.remove('on');return}
   el.classList.remove('on');if(m==='hold')act(a,false)};
  const DR=['tfire','tjump','tcrouch','treload','tuse','tbuy','tpause','twt','tgn'];let EDIT=false;
- const place=(r,x,y)=>{const q=r.style;q.left=x+'%';q.top=y+'%';q.right='auto';q.bottom='auto';q.margin='0';q.transform='translate(-50%,-50%)'};
+ const place=(r,x,y)=>{const q=r.style;q.left=x+'%';q.top=y+'%';q.right='auto';q.bottom='auto';q.margin='0';q.transform='';q.translate='-50% -50%'};
  window.tcApply=()=>{const R=document.documentElement.style;R.setProperty('--ts',(SET.tsize||100)/100);R.setProperty('--ta',(SET.talpha||100)/100);
-  for(const id of DR){const el=document.getElementById(id);if(!el)continue;const q=el.style;q.left=q.top=q.right=q.bottom=q.margin=q.transform='';const o=SET.tpos&&SET.tpos[id];if(o&&o.x!==undefined)place(el,o.x,o.y);el.classList.toggle('hid',!!(o&&o.h));q.setProperty('--bs',(o&&o.s)||1);q.setProperty('--bo',(o&&o.o)||1)}};
+  for(const id of DR){const el=document.getElementById(id);if(!el)continue;const q=el.style;q.left=q.top=q.right=q.bottom=q.margin=q.transform=q.translate='';const o=SET.tpos&&SET.tpos[id];if(o&&o.x!==undefined)place(el,o.x,o.y);el.classList.toggle('hid',!!(o&&o.h));q.setProperty('--bs',(o&&o.s)||1);q.setProperty('--bo',(o&&o.o)||1)}};
  let SEL='tfire',SNAP='{}';
  const NM={tfire:'شلیک',tjump:'پرش',tcrouch:'خم شدن',treload:'ریلود',tuse:'استفاده / خنثی‌سازی',tbuy:'خرید',tpause:'پاز',twt:'تغییر سلاح',tgn:'پرتابی‌ها'};
  const pn=document.createElement('div');pn.id='tpanel';
@@ -3581,7 +3581,7 @@ if(TOUCH){
  tc.addEventListener('touchstart',e=>{e.preventDefault();
   if(EDIT){for(const t of e.changedTouches){const tg=t.target.closest&&t.target.closest('.te div');
     if(tg){if(tg.id==='tedone')window.tcEdit(false);else{SET.tpos={};saveSet();window.tcApply()}continue}
-    const el=hitBtn(t);if(!el)continue;const r=el.closest('#twp')||el.closest('#tgn')||el.closest('#tbuyk')||el;selBtn(r.id);T[t.identifier]={k:'d',r}}return}
+    const el=hitBtn(t);if(!el)continue;const r=el.closest('#twp')||el.closest('#tgn')||el.closest('#tbuyk')||el;selBtn(r.id);const rc=r.getBoundingClientRect();T[t.identifier]={k:'d',r,ox:rc.left+rc.width/2-t.clientX,oy:rc.top+rc.height/2-t.clientY}}return}
   for(const t of e.changedTouches){const el=hitBtn(t);
    if(!el&&buyOpen){const rows=[...document.querySelectorAll('#buy .bi')];const bx=document.getElementById('buy').getBoundingClientRect();const i=rows.findIndex(r=>{const q=r.getBoundingClientRect();return t.clientX>=bx.left&&t.clientX<=bx.right&&t.clientY>=q.top-3&&t.clientY<=q.bottom+3});
     if(i>=0){buyItem(i);continue}
@@ -3594,7 +3594,7 @@ if(TOUCH){
    if(s.k==='m'){let dx=t.clientX-s.ox,dy=t.clientY-s.oy;const L=Math.hypot(dx,dy),R=55;if(L>R){dx*=R/L;dy*=R/L}
     jk.style.left=(s.ox+dx)+'px';jk.style.top=(s.oy+dy)+'px';const th=R*.3;
     setMove(dy<-th?1:dy>th?-1:0,dx>th?1:dx<-th?-1:0)}
-   else if(s.k==='d'){place(s.r,+(t.clientX/innerWidth*100).toFixed(1),+(t.clientY/innerHeight*100).toFixed(1))}
+   else if(s.k==='d'){place(s.r,+Math.max(0,Math.min(100,(t.clientX+s.ox)/innerWidth*100)).toFixed(1),+Math.max(0,Math.min(100,(t.clientY+s.oy)/innerHeight*100)).toFixed(1))}
    else if(s.k==='l'||(s.k==='b'&&s.el.id==='tfire')){const dx=t.clientX-s.x,dy=t.clientY-s.y;s.x=t.clientX;s.y=t.clientY;
     if(P&&!P.dead&&locked){const k=SENS*(SET.tsens||1.8);P.yaw-=dx*k;pitch=Math.max(-1.5,Math.min(1.5,pitch-dy*k*SET.sensY*(SET.invY?-1:1)))}}}},{passive:false});
  const end=e=>{e.preventDefault();for(const t of e.changedTouches){const s=T[t.identifier];if(!s)continue;delete T[t.identifier];
