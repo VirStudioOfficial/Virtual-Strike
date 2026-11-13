@@ -2512,7 +2512,7 @@ function botUpdate(e,dt){
     while(e.pi<e.path.length-1&&Math.hypot(nvx[n]-e.p.x,nvz[n]-e.p.z)<.75){e.pi++;n=e.path[e.pi]}
     const prev=e.path[Math.max(0,e.pi-1)],edgeKey=prev+':'+n;
     const dx=nvx[n]-e.p.x,dz=nvz[n]-e.p.z,dist=Math.hypot(dx,dz);
-    if(navJumpEdge(prev,n)&&nvy[n]>e.p.y+.25&&dist<1.25&&dist>.2&&e.on&&(e._jumpEdge!==edgeKey||e._jc<=0)){
+    if(navJumpEdge(prev,n)&&nvy[n]>e.p.y+STEP-.08&&dist<1.25&&dist>.2&&e.on&&(e._jumpEdge!==edgeKey||e._jc<=0)){
      e.vy=JUMP;e.on=false;e._jumpEdge=edgeKey;e._jc=1.2;
     }
     if(dist>.2){const want=Math.atan2(-dx,-dz);let d=want-e.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));{const st=BOT_TURN_ROAM*dt;e.yaw+=Math.max(-st,Math.min(st,d*Math.min(1,dt*10)))}fw=1;e._rm=1}
@@ -3131,7 +3131,7 @@ function render(dt){
    if(fp){const df=e.isP?Math.max(0,Math.min(1,-pitch/1.0)):0,sh=e.isP?-FP_LEG_BACK+FP_LEG_FWD*df:-FP_LEG_BACK;   // هرچی بیشتر پایین رو نگاه کنی، بدن به عقب خم می‌شه و پاها جلوتر میان (مثل CS)
     m.position.x-=Math.sin(e.yaw)*sh;m.position.z-=Math.cos(e.yaw)*sh;m.rotation.x=e.isP?FP_LEG_TILT*df:0;u.ring.visible=false;
     let up,pt;   // سر رو از گردن می‌بُریم تا دوربین توی سر نیفته؛ گردن با خم شدن کمر و نشستن جابه‌جا می‌شه
-    if(u.neckM){m.updateMatrixWorld(true);pt=u.neckM.getWorldPosition(new THREE.Vector3());up=_dv.set(0,0,1).transformDirection(u.neckM.matrixWorld)}
+    if(u.neckM){m.updateMatrixWorld(true);pt=u.neckM.getWorldPosition(new THREE.Vector3());up=_dv.set(0,0,1).transformDirection(u.neckM.matrixWorld);up.x*=.25;up.y=.25*up.y+.75;up.z*=.25;up.normalize()}   // صفحه‌ی برش رو بیشتر افقی نگه می‌داریم؛ وقتی نشستی و به پایین نگاه می‌کنی با کمر خم‌شده، صفحه‌ی کج پاها/تنه‌ی خودت رو هم می‌برید
     else{up=_dv.set(0,1,0).applyQuaternion(m.quaternion);const nh=CHAR_H*FP_NECK*(1-.26*e.cr);pt=new THREE.Vector3(m.position.x+up.x*nh,m.position.y+up.y*nh,m.position.z+up.z*nh)}
     u.fpPlane.setFromNormalAndCoplanarPoint(up.clone().negate(),pt)}
    if(u.botGun&&(e.isP||isSp||u.fpGunHid)){const hg=e.isP?fp:(isSp&&!e.dead);u.botGun.visible=!hg;u.fpGunHid=hg&&!e.isP}
@@ -3153,7 +3153,9 @@ function render(dt){
  for(const e of ents){if(e.isP||e===specT)continue;const m=e.mesh;if(!m||!m.visible)continue;
   const dx=m.position.x-cam.position.x,dz=m.position.z-cam.position.z;
   if(dx*dx+dz*dz>QL.ent*QL.ent){m.visible=false;continue}
-  _cs.center.set(m.position.x,m.position.y+1,m.position.z);_cs.radius=3;if(!_cf.intersectsSphere(_cs))m.visible=false}
+  _cs.center.set(m.position.x,m.position.y+1,m.position.z);_cs.radius=3;if(!_cf.intersectsSphere(_cs))m.visible=false;
+   /* دوربین رفته تو جسد (مثلاً موقع نشستن کنار بات مرده)؛ داخل مدل رو نشون نده */
+   else if(e.dead&&e.rag&&e.rag.P&&!e.rag.bad){const cp=cam.position;for(const q of e.rag.P){if(q&&q.x!==undefined&&(q.x-cp.x)**2+(q.y-cp.y)**2+(q.z-cp.z)**2<.3){m.visible=false;break}}}}
  vmUpdate(dt);
  if(FRN%QL.mmN===0)try{mmDraw()}catch(e){}
  {const fb=$('fb');if(fb){const a=(P.fl>0&&!P.dead)?Math.min(1,P.fl/Math.max(.3,(P.fd||1)*.4)):0;fb.style.display=a>0?'block':'none';fb.style.opacity=a}}
