@@ -2090,10 +2090,10 @@ function killFeed(by,t,hs,wb){const f=$('kf'),r=document.createElement('div');r.
 /* ---- صدای دمیج/مرگ کاراکترها: رندوم از بین چند صدا، از جای خودِ کاراکتر (فاصله + چپ/راست)؛ صدای خودِ بازیکن پخش نمی‌شه ---- */
 const _cvL={dm:-1,dt:-1};
 function charVoice(t,kind){if(!t||t.isP||!AC)return;const n=kind==='dm'?3:6,d=Math.hypot(t.p.x-P.p.x,t.p.z-P.p.z);if(d>70)return;
- if(kind==='dm'){const now=performance.now();if(now-(t._vt||0)<450)return;t._vt=now}
+ if(kind==='dm'){const now=performance.now();if(now-(t._vt||0)<1500||R()>.4)return;t._vt=now}
  let k;do{k=Math.floor(R()*n)}while(n>1&&k===_cvL[kind]);_cvL[kind]=k;
  const pan=d<1?0:Math.max(-.9,Math.min(.9,((t.p.x-P.p.x)*Math.cos(P.yaw)-(t.p.z-P.p.z)*Math.sin(P.yaw))/d));
- sfx(kind+k,(kind==='dt'?1:.8)/(1+d/9),.95+R()*.1,pan)}
+ sfx(kind+k,(kind==='dt'?.55:.4)/(1+d/9),.95+R()*.1,pan)}
 function damage(t,a,by,zone,wb){t.hp-=a;if(!t.dead)charVoice(t,t.hp<=0?'dt':'dm');if(!t.isP&&!t.dead&&by&&by.p){t.mem=Math.max(t.mem||0,2);t.lk=[by.p.x,by.p.z]}   // ازش تیر خورده → به سمت تیرانداز می‌چرخه
  if(t.isP){$('dmg').style.opacity=1;hap(a>=40?60:30)}if(by.isP){$('cross').classList.add('hit');hm=.12;hap(14);if(zone==='head')sfx('hs',.85)}
  if(t.hp<=0&&!t.dead){t.dead=true;if(t.isP){t.pl=0;t.pld=-1}   // وسط پلنت مردی: نوار پیشرفت پاک بشه
