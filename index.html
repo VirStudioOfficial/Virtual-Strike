@@ -1636,10 +1636,17 @@ function fire(e,d){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;o
  if(bh&&!hit&&NET.mode!=='client'){ballImpulse(d.x*8,Math.max(d.y*8,-1)+2.2,d.z*8);if(!sfx('f0',.5/(1+dist/8),1.1))beep(150,.04,.08)}   // ضربه‌ی گلوله به توپ: لگد به سمت مسیر گلوله
  if(NET.mode==='host')NET.send({t:'shot',by:e.name,o:[+o.x.toFixed(2),+o.y.toFixed(2),+o.z.toFixed(2)],d:[+d.x.toFixed(3),+d.y.toFixed(3),+d.z.toFixed(3)],end:[+end.x.toFixed(2),+end.y.toFixed(2),+end.z.toFixed(2)],hit:hit?hit.name:null,zone,wp:e.wp||0})}
 const _mv=new THREE.Vector3(),_me=new THREE.Euler(0,0,0,'YXZ');
+/* جای دوربین رو با yaw/pitch/ریکویل «همین لحظه» ست می‌کنه. قبلاً سر لوله از ماتریس دنیای فریم قبل خونده می‌شد (render بعد از simulate صدا زده می‌شه)،
+   پس موقع چرخوندن سریع ماوس ترسر و فلش از جایی عقب‌تر از مگسک شروع می‌شدن. render همین مقادیر رو دوباره می‌نویسه، پس ضرری نداره. */
+function camNow(){if(P.dead)return;const pv=P.pv;
+ cam.position.set(P.p.x,P.p.y+1.6-CROUCH_D*P.cr-P.dip-(P.sdip||0),P.p.z);
+ cam.rotation.set(Math.min(1.55,pitch+(pv?PV_VIS*pv.p:0)),P.yaw-(pv?PV_VIS*pv.y:0),0);
+ gun.updateMatrix();cam.updateMatrixWorld(true)}
+const MUZ_ADJ=[0,0,0];   // تنظیم دستی سر لوله در فضای گان [x راست، y بالا، z عقب] به متر؛ مثلاً y=+.05 تا ترسر از نوک مگسک (بالای لوله) بیاد
 function muzzlePos(){ // موقعیت سر لوله‌ی AK در فضای دنیا
  if(tp)return{x:P.p.x,y:P.p.y+1.45-CROUCH_D*P.cr,z:P.p.z};
- if((P.wp||0)===0&&VM.mzG){_mv.copy(VM.mzG);gun.localToWorld(_mv);return{x:_mv.x,y:_mv.y,z:_mv.z}}   // AK: سر لوله‌ی واقعی مدل (با چرخش/لگد/راه رفتن گان)
- if((P.wp||0)===2){_mv.set(PMUZ[0],PMUZ[1],PMUZ[2]);gun.localToWorld(_mv);return{x:_mv.x,y:_mv.y,z:_mv.z}}
+ if((P.wp||0)===0&&VM.mzG){camNow();_mv.set(VM.mzG.x+MUZ_ADJ[0],VM.mzG.y+MUZ_ADJ[1],VM.mzG.z+MUZ_ADJ[2]);gun.localToWorld(_mv);return{x:_mv.x,y:_mv.y,z:_mv.z}}   // AK: سر لوله‌ی واقعی مدل (با چرخش/لگد/راه رفتن گان)
+ if((P.wp||0)===2){camNow();_mv.set(PMUZ[0],PMUZ[1],PMUZ[2]);gun.localToWorld(_mv);return{x:_mv.x,y:_mv.y,z:_mv.z}}
  _me.set(pitch,P.yaw,0);_mv.set(gun.position.x+((P.wp||0)===2?PMUZ[0]:-.013),gun.position.y+((P.wp||0)===2?PMUZ[1]:.07),gun.position.z+((P.wp||0)===2?PMUZ[2]:-.44)).applyEuler(_me);
  return{x:P.p.x+_mv.x,y:P.p.y+1.6-CROUCH_D*P.cr-P.dip-(P.sdip||0)+_mv.y,z:P.p.z+_mv.z}}
 let hm=0;
