@@ -382,7 +382,7 @@ const FILES={map:'de_dust2_-_cs_map.glb',ally:'model.glb',enemy:'char_t2.glb',gu
 const IN=39.37; // تبدیل اینچ مدل‌های قدیمی به متر
 const CHARS={
  ally:{arms:true,armPitch:[.88,.84],armRoll:.79,center:[0,0]},
- enemy:{arms:true,center:[.122,-.108]}
+ enemy:{arms:true,islandArms:true,center:[.122,-.108]}
 };
 const MAP_SCALE=1.5;    // خروجی Sketchfab فشرده‌ست (‏~۶۰×۷۱ متر و درها فقط ~۱٫۶ متر!) → با ×۱٫۵ درها ~۲٫۴ متر و ابعاد ~۹۰×۱۰۶ متر می‌شه؛ متناسب با قد کاراکتر (۱٫۸ متر)
 const CHAR_H=1.8;       // قد کاراکترها به متر
@@ -3606,6 +3606,40 @@ let last=performance.now();
 
 /* ================= BOOT: لود مپ + کاراکترها + ساخت مسیرها ================= */
 /* ---- راه رفتن: مدل‌ها اسکلت ندارن، پس پاها و دست‌ها رو از بدنه جدا می‌کنیم و دور باسن/شونه می‌چرخونیم ---- */
+/* تشخیص دست‌ها از روی «جزیره»‌های مش (قطعه‌های جدا از هم: آستین، ساعد، دستکش، مچ‌بند...) به‌جای برش ساده با فاصله از وسط بدن.
+   مدل دشمن اسلحه‌به‌دست‌ه و دست‌هاش جلو/نزدیک وسط‌ان؛ برش قبلی فقط یه تکه‌ی کوچیکِ شونه رو دست حساب می‌کرد و دستکش‌ها به سینه می‌چسبیدن.
+   اگه چیزی مطمئن پیدا نشه null برمی‌گرده و همون برش قدیمی کار می‌کنه. */
+function findArmIslands(pos,ix,H,zmin,XMID,PYW){
+ const nv=pos.count,cnt=ix?ix.count:nv,V=k=>ix?ix.getX(k):k,par=new Int32Array(nv);for(let i=0;i<nv;i++)par[i]=i;
+ const fd=x=>{while(par[x]!==x){par[x]=par[par[x]];x=par[x]}return x};
+ for(let k=0;k<cnt;k+=3){const a=fd(V(k)),b=fd(V(k+1));if(a!==b)par[b]=a;const a2=fd(a),c=fd(V(k+2));if(a2!==c)par[c]=a2}
+ const mp=new Map();
+ for(let k=0;k<cnt;k+=3){const r=fd(V(k));let o=mp.get(r);if(!o){o={tris:[],vs:new Set(),c:[0,0,0]};mp.set(r,o)}o.tris.push(k);o.vs.add(V(k));o.vs.add(V(k+1));o.vs.add(V(k+2))}
+ const il=[...mp.values()];
+ for(const o of il){o.vl=[...o.vs];o.n=o.vl.length;for(const v of o.vl){o.c[0]+=pos.getX(v);o.c[1]+=pos.getY(v);o.c[2]+=pos.getZ(v)}o.c=o.c.map(q=>q/o.n);o.zf=(o.c[2]-zmin)/H;o.off=Math.hypot(o.c[0]-XMID,o.c[1]-PYW)}
+ const dist=(A,B)=>{let m=1e9;const sa=Math.max(1,A.n>>6),sb=Math.max(1,B.n>>6);   // کمینه‌ی فاصله‌ی دو جزیره (با نمونه‌برداری)
+  for(let i=0;i<A.n;i+=1){const a=A.vl[i],ax=pos.getX(a),ay=pos.getY(a),az=pos.getZ(a);for(let j=0;j<B.n;j+=sb){const b=B.vl[j],d=(ax-pos.getX(b))**2+(ay-pos.getY(b))**2+(az-pos.getZ(b))**2;if(d<m)m=d}}return Math.sqrt(m)};
+ const seeds=il.filter(o=>o.n>=300&&o.zf>=.64&&o.zf<=.80&&o.off>=H*.08);
+ if(seeds.length<4||seeds.length>8)return null;
+ const TOL=H*.03,grp=seeds.map((_,i)=>i),gf=x=>{while(grp[x]!==x)x=grp[x];return x};
+ for(let i=0;i<seeds.length;i++)for(let j=i+1;j<seeds.length;j++)if(dist(seeds[i],seeds[j])<=TOL){const a=gf(i),b=gf(j);if(a!==b)grp[b]=a}
+ const roots=[...new Set(seeds.map((_,i)=>gf(i)))];if(roots.length!==2)return null;
+ const G=roots.map(r=>({isl:seeds.filter((_,i)=>gf(i)===r)}));
+ // جزیره‌های کوچیکِ چسبیده (مچ‌بند، بند، دکمه...) به همون دست می‌پیوندن
+ const small=il.filter(o=>!seeds.includes(o)&&o.n<300&&o.zf>=.58&&o.zf<=.82);
+ for(let pass=0;pass<3;pass++)for(const o of small){if(o.g!==undefined)continue;
+  for(let gi=0;gi<2&&o.g===undefined;gi++)for(const m of G[gi].isl)if(dist(o,m)<=H*.012){o.g=gi;G[gi].isl.push(o);break}}
+ for(const g of G){let x=0,n=0;for(const o of g.isl.filter(q=>seeds.includes(q))){x+=o.c[0];n++}g.mx=x/n}
+ if(G[0].mx>G[1].mx)G.reverse();   // G[0] = چپ (x کمتر) ، G[1] = راست
+ const map=new Map(),sh=[];
+ for(let gi=0;gi<2;gi++){const g=G[gi];for(const o of g.isl)for(const k of o.tris)map.set(k,gi+1);
+  // مفصل شونه: نزدیک‌ترین رأسِ بازو به نقطه‌ی تقریبیِ شونه، بعد میانگین رأس‌های اطرافش
+  const sgn=gi?1:-1,ref=[XMID+sgn*H*.10,PYW,zmin+H*.80],up=g.isl.filter(q=>seeds.includes(q)).sort((a,b)=>b.c[2]-a.c[2])[0];
+  let best=-1,bd=1e18;for(const v of up.vl){const d=(pos.getX(v)-ref[0])**2+(pos.getY(v)-ref[1])**2+(pos.getZ(v)-ref[2])**2;if(d<bd){bd=d;best=v}}
+  const bx=pos.getX(best),by=pos.getY(best),bz=pos.getZ(best);let sx=0,sy=0,sz=0,n=0;
+  for(const v of up.vl){if(Math.hypot(pos.getX(v)-bx,pos.getY(v)-by,pos.getZ(v)-bz)<H*.025){sx+=pos.getX(v);sy+=pos.getY(v);sz+=pos.getZ(v);n++}}
+  sh.push({x:sx/n,y:sy/n,z:sz/n})}
+ return{map,sh,info:G.map(g=>g.isl.length)}}
 function rigLegs(root,opt){opt=opt||{};
  let body=null;root.traverse(o=>{if(o.isMesh&&(!body||o.geometry.attributes.position.count>body.geometry.attributes.position.count))body=o});
  if(!body)return;
@@ -3625,20 +3659,22 @@ function rigLegs(root,opt){opt=opt||{};
    sy+=(pos.getY(a)+pos.getY(b)+pos.getY(c))/3;n++}return n>20?sy/n:PY};
  const PYL=bandY(HJ),PYW=bandY(WAIST);
  const T=[],L=[],R=[],AL=[],AR=[],TP=[],TC=[],EL=[],ER=[];
+  let ISL=null;if(opt.islandArms){try{ISL=findArmIslands(pos,ix,H,zmin,XMID,PYW)}catch(err){console.warn('[rigLegs] تشخیص جزیره‌ی دست ناموفق، برش قدیمی:',err)}}
  for(let k=0;k<cnt;k+=3){const a=V(k),b=V(k+1),c=V(k+2);
-  const mz=Math.max(pos.getZ(a),pos.getZ(b),pos.getZ(c)),cz=(pos.getZ(a)+pos.getZ(b)+pos.getZ(c))/3,cx=(pos.getX(a)+pos.getX(b)+pos.getX(c))/3-XMID;
+  if(ISL){const w=ISL.map.get(k);if(w){(w===1?AL:AR).push(a,b,c);continue}}
+   const mz=Math.max(pos.getZ(a),pos.getZ(b),pos.getZ(c)),cz=(pos.getZ(a)+pos.getZ(b)+pos.getZ(c))/3,cx=(pos.getX(a)+pos.getX(b)+pos.getX(c))/3-XMID;
   if(mz>HIP){
-   if(Math.abs(cx)>ARM_X){(cx<0?AL:AR).push(a,b,c);continue}
+   if(!ISL&&Math.abs(cx)>ARM_X){(cx<0?AL:AR).push(a,b,c);continue}
    if(cz<=WAIST+OVL)TP.push(a,b,c);           // لگن (ثابت)
    if(cz>WAIST-OVL)TC.push(a,b,c);            // سینه+سر (دور کمر می‌چرخه)؛ ۴٪ قد هم‌پوشانی تا موقع خم شدن بین لگن و سینه شکاف نیفته
    if(cz<=HJ)(cx<0?EL:ER).push(a,b,c);        // بالای ران تا مفصل ران: کپی‌ش با پا می‌چرخه (لگن ثابت هم سر جاشه)
    continue}
   (cx<0?L:R).push(a,b,c)}
  if(!L.length||!R.length)return; // جدا نشدن؛ همون مدل قبلی می‌مونه
- const mk=(idx,name,px,pz)=>{const gg=new THREE.BufferGeometry();
+ const mk=(idx,name,px,pz,py)=>{if(py===undefined)py=PY;const gg=new THREE.BufferGeometry();
   for(const n in g.attributes)gg.setAttribute(n,g.attributes[n]);gg.setIndex(idx);
   const m=new THREE.Mesh(gg,body.material);
-  const piv=new THREE.Group();piv.name=name;piv.position.set(px,PY,pz);m.position.set(-px,-PY,-pz);piv.add(m);return piv};
+  const piv=new THREE.Group();piv.name=name;piv.position.set(px,py,pz);m.position.set(-px,-py,-pz);piv.add(m);return piv};
  const KNEE=zmin+H*.27;   // زانو: حدود ۲۷٪ قد از زمین
  const split=idx=>{const th=[],ca=[];for(let k=0;k<idx.length;k+=3){const z=(pos.getZ(idx[k])+pos.getZ(idx[k+1])+pos.getZ(idx[k+2]))/3;(z>KNEE?th:ca).push(idx[k],idx[k+1],idx[k+2])}return[th,ca]};
  const mkM=idx=>{const gg=new THREE.BufferGeometry();for(const n in g.attributes)gg.setAttribute(n,g.attributes[n]);gg.setIndex(idx);return new THREE.Mesh(gg,body.material)};
@@ -3655,9 +3691,9 @@ function rigLegs(root,opt){opt=opt||{};
  const spine=new THREE.Group();spine.name='spine';spine.position.set(0,PYW,WAIST);
  const chest=mkM(TC);chest.name='chest';chest.position.set(0,-PYW,-WAIST);spine.add(chest);
  const neck=new THREE.Object3D();neck.name='neckM';neck.position.set(0,0,NECK_Z-WAIST);spine.add(neck);   // نقطه‌ی گردن: صفحه‌ی برش سر توی اول‌شخص
- if(AL.length&&AR.length){const aL=mk(AL,'armL',XMID-SH_X,SH_Z),aR=mk(AR,'armR',XMID+SH_X,SH_Z);
+ if(AL.length&&AR.length){const aL=ISL?mk(AL,'armL',ISL.sh[0].x,ISL.sh[0].z,ISL.sh[0].y):mk(AL,'armL',XMID-SH_X,SH_Z),aR=ISL?mk(AR,'armR',ISL.sh[1].x,ISL.sh[1].z,ISL.sh[1].y):mk(AR,'armR',XMID+SH_X,SH_Z);
   // A-pose → دست‌ها کنار بدن (دور محور Y مدل)
-  aL.rotation.y=-ARM_REST;aR.rotation.y=ARM_REST;
+  if(!ISL){aL.rotation.y=-ARM_REST;aR.rotation.y=ARM_REST}   // مدل دشمن پوزِ خودش رو داره؛ ARM_REST فقط برای A-pose
   for(const a of[aL,aR]){a.position.y-=PYW;a.position.z-=WAIST;spine.add(a)}}   // مختصات نسبت به کمر؛ جای دنیایی دست‌ها عوض نمی‌شه
  parts.push(spine);
  root.userData.rig={hj:HJ-zmin,kn:KNEE-zmin,wa:WAIST-zmin,legK:HIPJ_F>0?.385/HIPJ_F:1,fp};
@@ -3674,7 +3710,7 @@ function fitChar(root,kind){
  {const sz=new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
   console.log('[fitChar]',kind,'اندازه‌ی خام مدل x/y/z =',sz.x.toFixed(2),sz.y.toFixed(2),sz.z.toFixed(2));
   if(sz.z>sz.y*1.15){root.rotation.x-=Math.PI/2;root.updateMatrixWorld(true);console.log('[fitChar]',kind,'مدل Z-up بود → راست شد')}}
- const b=new THREE.Box3().setFromObject(root),c=b.getCenter(new THREE.Vector3()),sc=CHAR_H/(b.max.y-b.min.y);
+ const b=new THREE.Box3().setFromObject(root),c=b.getCenter(new THREE.Vector3()),sc=CHAR_H*(cf.scl||1)/(b.max.y-b.min.y);   // cf.scl: ضریب قد اختیاری هر مدل (مثلاً .88 برای برگشت به اندازه‌ی قبلیِ دشمن)
  if(cf.center){c.x=cf.center[0]*IN;c.z=cf.center[1]*IN}
  const inner=new THREE.Group();root.position.set(-c.x,-b.min.y,-c.z);inner.add(root);inner.scale.setScalar(sc);
  const out=new THREE.Group();inner.rotation.y=Math.PI;out.add(inner);
