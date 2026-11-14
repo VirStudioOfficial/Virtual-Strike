@@ -2481,7 +2481,7 @@ function lbeMats(o,D){
  o.traverse(x=>{if(!x.isSkinnedMesh)return;const c=LBE_CELL[x.name];if(c===undefined){console.warn('[lobby-enemy] مشِ ناشناخته:',x.name);return}
   if(!cache[c]){const cv=document.createElement('canvas'),px=Math.max(2,Math.round(cw)-2);cv.width=cv.height=px;
    cv.getContext('2d').drawImage(im,(c%3)*cw+1,Math.floor(c/3)*ch+1,cw-2,ch-2,0,0,px,px);
-   const t=new THREE.CanvasTexture(cv);t.encoding=base.map.encoding;t.anisotropy=base.map.anisotropy||1;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;
+   const t=new THREE.CanvasTexture(cv);t.flipY=false;t.encoding=base.map.encoding;   /* UVهای FBX همون قرارداد glTF هستن (v از بالا) → بدون فلیپ */ t.anisotropy=base.map.anisotropy||1;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;
    const mm=base.clone();mm.map=t;mm.skinning=true;mm.needsUpdate=true;cache[c]=mm}
   D.mats[x.name]=cache[c];n++;console.log('[lobby-enemy]',x.name,'← خانه‌ی',c,'از اطلس')});
  return n}
