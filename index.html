@@ -695,9 +695,9 @@ void main(){
   if(fx.inited)return true;if(fx.dead)return false;
   try{
    M={ao:mat(F_AO,{tDepth:U(null),uPI:U(null),uRes:U(new V2()),uPx:U(new V2()),uP11:U(1),uR:U(1.1),uInt:U(1.25),uSeed:U(0)}),
-    vol:mat(F_VOL,{tDepth:U(null),uPI:U(null),uRes:U(new V2()),uCW:U(null),tShadow:U(null),uSM:U(new M4()),uUseSh:U(0),uSunDir:U(new V3()),uSunCol:U(new V3(1,.82,.55)),uAmb:U(new V3(.25,.36,.55)),uDens:U(.0012),uMaxD:U(40),uSeed:U(0),uInt:U(.6),uGY:U(0)}),
+    vol:mat(F_VOL,{tDepth:U(null),uPI:U(null),uRes:U(new V2()),uCW:U(null),tShadow:U(null),uSM:U(new M4()),uUseSh:U(0),uSunDir:U(new V3()),uSunCol:U(new V3(1,.82,.55)),uAmb:U(new V3(.25,.36,.55)),uDens:U(.0036),uMaxD:U(75),uSeed:U(0),uInt:U(1.5),uGY:U(0)}),
     blur:mat(F_BLUR,{tSrc:U(null),tDepth:U(null),uDir:U(new V2()),uNear:U(.1),uFar:U(650)}),
-    comp:mat(F_COMP,{tColor:U(null),tDepth:U(null),tAO:U(null),tVol:U(null),uPI:U(null),uCW:U(null),uPrevVP:U(null),uMB:U(0),uAOI:U(.5),uVolOn:U(1),uSeed:U(0)}),
+    comp:mat(F_COMP,{tColor:U(null),tDepth:U(null),tAO:U(null),tVol:U(null),uPI:U(null),uCW:U(null),uPrevVP:U(null),uMB:U(0),uAOI:U(.9),uVolOn:U(1),uSeed:U(0)}),
     down:mat(F_DOWN,{tSrc:U(null),uTx:U(new V2()),uKaris:U(0)}),
     up:mat(F_UP,{tSrc:U(null),uTx:U(new V2()),uW:U(.85)},{blending:T.AdditiveBlending}),
     exp:mat(F_EXP,{tSrc:U(null),tPrev:U(null),uDt:U(.016),uKey:U(.6),uMin:U(.8),uMax:U(1.3),uInit:U(1)}),
@@ -716,7 +716,7 @@ void main(){
  fx.alloc=function(w,h){
   const hw=Math.max(2,w>>1),hh=Math.max(2,h>>1);
   if(!fx.rtA){
-   fx.rtA=mk(w,h,T.HalfFloatType,false,true);fx.rtB=mk(w,h,T.HalfFloatType,true);fx.rtL=mk(w,h,T.UnsignedByteType,false);
+   fx.rtA=mk(w,h,T.HalfFloatType,true,true);fx.rtB=mk(w,h,T.HalfFloatType,true);fx.rtL=mk(w,h,T.UnsignedByteType,false);
    fx.aoA=mk(hw,hh,T.UnsignedByteType);fx.aoB=mk(hw,hh,T.UnsignedByteType);fx.vlA=mk(hw,hh);fx.vlB=mk(hw,hh);
    fx.bl=[];for(let i=0;i<NB;i++)fx.bl.push(mk(Math.max(1,w>>(i+1)),Math.max(1,h>>(i+1))));
    fx.ex=[mk(1,1),mk(1,1)];fx.exInit=true;
@@ -2467,7 +2467,7 @@ addEventListener('mousemove',e=>{if(!locked||P.dead)return;if(skipMM>0){skipMM--
 let inMatch=false,inLobby=false;
 /* ---- تنظیمات (ذخیره در localStorage) ---- */
 const BIND_DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',walk:'ShiftLeft',crouch:'KeyC',fire:'Mouse0',alt:'Mouse2',reload:'KeyR',use:'KeyE',w1:'Digit1',w2:'Digit2',w3:'Digit3',w4:'Digit4',g5:'Digit5',g6:'Digit6',g7:'Digit7',g8:'Digit8',last:'KeyQ',buy:'KeyB',tp:'KeyV'};
-const SET_DEF={sens:1,sensY:1,invY:false,raw:false,wheel:'off',crouchTog:false,walkTog:false,fov:75,fovAxis:'v',ar:'auto',arMode:'stretch',q:'high',fx:!matchMedia('(pointer:coarse)').matches,fxVol:false,fxMB:true,fxBloom:100,fxGrade:100,res:100,shadow:'preset',vd:0,fog:true,lights:true,bright:1,aa:true,fps:0,showFps:false,hudScale:100,tsize:100,talpha:100,tsens:1.8,tpos:{},adapt:true,vib:true,aimAs:true,tjw:true,tjf:true,mq:0,showMM:true,mmSize:200,showKF:true,showPos:true,vign:true,vol:100,
+const SET_DEF={sens:1,sensY:1,invY:false,raw:false,wheel:'off',crouchTog:false,walkTog:false,fov:75,fovAxis:'v',ar:'auto',arMode:'stretch',q:'high',fx:!matchMedia('(pointer:coarse)').matches,fxVol:true,fxMB:true,fxBloom:100,fxGrade:100,res:100,shadow:'preset',vd:0,fog:true,lights:true,bright:1,aa:true,fps:0,showFps:false,hudScale:100,tsize:100,talpha:100,tsens:1.8,tpos:{},adapt:true,vib:true,aimAs:true,tjw:true,tjf:true,mq:0,showMM:true,mmSize:200,showKF:true,showPos:true,vign:true,vol:100,
  cx:{style:'cross',color:'#33ff33',size:8,thick:2,gap:3,outline:true,ol:1,alpha:100,dot:false,ds:2,dyn:true,hit:'#ff3333'},bind:BIND_DEF};
 const SET=(()=>{let s={};try{s=JSON.parse(localStorage.getItem('ms_set')||'{}')||{}}catch(e){}const o=Object.assign({},SET_DEF,s);o.cx=Object.assign({},SET_DEF.cx,s.cx);o.bind=Object.assign({},BIND_DEF,s.bind);o.tpos=Object.assign({},s.tpos||{});return o})();
 const saveSet=()=>{try{localStorage.setItem('ms_set',JSON.stringify(SET))}catch(e){}};
