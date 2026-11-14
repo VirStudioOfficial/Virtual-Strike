@@ -1893,11 +1893,15 @@ const MZS=(()=>{const c=document.createElement('canvas');c.width=c.height=128;co
  for(let k=0;k<6;k++){x.save();x.rotate(k*Math.PI/3+.2);const g=x.createLinearGradient(0,0,60,0);g.addColorStop(0,'rgba(255,230,160,.95)');g.addColorStop(1,'rgba(255,120,20,0)');x.fillStyle=g;x.beginPath();x.moveTo(0,-4);x.lineTo(60,0);x.lineTo(0,4);x.fill();x.restore()}
  const r=x.createRadialGradient(0,0,0,0,0,34);r.addColorStop(0,'rgba(255,255,240,1)');r.addColorStop(.3,'rgba(255,200,110,.8)');r.addColorStop(1,'rgba(255,110,20,0)');x.fillStyle=r;x.beginPath();x.arc(0,0,34,0,6.2832);x.fill();
  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,fog:false,toneMapped:false,color:new THREE.Color(3.2,2.2,1.1)}));sp.visible=false;sp.renderOrder=6;scene.add(sp);return sp})();
-let _mfPrev=0;
+let _mfPrev=0;const MZG=new THREE.PointLight(0xffa850,0,2.5,2);
 function mzUpdate(){const on=mfT>0&&mflash.intensity>0&&mflash.intensity<12&&mflash.visible;
- if(on){if(mfT>_mfPrev+.01){const big=mflash.intensity>=8;MZS.userData.s=(big?.42:.22)*(.8+Math.random()*.5);MZS.material.rotation=Math.random()*6.28}
+ if(on){if(mfT>_mfPrev+.01){const big=mflash.intensity>=8;MZS.userData.s=(big?.09:.22)*(.8+Math.random()*.5);MZS.material.rotation=Math.random()*6.28}
   MZS.position.copy(mflash.position);MZS.scale.setScalar(MZS.userData.s*(.6+.4*Math.min(1,mfT/.05)))}
- MZS.visible=on;_mfPrev=on?mfT:0}
+ MZS.visible=on;_mfPrev=on?mfT:0;
+ /* نور مخصوص گان: فقط تو پاس ویومدل دیده می‌شه، کمی عقب‌تر و بالاتر از سر لوله تا مگسک و بدنه‌ی بالایی AK نور بگیره */
+ if(!MZG._i){MZG._i=1;MZG.layers.set(VM_LAYER);scene.add(MZG)}
+ const pl=on&&mflash.intensity>=8&&mfT>0;
+ if(pl){MZG.position.lerpVectors(mflash.position,cam.position,.4);MZG.position.y+=.05;MZG.intensity=.9*Math.min(1,mfT/.05)}else MZG.intensity=0}
 /* ================= خون: پاشش ذرات + لکه‌ی روی در و دیوار/کف + حوض زیر جسد =================
    - ذره‌ها قطره‌های واقعی با جاذبه‌ان؛ هرکدوم به سطحی بخوره همون‌جا لکه (دکال) می‌ذاره، روی دیوار با رگه‌ی چکه‌ی رو به پایین
    - تکسچرها با canvas ساخته می‌شن (فایل بیرونی لازم نیست) | سقف تعداد: BL.N ذره و BL.MAXD لکه (قدیمی‌ترین‌ها بازیافت می‌شن) */
