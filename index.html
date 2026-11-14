@@ -994,7 +994,7 @@ const ALPHA_RX=/palm|tree|leaf|leav|plant|foliage|bush|grass|fence|wire|vine/i;
 function hasAlphaFine(img){ // نمونه‌برداری نزدیک‌ترین‌همسایه (میانگین‌گیری نکنه تا سوراخ‌های ریز گم نشن)؛ هر مشکلی → فرض کن آلفا داره
  try{const S=96,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d',{willReadFrequently:true});x.imageSmoothingEnabled=false;x.drawImage(img,0,0,S,S);
   const d=x.getImageData(0,0,S,S).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]<250&&++n>=4)return n}catch(e){return 1}return 0}
-function simplify(root,def){
+function simplify(root,def,detail){
  const cache=new Map();
  root.traverse(o=>{if(!o.isMesh)return;
   if(!o.geometry.attributes.normal)o.geometry.computeVertexNormals();
@@ -1004,9 +1004,16 @@ function simplify(root,def){
    if(map){texCap(map);map.encoding=THREE.LinearEncoding;map.anisotropy=MAXANI;map.needsUpdate=true;frac=hasAlpha(map.image);alpha=frac>0;if(OPT.alpha)fracF=hasAlphaFine(map.image)}
    const glass=m.transparent||m.alphaMode==='BLEND';
    const bc=m.color&&(m.color.r+m.color.g+m.color.b)>.15?m.color.getHex():(def||0xd8d0bd);
-   const n=new THREE.MeshLambertMaterial({map,color:map?0xffffff:bc,side:THREE.DoubleSide,
+   let n=new THREE.MeshLambertMaterial({map,color:map?0xffffff:bc,side:THREE.DoubleSide,
      alphaTest:map&&!glass&&(!OPT.alpha||m.alphaTest>0||fracF>0||ALPHA_RX.test((m.name||'')+(o.name||'')))?.5:0,   // همیشه برش آلفا: تکسچر بدون آلفا که اثری نداره، ولی درخت‌ها دیگه سیاه نمی‌شن
     transparent:glass,opacity:glass?.55:1,depthWrite:!glass});
+   if(detail&&!glass&&(m.normalMap||m.aoMap)){   // کاراکترها: نرمال‌مپ و AO مدل حفظ می‌شن (قبلاً دور ریخته می‌شد → سطح تخت و پلاستیکی)
+     const nm=m.normalMap||null,ao=m.aoMap||null;
+     [nm,ao].forEach(t=>{if(t&&t.image){texCap(t);t.encoding=THREE.LinearEncoding;t.anisotropy=MAXANI;t.needsUpdate=true}});
+     if(ao&&o.geometry.attributes.uv&&!o.geometry.attributes.uv2)o.geometry.setAttribute('uv2',o.geometry.attributes.uv);
+     const ns=m.normalScale?m.normalScale.clone().multiplyScalar(1.15):new THREE.Vector2(1.15,1.15);
+     const ph=new THREE.MeshPhongMaterial({map,color:n.color.getHex(),side:THREE.DoubleSide,alphaTest:n.alphaTest,normalMap:nm,normalScale:ns,aoMap:ao,aoMapIntensity:1,specular:0x1a1a1a,shininess:12});
+     ph.skinning=!!o.isSkinnedMesh;n.dispose();n=ph}
    n.userData.alpha=frac>.04||/palm|tree|leaf|leav|plant|foliage|bush|grass|fence|wire|vine/i.test((m.name||'')+(o.name||''));cache.set(m,n);return n};
   o.material=Array.isArray(o.material)?o.material.map(one):one(o.material);
   const ms=Array.isArray(o.material)?o.material:[o.material];
@@ -3660,7 +3667,7 @@ const ARM_REST=.49; // رادیان (~۲۸°): هرچی بیشتر، دست‌ه
 function fitChar(root,kind){
  const cf=CHARS[kind]||{};
  rigLegs(root,cf);
- simplify(root);
+ simplify(root,undefined,true);   // detail=true: فقط کاراکترها نرمال‌مپ/AO نگه می‌دارن
  /* اصلاح خودکار جهت مدل: اگه مدل Z-up باشه و نود چرخشی (Z→Y) توی GLB نباشه، قدّش روی محور Z می‌افته؛
     نتیجه: کاراکتر خوابیده (با مرگ «بلند می‌شه») و چون قد رو از محور Y اندازه می‌گیریم خیلی بزرگ می‌شه. اینجا راست‌ش می‌کنیم. */
  root.updateMatrixWorld(true);
