@@ -1013,7 +1013,7 @@ function simplify(root,def){
   o.receiveShadow=true;o.castShadow=!o.userData.noCol})}
 
 /* ================= MAP + COLLISION ================= */
-let T,TN,NT=0,CELL=2.5,GX0=0,GZ0=0,NX=0,NZ=0,CS,CT,STAMP,stamp=0,MAPMIN=0,TB=null,CSW=null,CTW=null,MBX0=0,MBX1=0,MBZ0=0,MBZ1=0;
+let T,TN,NT=0,CELL=2.5,GX0=0,GZ0=0,NX=0,NZ=0,CS,CT,STAMP,stamp=0,MAPMIN=0,TB=null,CSW=null,CTW=null,MBX0=0,MBX1=0,MBZ0=0,MBZ1=0,PGZ=null;
 let HNX=0,HNY=1,HNZ=0;
 /* ادغام مش‌های ثابت مپ: همه‌ی مش‌هایی که متریال یکسان دارن و توی یه بلوک ~۴۰ متری هستن → یه مش (مختصات جهانی پخته می‌شه).
    نتیجه: Draw call چندین برابر کمتر (هم پاس اصلی هم پاس سایه)، پیمایش گراف صحنه‌ی سبک‌تر، و دیگه ماتریس هزاران نود هر فریم دوباره حساب نمی‌شه.
@@ -1179,6 +1179,12 @@ function buildNav(){
   for(let h=0;h<q.length;h++){const u=q[h];n++;for(let k=adjS[u];k<adjS[u+1];k++){const v=adjT[k];if(ncomp[v]<0){ncomp[v]=id;q.push(v)}}}
   if(n>bs){bs=n;best=id}id++}
  {let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;for(let n=0;n<NN;n++){if(ncomp[n]!==best)continue;a0=Math.min(a0,nvx[n]);a1=Math.max(a1,nvx[n]);b0=Math.min(b0,nvz[n]);b1=Math.max(b1,nvz[n])}
+ if(a1>a0){   // شبکه‌ی ناحیه‌ی قابل‌بازی: هر خونه‌ی ۱×۱ متر که تا PG_R متر به یه نقطه‌ی راه‌رفتنیِ مپ نزدیکه + بلندترین ارتفاع اون اطراف
+  const cs=1,R=PG_R,gx0=a0-R-1,gz0=b0-R-1,nx=Math.ceil((a1-a0+2*R+2)/cs),nz=Math.ceil((b1-b0+2*R+2)/cs),ok=new Uint8Array(nx*nz),my=new Float32Array(nx*nz).fill(-1e9),rc=Math.ceil(R/cs);
+  for(let n=0;n<NN;n++){if(ncomp[n]!==best)continue;const cx=Math.floor((nvx[n]-gx0)/cs),cz=Math.floor((nvz[n]-gz0)/cs);
+   for(let dz=-rc;dz<=rc;dz++)for(let dx=-rc;dx<=rc;dx++){const X=cx+dx,Z=cz+dz;if(X<0||Z<0||X>=nx||Z>=nz)continue;
+    const qx=gx0+(X+.5)*cs-nvx[n],qz=gz0+(Z+.5)*cs-nvz[n];if(qx*qx+qz*qz>R*R)continue;const k=Z*nx+X;ok[k]=1;if(nvy[n]>my[k])my[k]=nvy[n]}}
+  PGZ={gx0,gz0,nx,nz,cs,ok,my}}
  if(a1>a0){const M=BOUND_PAD;MBX0=Math.max(MBX0,a0-M);MBX1=Math.min(MBX1,a1+M);MBZ0=Math.max(MBZ0,b0-M);MBZ1=Math.min(MBZ1,b1+M)}}   // مرز دیوار نامرئی = ناحیه‌ی قابل‌راه‌رفتن + حاشیه
  mainComp=best;return{nodes:NN,main:bs,comps:id,edges:EA.length/2}}
 function nearestNode(x,y,z){
@@ -1262,8 +1268,15 @@ function move(e,dx,dz){
   let nl=Math.hypot(bnx,bnz);if(nl<1e-4)return;bnx/=nl;bnz/=nl;if(bnx*ux+bnz*uz>0){bnx=-bnx;bnz=-bnz}
   const rem=len-adv,dot=ux*bnx+uz*bnz;dx=(ux-dot*bnx)*rem;dz=(uz-dot*bnz)*rem}}
 const GOFF=[[0,0],[.34,0],[-.34,0],[0,.34],[0,-.34],[.24,.24],[.24,-.24],[-.24,.24],[-.24,-.24]];
+const PG_R=2.2,PG_UP=3.2;   // PG_R: چند متر دورتر از نقاط راه‌رفتنیِ مپ هنوز «داخل مپ» حساب می‌شه | PG_UP: حداکثر ارتفاع بالاتر از سطح راه‌رفتنی (جلوی رفتن روی دیوارها/سقف‌های بیرونی)
 const BOUND_PAD=6;   // فاصله‌ی دیوار نامرئی از آخرین نقطه‌ی قابل‌راه‌رفتن (متر)
-function clampBounds(e){if(MBX1<=MBX0||MBZ1<=MBZ0)return;const m=.45;   // دیوار نامرئی دور مپ: هیچ‌کس (بازیکن/بات) از این مستطیل بیرون نمی‌ره
+function pgOK(x,y,z){const g=PGZ;if(!g)return true;const X=Math.floor((x-g.gx0)/g.cs),Z=Math.floor((z-g.gz0)/g.cs);if(X<0||Z<0||X>=g.nx||Z>=g.nz)return false;const k=Z*g.nx+X;return g.ok[k]===1&&y<=g.my[k]+PG_UP}
+function clampBounds(e){
+ if(PGZ){   // دیوار نامرئی: وارد خونه‌ای که بیرون از مپه (یا خیلی بالاتر از سطح بازی) نمی‌شه؛ کنار دیوار سر می‌خوره
+  if(pgOK(e.p.x,e.p.y,e.p.z)){e.bx=e.p.x;e.bz=e.p.z}
+  else if(e.bx!==undefined&&Math.hypot(e.p.x-e.bx,e.p.z-e.bz)<6){const nx=e.p.x,nz=e.p.z;
+   if(pgOK(e.bx,e.p.y,nz)){e.p.x=e.bx;e.vx=0}else if(pgOK(nx,e.p.y,e.bz)){e.p.z=e.bz;e.vz=0}else{e.p.x=e.bx;e.p.z=e.bz;e.vx=e.vz=0}}}
+ if(MBX1<=MBX0||MBZ1<=MBZ0)return;const m=.45;   // دیوار نامرئی دور مپ: هیچ‌کس (بازیکن/بات) از این مستطیل بیرون نمی‌ره
  if(e.p.x<MBX0+m){e.p.x=MBX0+m;if(e.vx<0)e.vx=0}else if(e.p.x>MBX1-m){e.p.x=MBX1-m;if(e.vx>0)e.vx=0}
  if(e.p.z<MBZ0+m){e.p.z=MBZ0+m;if(e.vz<0)e.vz=0}else if(e.p.z>MBZ1-m){e.p.z=MBZ1-m;if(e.vz>0)e.vz=0}}
 function phys(e,dt){
@@ -1543,7 +1556,37 @@ const RC_AK=[[0,0],[.7,0],[1.9,.1],[3.6,.2],[5.8,.1],[8,-.2],[10,-.6],[11.6,-1.2
 function recoilAt(i,ps){const t=Math.max(0,Math.min(RECOIL_MAX,i)),a=Math.floor(t),b=Math.min(RECOIL_MAX,a+1),f=t-a,A=RC_AK[a],B=RC_AK[b],s=(ps?.4:1)*RC_SCALE*D2R;_rcO.p=(A[0]+(B[0]-A[0])*f)*s;_rcO.y=(A[1]+(B[1]-A[1])*f)*s;return _rcO}
 /* هیت‌باکس: ابعاد نسبت به پای کاراکتر (قد ۱٫۸). قبلاً کره‌های بزرگ (تنه شعاع ۰٫۴) بود و کنار بدن هم هیت می‌خورد؛ حالا کپسول‌های فشرده‌تر.
    اگه گلوله‌ای که به‌نظر خورده، نخورد: شعاع‌ها رو کمی بزرگ‌تر کن */
-const HB={head:.17,torso:.24,t0:.78,t1:1.22,legs:.19,l0:.20,l1:.55};
+/* هیت‌باکس‌ها (متر، نسبت به پای کاراکتر و جهت نگاهش). فرمت: head=[شعاع, راست, جلو, ارتفاع مرکز] | torso/legs=[شعاع, راست, جلو, y پایین, y بالا] (کپسول عمودی)
+   HB_E از روی خود مدل char_t2.glb (قد ۱٫۸) اندازه‌گیری شده: سرِ مدل ~۱۸ سانت جلو و ~۱۱ سانت راستِ مرکز پاهاست (حالت ایستادن مدل)، تنه کمی راست‌تر؛ HB_D برای مدل‌های وسط‌چین */
+const HB_E={head:[.15,.11,.18,1.66],torso:[.25,.07,0,.98,1.40],legs:[.22,0,0,.22,.72]};
+const HB_D={head:[.17,0,0,1.62],torso:[.24,0,0,.78,1.22],legs:[.19,0,0,.20,.55]};
+function hbParts(t){const H=(!t.isP&&t.team===1)?HB_E:HB_D,c=t.cr||0,cs=Math.cos(t.yaw||0),sn=Math.sin(t.yaw||0),px=t.p.x,py=t.p.y,pz=t.p.z;
+ const X=(r,f)=>px+r*cs-f*sn,Z=(r,f)=>pz-r*sn-f*cs,h=H.head,q=H.torso,l=H.legs;
+ return{h:[X(h[1],h[2]),py+h[3]-CROUCH_D*c,Z(h[1],h[2]),h[0]],q:[X(q[1],q[2]),py+q[3]-.3*c,Z(q[1],q[2]),py+q[4]-.3*c,q[0]],l:[X(l[1],l[2]),py+l[3]-.1*c,Z(l[1],l[2]),py+l[4]-.12*c,l[0]]}}
+function hbRay(org,d,t){const p=hbParts(t),h=p.h,q=p.q,l=p.l;
+ return[raySph(org,d,{x:h[0],y:h[1],z:h[2]},h[3]),rayCap(org,d,q[0],q[1],q[2],q[0],q[3],q[2],q[4]),rayCap(org,d,l[0],l[1],l[2],l[0],l[3],l[2],l[4])]}
+/* دیباگ (کلید F4 یا ?hitbox=1): هیت‌باکس دشمن‌ها + دیوارهای نامرئی دور مپ رو نشون می‌ده */
+let HBDBG=/[?&]hitbox=1/.test(location.search);const HBG=new Map();let PGVIS=null;
+const _hbGs=new THREE.SphereGeometry(1,12,8),_hbGc=new THREE.CylinderGeometry(1,1,1,12,1,true);
+function hbClear(){for(const g of HBG.values())scene.remove(g);HBG.clear();if(PGVIS){scene.remove(PGVIS);PGVIS=null}}
+addEventListener('keydown',e=>{if(e.code==='F4'&&inMatch&&!e.repeat){e.preventDefault();HBDBG=!HBDBG;if(!HBDBG)hbClear()}});
+function hbDebugUpdate(){if(!HBDBG||!inMatch)return;
+ if(!PGVIS&&PGZ){const pts=[],g=PGZ,ok=(x,z)=>x>=0&&z>=0&&x<g.nx&&z<g.nz&&g.ok[z*g.nx+x]===1;
+  for(let z=0;z<g.nz;z++)for(let x=0;x<g.nx;x++){if(!ok(x,z))continue;const y0=g.my[z*g.nx+x]-1,y1=y0+4.5,xa=g.gx0+x*g.cs,za=g.gz0+z*g.cs,xb=xa+g.cs,zb=za+g.cs;
+   const E=[[!ok(x-1,z),xa,za,xa,zb],[!ok(x+1,z),xb,za,xb,zb],[!ok(x,z-1),xa,za,xb,za],[!ok(x,z+1),xa,zb,xb,zb]];
+   for(const[b,ax,az,bx,bz]of E)if(b){pts.push(ax,y0,az,bx,y0,bz,ax,y1,az,bx,y1,bz,ax,y0,az,ax,y1,az)}}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(pts),3));
+  PGVIS=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({color:0x22e6ff,transparent:true,opacity:.55,depthWrite:false}));PGVIS.frustumCulled=false;scene.add(PGVIS)}
+ for(const t of ents){let g=HBG.get(t);
+  if(t.isP||t.dead){if(g)g.visible=false;continue}
+  if(!g){g=new THREE.Group();const cols=[0xff2222,0xff9a22,0xffe022];g.userData.m=[];
+   for(let i=0;i<7;i++){const m=new THREE.Mesh(i===0||i===1||i===2||i===4||i===5?_hbGs:_hbGc,new THREE.MeshBasicMaterial({color:cols[i===0?0:i<4?1:2],wireframe:true,transparent:true,opacity:.75,depthTest:false}));m.renderOrder=999;m.frustumCulled=false;g.add(m);g.userData.m.push(m)}
+   scene.add(g);HBG.set(t,g)}
+  g.visible=true;const p=hbParts(t),M=g.userData.m;
+  M[0].position.set(p.h[0],p.h[1],p.h[2]);M[0].scale.setScalar(p.h[3]);
+  for(const[k,a,b,c,part]of[[1,'q',0,0,p.q],[4,'l',0,0,p.l]]){const x=part[0],y0=part[1],z=part[2],y1=part[3],r=part[4];
+   M[k].position.set(x,y0,z);M[k].scale.setScalar(r);M[k+1].position.set(x,y1,z);M[k+1].scale.setScalar(r);
+   const cy=M[k===1?3:6];cy.position.set(x,(y0+y1)/2,z);cy.scale.set(r,y1-y0,r)}}}
 function rayCap(o,d,ax,ay,az,bx,by,bz,r){   // برخورد پرتو با کپسول A→B؛ نزدیک‌ترین t ≥ 0 یا Infinity
  const bax=bx-ax,bay=by-ay,baz=bz-az,oax=o.x-ax,oay=o.y-ay,oaz=o.z-az;
  const baba=bax*bax+bay*bay+baz*baz,bard=bax*d.x+bay*d.y+baz*d.z,baoa=bax*oax+bay*oay+baz*oaz,rdoa=d.x*oax+d.y*oay+d.z*oaz,oaoa=oax*oax+oay*oay+oaz*oaz;
@@ -1558,7 +1601,7 @@ function fire(e,d){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;o
  for(;;){
   const org={x:ox,y:oy,z:oz},wd=Math.min(castRay(ox,oy,oz,d.x,d.y,d.z,200,false),1e8),ny=HNY;let best=wd;
   for(const t of ents){if(t===e||t.dead||t.team===e.team)continue;
-   const c=t.cr||0,tx=t.p.x,ty=t.p.y,tz=t.p.z,a=raySph(org,d,{x:tx,y:ty+1.62-CROUCH_D*c,z:tz},HB.head),b=rayCap(org,d,tx,ty+HB.t0-.27*c,tz,tx,ty+HB.t1-.27*c,tz,HB.torso),g=rayCap(org,d,tx,ty+HB.l0-.05*c,tz,tx,ty+HB.l1-.12*c,tz,HB.legs);
+   const[a,b,g]=hbRay(org,d,t);
    if(a<best){best=a;hit=t;zone='head'}if(b<best){best=b;hit=t;zone='body'}if(g<best){best=g;hit=t;zone='legs'}}
   if(!hit&&BALL){const bt=raySph(org,d,{x:BALL.p.x,y:BALL.p.y,z:BALL.p.z},BALL_R);if(bt<best){best=bt;bh=true}}   // توپ جلوی مسیره؟
   if(hit||bh){L=trav+best;break}
@@ -2728,6 +2771,8 @@ const BOT_TURN_ROAM=2.8;   // سرعت چرخش موقع راه رفتن/گشت
 const BOT_FOV=1.15;        // نیم‌زاویه‌ی دید (رادیان؛ ۱٫۱۵ ≈ ۶۶ درجه به هر طرف) — پشت سرشون رو نمی‌بینن
 const BOT_HEAR=6;          // تا این فاصله (متر) حتی پشت سر هم حس می‌کنن
 const BOT_REACT=[.3,.65];  // تأخیر واکنش بعد از دیدن دشمن، قبل از اولین شلیک (ثانیه)
+const BOT_BURST=[2,4],BOT_RATE=.13,BOT_PAUSE=[.55,1.0];   // رگبار: ۲ تا ۴ تیر، فاصله‌ی تیرها داخل رگبار (ث)، مکث بین رگبارها (ث)
+const BOT_SPREAD0=.010,BOT_SPREAD_STEP=.008,BOT_SPREAD_MAX=.034,BOT_RISE=.002;   // پراکندگی (رادیان): تیر اول دقیق، هر تیر پشت‌سرهم بیشتر تا سقف؛ BOT_RISE: بالا رفتن تدریجی گلوله‌ها (لگد)
 const BOT_AIM_ERR=.16;     // فقط وقتی کمتر از این (رادیان) تا هدف زاویه دارن شلیک می‌کنن
 const EN={dmg:1.2,react:.8,turn:1.2,cd:.85,hs:.2,jit:.8,spd:1.05,hp:115,chase:.12};   // ✦ ضریب‌های قوی‌تر کردن دشمن (تیم ۱)
 const BOT_HOLD_DIST=30; // تا این فاصله بات موقع دیدن دشمن ثابت می‌ایسته و شلیک می‌کنه
@@ -2755,7 +2800,7 @@ function botUpdate(e,dt){
  if(vis){da=Math.atan2(-(tg.p.x-e.p.x),-(tg.p.z-e.p.z))-e.yaw;da=Math.atan2(Math.sin(da),Math.cos(da));
   if(!(Math.abs(da)<BOT_FOV||td<BOT_HEAR||e.mem>0))vis=false}   // خارج از میدان دید (پشت سرش) و صدایی هم نبوده → ندیده
  e.mem=Math.max(0,(e.mem||0)-dt);
- if(vis){if(!e.seen){e.seen=true;e.react=(BOT_REACT[0]+R()*(BOT_REACT[1]-BOT_REACT[0]))*(e.team===1?EN.react:1)}e.mem=Math.max(e.mem,1.2);if(e.lk){e.lk[0]=tg.p.x;e.lk[1]=tg.p.z}else e.lk=[tg.p.x,tg.p.z]}else e.seen=false;
+ if(vis){if(!e.seen){e.seen=true;e.react=(BOT_REACT[0]+R()*(BOT_REACT[1]-BOT_REACT[0]))*(e.team===1?EN.react:1)}e.mem=Math.max(e.mem,1.2);if(e.lk){e.lk[0]=tg.p.x;e.lk[1]=tg.p.z}else e.lk=[tg.p.x,tg.p.z]}else{e.seen=false;e.bn=0;e.bl=0}
  if(vis){ // دشمن رو می‌بینه: بایست/نزدیک شو و استرف کن
   {const st=BOT_TURN*dt*(e.team===1?EN.turn:1);e.yaw+=Math.max(-st,Math.min(st,da))}   // چرخش محدود، نه یهویی
   e.react-=dt;
@@ -2800,8 +2845,18 @@ function botUpdate(e,dt){
    else if(e.defT>0&&SD.bomb){const o3=eye(e),b3=SD.bomb;tp2=Math.atan2((b3.y+.05)-o3.y,Math.max(.15,Math.hypot(b3.x-o3.x,b3.z-o3.z)))}}
   e.vp=(e.vp||0)+(tp2-(e.vp||0))*Math.min(1,dt*8)}   // زاویه‌ی نگاه (برای تماشاچی)
  e.cd-=dt;
- if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){e.cd=(.35+R()*.3)*(e.team===1?EN.cd:1)*(1+.7*(tg.isP?Math.min(1,Math.hypot(P.vx||0,P.vz||0)/4.5):0));const pm=tg.isP?Math.min(1,Math.hypot(P.vx||0,P.vz||0)/4.5+(P.on?0:.5)):0,hs=R()<(e.team===1?EN.hs:.15)*(1-.75*pm),j=(hs?.02:.03)*(e.team===1?EN.jit:1)*(1+3.2*pm),o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,d={x:bd.x+(R()-.5)*j*2,y:bd.y+(R()-.5)*j*2,z:bd.z+(R()-.5)*j*2},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;e.yaw=Math.atan2(-bd.x,-bd.z);e.vp=Math.asin(Math.max(-1,Math.min(1,bd.y)));   // دید بات (و کراس‌هیر تماشاچی) لحظه‌ی شلیک دقیقاً روی همون جهتی می‌ره که گلوله می‌ره
- fire(e,d)}}
+ if(vis&&td<60&&e.cd<=0&&e.react<=0&&Math.abs(da)<BOT_AIM_ERR){
+  const en=e.team===1,tm=tg.isP?Math.min(1,Math.hypot(P.vx||0,P.vz||0)/4.5):0,pm=tg.isP?Math.min(1,tm+(P.on?0:.5)):0;
+  if(!e.bl){e.bl=BOT_BURST[0]+Math.floor(R()*(BOT_BURST[1]-BOT_BURST[0]+1));e.bn=0}
+  const hs=e.bn===0&&R()<(en?EN.hs:.15)*(1-.75*pm);   // هدشات فقط با تیر اول رگبار
+  /* اسپری: تیر اول تقریباً دقیق؛ هر تیر بعدیِ رگبار پراکنده‌تر + کمی به بالا می‌ره؛ حرکت خود بات یا بازیکن پراکندگی رو بیشتر می‌کنه */
+  const sp2=(BOT_SPREAD0+Math.min(BOT_SPREAD_MAX-BOT_SPREAD0,e.bn*BOT_SPREAD_STEP))*(en?EN.jit:1)*(1+3.2*pm)*((fw||sd)?2:1),
+   o2=eye(e),hy=tg.p.y+1.62-CROUCH_D*(tg.cr||0),ax=tg.p.x-o2.x,ay=(hs?hy:tg.p.y+1.1)-o2.y,az=tg.p.z-o2.z,al=Math.hypot(ax,ay,az),
+   bd=hs?{x:ax/al,y:ay/al,z:az/al}:dir,ra=R()*6.2832,rr=Math.sqrt(R())*sp2,hl=Math.hypot(bd.x,bd.z)||1,
+   d={x:bd.x-bd.z/hl*Math.cos(ra)*rr,y:bd.y+Math.sin(ra)*rr+e.bn*BOT_RISE,z:bd.z+bd.x/hl*Math.cos(ra)*rr},n=Math.hypot(d.x,d.y,d.z);d.x/=n;d.y/=n;d.z/=n;
+  e.yaw=Math.atan2(-bd.x,-bd.z);e.vp=Math.asin(Math.max(-1,Math.min(1,bd.y)));   // دید بات (و کراس‌هیر تماشاچی) لحظه‌ی شلیک روی هدفه
+  e.bn++;if(e.bn>=e.bl){e.bn=0;e.bl=0;e.cd=(BOT_PAUSE[0]+R()*(BOT_PAUSE[1]-BOT_PAUSE[0]))*(en?EN.cd:1)*(1+.7*tm)}else e.cd=BOT_RATE;
+  fire(e,d)}}
 function simulate(dt){
  if(OPT.path)pathPump();
  nadesStep(dt);
@@ -3364,7 +3419,8 @@ function render(dt){
   sun.target.position.set(tx,ty,tz);sun.position.set(tx+40,ty+80,tz+20)}
  for(const e of ents){const m=e.mesh,u=m.userData;
   m.position.set(e.p.x,e.p.y-(e.sdip||0),e.p.z);m.rotation.y=e.yaw;
-  const sp=Math.hypot(e.p.x-e.lx,e.p.z-e.lz)/Math.max(dt,1e-3);e.lx=e.p.x;e.lz=e.p.z;
+  const mvx=(e.p.x-e.lx)/Math.max(dt,1e-3),mvz=(e.p.z-e.lz)/Math.max(dt,1e-3),sp=Math.hypot(mvx,mvz);e.lx=e.p.x;e.lz=e.p.z;
+   const ys=Math.sin(e.yaw),yc=Math.cos(e.yaw),vfn=sp>.5?(-mvx*ys-mvz*yc)/sp:1,vrn=sp>.5?(mvx*yc-mvz*ys)/sp:0;   // جهت حرکت نسبت به جهت نگاه: vfn=+1 جلو، -1 عقب | vrn=+1 راست
   if(e.dead)e.fall=Math.min(1,e.fall+dt*2.6);else e.fall=0;
   if(sp>1&&!e.dead&&e.on)e.walk+=dt*Math.min(sp,7)*1.6;
   {const n=Math.floor((e.walk*1.4-Math.PI/2)/Math.PI),was=e.fsN;e.fsN=n;if(was!==undefined&&n!==was&&!e.dead&&e.on&&sp>3.6)footstep(e,sp)}
@@ -3375,9 +3431,9 @@ function render(dt){
   else{u.body.rotation.x=-e.fall*1.5;u.body.rotation.z=0;if(u.limbsZ){u.body.position.set(0,0,0);if(u.knees)for(const q of u.knees)q.quaternion.identity();if(u.arms)for(const q of u.arms)q.rotation.z=0;if(u.legs)for(const q of u.legs){q.rotation.y=0;q.rotation.z=0}u.limbsZ=false}}
   if(rg)u.limbsZ=true;
   const wph=e.walk*1.4,wam=u.amp||0;   // فاز واحد برای پا/بدن/دست تا با هم هماهنگ باشن
-  if(!rg){u.body.position.y=e.dead?.12*e.fall:(1-Math.abs(Math.sin(wph)))*.04*wam;   // بدن موقع باز بودن پاها پایین‌تر می‌ره، موقع عمودی بودن بالاتر
+  if(!rg){u.body.position.y=e.dead?.12*e.fall:(1-Math.abs(Math.sin(wph)))*(.03+.025*Math.min(1,sp/6.5))*wam;   // بدن موقع باز بودن پاها پایین‌تر می‌ره، موقع عمودی بودن بالاتر
    if(e.dead){u.body.rotation.z=0;u.body.rotation.y=0}
-   else{u.body.rotation.z=Math.sin(wph)*.035*wam;u.body.rotation.y=-Math.sin(wph)*.08*wam;u.body.rotation.x=-.07*wam}}   // تاب لگن، چرخش کمر، کمی خم به جلو
+   else{u.body.rotation.z=Math.sin(wph)*.03*wam;u.body.rotation.y=-Math.sin(wph)*.06*wam;u.body.rotation.x=-(.025+.065*Math.min(1,sp/6.5))*wam*((u.dir===undefined||u.dir>0)?1:.15)}}   // تاب لگن، چرخش کمر، خم به جلو متناسب با سرعت (عقب‌عقب رفتن بدون خم)   // تاب لگن، چرخش کمر، کمی خم به جلو
   u.body.scale.y=u.rig?1:1-.26*e.cr;   // مدل واقعی: دیگه فشرده نمی‌شه، واقعاً می‌شینه (پایین)
   if(u.legs===undefined){const g=n=>u.body.getObjectByName(n),l=g('legL'),r=g('legR'),al=g('armL'),ar=g('armR');
    u.legs=l&&r?[l,r]:null;const kl=g('kneeL'),kr=g('kneeR');u.knees=kl&&kr?[kl,kr]:null;u.arms=al&&ar?[al,ar]:null;u.amp=0;u.spine=g('spine')||null;u.neckM=g('neckM')||null;if(!u.spine)u.neckM=null}
@@ -3389,11 +3445,14 @@ function render(dt){
     u.body.position.y-=D-lift;u.body.position.z=RG.lt*Math.sin(cA)-RG.ls*Math.sin(cC)}   // پا جلوتر از ران میفته؛ بدن همون‌قدر عقب می‌ره تا پاها زیر خود بازیکن بمونن
    else u.body.position.z=0}
   if(u.legs&&!rg){const mv=(sp>1&&!e.dead&&e.on)?1:0;u.amp+=(mv-u.amp)*Math.min(1,dt*12); // نرم شروع/توقف
-   const A=(.32+.5*Math.min(1,sp/6.5))*(1-.45*e.cr)*u.amp,l0=A*(Math.sin(wph)+.18*Math.sin(2*wph)),l1=A*(Math.sin(wph+Math.PI)+.18*Math.sin(2*wph));   // دامنه با سرعت؛ گام کمی نامتقارن
+   if(u.dir===undefined){u.dir=1;u.air=0;u.str=0;for(const q of u.legs)q.rotation.order='YXZ'}   // dir: +1 جلو / -1 عقب | air: حالت هوا | str: میزان استرف
+    u.dir+=((vfn<-.3?-1:1)-u.dir)*Math.min(1,dt*9);u.str+=((mv?Math.abs(vrn):0)-u.str)*Math.min(1,dt*9);u.air+=((!e.on&&!e.dead?1:0)-u.air)*Math.min(1,dt*10);
+    const A=(.32+.5*Math.min(1,sp/6.5))*(1-.45*e.cr)*(1-.4*u.str)*u.amp,l0=A*u.dir*(Math.sin(wph)+.18*Math.sin(2*wph)),l1=A*u.dir*(Math.sin(wph+Math.PI)+.18*Math.sin(2*wph));   // عقب‌عقب: جهت تاب پا برعکس؛ استرف: تاب جلو کمتر   // دامنه با سرعت؛ گام کمی نامتقارن
    const lk=u.rig?u.rig.legK:1;   // لولای ران بالاتر رفته؛ دامنه‌ی راه رفتن کم می‌شه تا طول گام همون قبلی بمونه
-   u.legs[0].rotation.x=l0*lk-KNEE_SIGN*cA;u.legs[1].rotation.x=l1*lk-KNEE_SIGN*cA;
+   u.legs[0].rotation.x=l0*lk-KNEE_SIGN*(cA+.42*u.air);u.legs[1].rotation.x=l1*lk-KNEE_SIGN*(cA+.42*u.air);   // موقع پرش/هوا ران‌ها کمی جلو
+    {const lz=LAT_SIGN*(vrn>=0?1:-1)*.2*u.str*u.amp,sw=Math.sin(wph);u.legs[0].rotation.z=lz*sw;u.legs[1].rotation.z=-lz*sw}   // استرف: پاها به‌صورت متناوب به پهلو باز و بسته می‌شن
    if(u.knees){const c0=Math.cos(wph),s0=Math.max(0,-KNEE_SIGN*c0),s1=Math.max(0,KNEE_SIGN*c0),cr=e.cr||0;   // زانو موقع حرکت پا به جلو (swing) خم می‌شه، موقع تکیه تقریباً صاف
-    u.knees[0].rotation.x=KNEE_SIGN*(.07*u.amp+1.2*A*s0+(u.rig?cA+cC:.35*cr));u.knees[1].rotation.x=KNEE_SIGN*(.07*u.amp+1.2*A*s1+(u.rig?cA+cC:.35*cr))}
+    const kb=.8*u.air,ks=1.35*A*(u.dir>0?1:.75);u.knees[0].rotation.x=KNEE_SIGN*(.07*u.amp+ks*s0+kb+(u.rig?cA+cC:.35*cr));u.knees[1].rotation.x=KNEE_SIGN*(.07*u.amp+ks*s1+kb+(u.rig?cA+cC:.35*cr))}   // زانو موقع تاب جلوی پا بیشتر بالا میاد (قدم‌های واضح‌تر)
    if(u.arms){if(u.armQ){u.arms[0].quaternion.copy(u.armQ[0]);u.arms[1].quaternion.copy(u.armQ[1])}else{const hs=-KNEE_SIGN;u.arms[0].rotation.x=hs*1.15-l0*.06;u.arms[1].rotation.x=hs*1.05-l1*.06;u.arms[0].rotation.y=-.14;u.arms[1].rotation.y=.14}}}   // دست‌ها (اسلحه به دست) کم تکون می‌خورن // دست‌ها مخالف پای هم‌طرف
   /* ---- خم و راست شدن کمر با زاویه‌ی نگاه: نگاه به پایین = خم به جلو، نگاه به بالا = کمی به عقب. دست‌ها و تفنگ بات هم با تنه می‌چرخن ---- */
   if(u.spine&&u.rig&&!rg){
@@ -3418,7 +3477,7 @@ function render(dt){
      u.fpAll.push(o);let p=o;while(p&&p!==m){if(p.name==='armL'||p.name==='armR'){u.fpArms.push(o);break}p=p.parent}})}
    if(u.fpOn!==fp){
     if(e.isP||isSp)for(const o of u.fpArms){if(fp){o.userData.om=o.material;o.material=GHOST}else if(o.userData.om)o.material=o.userData.om}   // دست‌های بدن مخفی (ویوومدل خودش دست داره)
-    for(const o of u.fpAll)for(const q of(Array.isArray(o.material)?o.material:[o.material]))q.clippingPlanes=fp?[u.fpPlane]:null;
+    for(const o of u.fpAll)for(const q of(Array.isArray(o.material)?o.material:[o.material])){q.clippingPlanes=fp?[u.fpPlane]:null;if(q!==GHOST){q.side=fp?THREE.FrontSide:THREE.DoubleSide;q.needsUpdate=true}}   // اول‌شخص: سر بریده شده و دوربین داخل بدنه‌ست؛ با DoubleSide داخلِ تنه (جیب‌های جلیقه، پشت پوتین) دیده می‌شد → فقط روی بیرونِ بدن رندر بشه
     u.fpOn=fp}
    m.rotation.order='YXZ';m.rotation.x=0;
    if(fp){const df=e.isP?Math.max(0,Math.min(1,-pitch/1.0)):0,sh=e.isP?-FP_LEG_BACK+FP_LEG_FWD*df:-FP_LEG_BACK;   // هرچی بیشتر پایین رو نگاه کنی، بدن به عقب خم می‌شه و پاها جلوتر میان (مثل CS)
@@ -3464,6 +3523,7 @@ function render(dt){
  setTx('ammo',(P.wp||0)>=4?NK[P.wp].n+' x'+((P.gn&&P.gn[P.wp])|0):(P.wp||0)===1?'KNIFE':(P.wp||0)===3?'C4':P.rl>0?'RELOAD':P.ammo+' / ∞');
  if(SD.on)sdHud();else{$('sdbar').style.display='none';setTx('score',`تیم تو ${score[0]}  —  ${score[1]} دشمن`);
   setTx('msg',P.dead?`مُردی! ریسپاون تا ${Math.ceil(P.rt)} ثانیه`:'')}
+ hbDebugUpdate();
  renderWithViewmodel()}
 
 let last=performance.now();
@@ -3533,7 +3593,7 @@ function rigLegs(root,opt){opt=opt||{};
  parts.push(spine);
  root.userData.rig={hj:HJ-zmin,kn:KNEE-zmin,wa:WAIST-zmin,legK:HIPJ_F>0?.385/HIPJ_F:1,fp};
  const par=body.parent;par.remove(body);par.add(...parts)}
-let KNEE_SIGN=1;   // علامت چرخش زانو (خودکار در fitChar تشخیص داده می‌شه)
+let KNEE_SIGN=1,LAT_SIGN=1;   // علامت چرخش زانو (خودکار در fitChar تشخیص داده می‌شه)
 const ARM_REST=.49; // رادیان (~۲۸°): هرچی بیشتر، دست‌ها نزدیک‌تر به بدن
 function fitChar(root,kind){
  const cf=CHARS[kind]||{};
@@ -3553,7 +3613,8 @@ function fitChar(root,kind){
  {const rg=root.userData&&root.userData.rig;if(rg)out.userData.rig={hh:rg.hj*sc,lt:(rg.hj-rg.kn)*sc,ls:rg.kn*sc,wa:rg.wa*sc,legK:rg.legK,fp:(rg.fp||[]).map(q=>[q[0]*sc,q[1]*sc])}}   // طول ران/ساق و ارتفاع باسن به متر (برای حل نشستن)
  if(cf.armPitch)out.userData.arm={p:cf.armPitch,r:cf.armRoll};
  try{out.updateMatrixWorld(true);const ll=out.getObjectByName('legL'),kl=out.getObjectByName('kneeL');
-  if(ll&&kl){const w=new THREE.Vector3();ll.rotation.x=0;out.updateMatrixWorld(true);kl.getWorldPosition(w);const z0=w.z;ll.rotation.x=.3;out.updateMatrixWorld(true);kl.getWorldPosition(w);ll.rotation.x=0;out.updateMatrixWorld(true);KNEE_SIGN=(w.z-z0)>0?1:-1}
+  if(ll&&kl){const w=new THREE.Vector3();ll.rotation.x=0;out.updateMatrixWorld(true);kl.getWorldPosition(w);const z0=w.z;ll.rotation.x=.3;out.updateMatrixWorld(true);kl.getWorldPosition(w);ll.rotation.x=0;out.updateMatrixWorld(true);KNEE_SIGN=(w.z-z0)>0?1:-1;
+   ll.rotation.order='YXZ';ll.rotation.set(0,0,0);out.updateMatrixWorld(true);kl.getWorldPosition(w);const x0=w.x;ll.rotation.z=.3;out.updateMatrixWorld(true);kl.getWorldPosition(w);ll.rotation.z=0;out.updateMatrixWorld(true);LAT_SIGN=(w.x-x0)>0?1:-1}
  }catch(err){}
  return out
 }
