@@ -3542,12 +3542,12 @@ function render(dt){
     else{up=_dv.set(0,1,0).applyQuaternion(m.quaternion);const nh=CHAR_H*FP_NECK*(1-.26*e.cr);pt=_fpP.set(m.position.x+up.x*nh,m.position.y+up.y*nh,m.position.z+up.z*nh)}
     u.fpPlane.setFromNormalAndCoplanarPoint(_fpN.copy(up).negate(),pt);
      /* درپوش: بالای تنه بعد از بریدن سر باز می‌مونه و موقع نگاه به پایین داخل جلیقه دیده می‌شد → یه دیسک کوچیک روی صفحه‌ی برش می‌ذاریم */
-     {let cap=u.fpCap;if(!cap){const gg=new THREE.CircleGeometry(1,28);gg.rotateX(-Math.PI/2);cap=u.fpCap=new THREE.Mesh(gg,new THREE.MeshLambertMaterial({color:0x4b4e3d,side:THREE.DoubleSide}));cap.frustumCulled=false;cap.castShadow=false;cap.receiveShadow=false;m.add(cap)}
+     {let cap=u.fpCap;if(!cap){const gg=new THREE.CircleGeometry(1,28);gg.rotateX(-Math.PI/2);cap=u.fpCap=new THREE.Mesh(gg,new THREE.MeshLambertMaterial({color:0x2c2f24,side:THREE.DoubleSide}));cap.frustumCulled=false;cap.castShadow=false;cap.receiveShadow=false;m.add(cap)}
       m.updateMatrixWorld(true);const sc=m.getWorldScale(_cpS).x||1;
-      _cpP.copy(pt).addScaledVector(up,-.012);m.worldToLocal(_cpP);cap.position.copy(_cpP);
+      _cpP.copy(pt).addScaledVector(up,.012);m.worldToLocal(_cpP);cap.position.copy(_cpP);
       _cpQ.setFromUnitVectors(_cpY,up);_cpQ2.setFromAxisAngle(_cpY,e.yaw);_cpQ.multiply(_cpQ2);
       m.getWorldQuaternion(_cpQ2).invert();cap.quaternion.copy(_cpQ2.multiply(_cpQ));
-      cap.scale.set(CHAR_H*.125/sc,1,CHAR_H*.09/sc);cap.visible=true}}
+      cap.scale.set(CHAR_H*.095/sc,1,CHAR_H*.068/sc);cap.visible=true}}
     if(!fp&&u.fpCap)u.fpCap.visible=false;
    if(u.botGun&&(e.isP||isSp||u.fpGunHid)){const hg=e.isP?fp:(isSp&&!e.dead);u.botGun.visible=!hg;u.fpGunHid=hg&&!e.isP}
    m.visible=e.isP?(fp||tp||e.dead):true}
