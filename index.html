@@ -117,6 +117,7 @@ canvas{display:block}
 .modeb{display:flex;align-items:center;gap:10px;background:rgba(10,14,20,.82);border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:7px 14px}
 .modeb b{display:block;font-size:14px}.modeb small{opacity:.65;font-size:12px}
 #lbstart{font-size:19px;font-weight:700;padding:11px 46px;letter-spacing:.5px;border-radius:6px;box-shadow:0 4px 20px rgba(31,143,85,.45)}
+#lbstart.rdy{background:#c98a12!important;box-shadow:0 4px 20px rgba(201,138,18,.45)}
 #lbcnt{background:rgba(10,14,20,.82);border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:10px 14px;font-size:14px}
 .pc{position:absolute;left:0;top:0;text-align:center;pointer-events:none;will-change:transform}
 .pcb{position:relative;width:52px;height:52px;margin:0 auto;border:2px solid rgba(255,255,255,.3);border-radius:4px;display:grid;place-items:center;font-size:23px;font-weight:700;text-shadow:0 1px 3px #000a;box-shadow:0 3px 12px #0008}
@@ -2130,7 +2131,10 @@ function lbRenderUI(){
  $('lbfrs').innerHTML=h;
  $('lbsug').innerHTML=POOL.filter(n=>!LB.friends.includes(n)).map(n=>`<span class="sug">${esc(n)}<button data-a="add" data-n="${esc(n)}" ${LB.pend[n]==='friend'?'disabled':''}>${LB.pend[n]==='friend'?'…':'+'}</button></span>`).join('');
  $('lbcnt').textContent='اسکواد '+(1+sq.length)+'/۵';
- $('lbstart').disabled=!READY||NET.mode==='client'||!!(NET.hostConn&&!NET.on);
+ {const sb=$('lbstart');sb.classList.remove('rdy');
+  if(NET.mode==='client'){const r=NET.rdy.has(NET.myName);sb.textContent=r?'لغو آماده':'آماده';sb.classList.toggle('rdy',r);sb.disabled=!READY||!NET.on}
+  else if(NET.mode==='host'){const o=NET.members.filter(x=>x!==NET.myName),k=o.filter(x=>NET.rdy.has(x)).length,all=k===o.length;sb.textContent=all?'شروع بازی':'منتظر آماده شدن ('+k+'/'+o.length+')';sb.disabled=!READY||!all}
+  else{sb.textContent='شروع بازی';sb.disabled=!READY||!!(NET.hostConn&&!NET.on)}}
  $('lbnet').style.display='flex';netUpdateChip();
  if(inLobby)lbBuildChars()}
 function lbAddFriend(n){n=(n||'').trim();if(!n)return;if(n==='تو'||n===NET.myName){lbMsg('خودت رو نمی‌تونی اد کنی','alert');return}
@@ -2169,8 +2173,11 @@ document.addEventListener('click',e=>{if(!inLobby)return;const t=e.target,b=t.cl
  else if(a==='settings'){openSet()}
  
  else if(a==='tab'){if(n!=='PLAY'&&n!=='HOME')lbMsg(n+' — به‌زودی','info')}
- else if(a==='mode'){if(NET.mode==='client'){lbMsg('فقط هاست مود بازی رو انتخاب می‌کنه','alert');return}LB.mode=n;try{localStorage.setItem('ms_mode',n)}catch(e){}if(NET.mode==='host')netBroadcast({t:'lobby',squad:NET.members.slice(),host:NET.myName,mode:LB.mode});lbRenderUI()}
- else if(a==='start'){if(!READY||inMatch)return;if(NET.hostConn&&!NET.on){lbMsg('هنوز اتصال با هاست کامل نشده — صبر کن','alert');return}if(NET.mode==='client'){lbMsg('فقط هاست می‌تونه شروع کنه','alert');return}startMatch();lockIn()}});
+ else if(a==='mode'){if(NET.mode==='client'){lbMsg('فقط هاست مود بازی رو انتخاب می‌کنه','alert');return}LB.mode=n;try{localStorage.setItem('ms_mode',n)}catch(e){}if(NET.mode==='host')netBroadcast(lbPkt());lbRenderUI()}
+ else if(a==='start'){if(!READY||inMatch)return;if(NET.hostConn&&!NET.on){lbMsg('هنوز اتصال با هاست کامل نشده — صبر کن','alert');return}
+  if(NET.mode==='client'){const v=!NET.rdy.has(NET.myName);if(v)NET.rdy.add(NET.myName);else NET.rdy.delete(NET.myName);NET.send({t:'ready',v:v?1:0});lbMsg(v?'آماده شدی — منتظر هاست':'آماده بودنت لغو شد','info');lbRenderUI();return}
+  if(NET.mode==='host'){const o=NET.members.filter(x=>x!==NET.myName),w=o.filter(x=>!NET.rdy.has(x));if(w.length){lbMsg('هنوز آماده نیستن: '+w.join('، '),'alert');return}}
+  startMatch();lockIn()}});
 
 /* ================= NET: چندنفره واقعی با WebRTC (PeerJS) =================
    - هاست روم می‌سازه (کد ۵ کاراکتری) و مرجع اصلیه: بات‌ها، دمیج و امتیاز روی دستگاه هاست شبیه‌سازی می‌شن.
@@ -2184,7 +2191,7 @@ const PEER_OPTS={debug:0,config:{iceServers:[
  {urls:'turn:global.relay.metered.ca:80?transport=tcp',username:'ad5fe4ec0d769aece6e043a5',credential:'VZ11YYJ22myyc+lw'},
  {urls:'turn:global.relay.metered.ca:443',username:'ad5fe4ec0d769aece6e043a5',credential:'VZ11YYJ22myyc+lw'},
  {urls:'turns:global.relay.metered.ca:443?transport=tcp',username:'ad5fe4ec0d769aece6e043a5',credential:'VZ11YYJ22myyc+lw'}]}};
-const NET={on:false,mode:null,peer:null,pres:null,presOK:false,room:'',conns:new Map(),members:[],hostConn:null,
+const NET={rdy:new Set(),on:false,mode:null,peer:null,pres:null,presOK:false,room:'',conns:new Map(),members:[],hostConn:null,
  myName:'',pconns:new Map(),pendReq:{},pendMeta:{},snapT:0,stT:0,
  real:(()=>{try{return JSON.parse(localStorage.getItem('ms_rfriends')||'[]').filter(x=>typeof x==='string')}catch(e){return[]}})()};
 try{NET.myName=localStorage.getItem('ms_myname')||''}catch(e){}
@@ -2192,6 +2199,7 @@ const netSetName=n=>{NET.myName=n;try{localStorage.setItem('ms_myname',n)}catch(
 function netSaveReal(n){if(!NET.real.includes(n)){NET.real.push(n);try{localStorage.setItem('ms_rfriends',JSON.stringify(NET.real))}catch(e){}}}
 const rid=n=>'ms25u-'+((String(n).toLowerCase().replace(/[^a-z0-9]/g,''))||('h'+[...String(n)].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7).toString(36)));
 NET.send=m=>{if(NET.mode==='host')netBroadcast(m);else if(NET.hostConn&&NET.hostConn.open)try{NET.hostConn.send(m)}catch(e){}};
+function lbPkt(){return {t:'lobby',squad:NET.members.slice(),host:NET.myName,mode:LB.mode,rd:[...NET.rdy]}}
 function netBroadcast(m){for(const c of NET.conns.values())if(c.open)try{c.send(m)}catch(e){}}
 /* ---- حضور (Presence): هر بازیکن یه Peer با id ثابت از روی اسمش ---- */
 function netStartPresence(id,attempt){const p=new Peer(id,PEER_OPTS);NET.pres=p;
@@ -2257,7 +2265,7 @@ function netHostRoom(cb){if(NET.on){cb&&cb();return}
    p=new Peer('ms25r-'+code,PEER_OPTS);NET.peer=p;
    p.on('open',()=>{if(NET.on&&NET.mode==='host'&&NET.room===code)return;NET.on=true;NET.mode='host';NET.room=code;NET.conns=new Map();NET.members=[NET.myName];LB.squad=[NET.myName];
     netUpdateChip();lbRenderUI();lbMsg('روم ساخته شد — کد رو برای دوستات بفرست: '+code,'check');
-    clearInterval(NET.lobT);NET.lobT=setInterval(()=>{if(NET.mode!=='host'||!NET.on){clearInterval(NET.lobT);return}if(!inMatch&&NET.conns.size)netBroadcast({t:'lobby',squad:NET.members.slice(),host:NET.myName,mode:LB.mode})},2000);
+    clearInterval(NET.lobT);NET.lobT=setInterval(()=>{if(NET.mode!=='host'||!NET.on){clearInterval(NET.lobT);return}if(!inMatch&&NET.conns.size)netBroadcast(lbPkt())},2000);
     cb&&cb()});
    p.on('error',e=>{if(e.type==='unavailable-id'){try{p.destroy()}catch(x){}tryMk()}else console.warn('[net]',e.type)});
    p.on('disconnected',()=>{setTimeout(()=>{if(NET.peer===p&&!p.destroyed)try{p.reconnect()}catch(x){}},1500)});   // کد روم زنده بمونه تا دوستت دوباره بیاد
@@ -2272,25 +2280,26 @@ function netJoinRoom(codeIn){const code=String(codeIn||'').trim().toUpperCase();
    const to=jto=setTimeout(()=>{if(!NET.on){NET.joinT=0;{let st='?';try{st=conn.peerConnection.iceConnectionState}catch(x){}lbMsg('اتصال به هاست برقرار نشد (ICE: '+st+(conn.open?'، کانال باز ولی هاست جواب نداد':'')+')','alert')}try{p.destroy()}catch(e){}NET.hostConn=null}},20000);
    conn.on('open',()=>{try{conn.send({t:'join',name:NET.myName,ver:NET_VER})}catch(e){}lbRenderUI()});
    conn.on('data',m=>netClientMsg(conn,m));
-   conn.on('close',()=>{clearTimeout(to);NET.hostConn=null;
+   conn.on('close',()=>{clearTimeout(to);NET.hostConn=null;NET.rdy.clear();
     if(NET.on){NET.on=false;NET.mode=null;NET.room='';NET.members=[];LB.squad=[];lbMsg('اتصال با هاست قطع شد','alert');
      if(inMatch)leaveMatchMP();else{lbRenderUI();netUpdateChip()}}
     else{try{p.destroy()}catch(e){}}})});
   p.on('error',e=>{console.warn('[net]',e.type);if(NET.on)return;clearTimeout(jto);NET.joinT=0;
    lbMsg(e.type==='peer-unavailable'?'رومی با این کد پیدا نشد (کد اشتباهه یا هاست آنلاین نیست)':'خطای اتصال: '+e.type,'alert');try{p.destroy()}catch(x){}NET.hostConn=null})})}
 function netDropConn(conn){if(!NET.on)return;const n=conn._name;if(!n)return;
- NET.conns.delete(n);NET.members=NET.members.filter(x=>x!==n);LB.squad=NET.members.slice();
+ NET.conns.delete(n);NET.rdy.delete(n);NET.members=NET.members.filter(x=>x!==n);LB.squad=NET.members.slice();
  const e=ents.find(x=>x.name===n);if(e){if(e.mesh)scene.remove(e.mesh);const i=ents.indexOf(e);if(i>=0)ents.splice(i,1)}
- lbMsg(n+' قطع شد','info');lbRenderUI();netBroadcast({t:'lobby',squad:NET.members.slice(),host:NET.myName,mode:LB.mode})}
+ lbMsg(n+' قطع شد','info');lbRenderUI();netBroadcast(lbPkt())}
 function netRoomMsg(conn,m){
  if(m.t==='join'){let n=String(m.name||'').slice(0,14)||'Player';
   if(m.ver!==NET_VER){try{conn.send({t:'badver',v:NET_VER})}catch(e){}setTimeout(()=>{try{conn.close()}catch(e){}},300);return}
   if(inMatch||NET.members.length>=5){try{conn.send({t:'full'})}catch(e){}setTimeout(()=>{try{conn.close()}catch(e){}},300);return}
   if(NET.members.includes(n))n=n+'2';   // اسم تکراری — فقط داخل خود لیست اعضا چک بشه (نه اسکواد محلی که ممکنه کهنه باشه)
-  conn._name=n;NET.conns.set(n,conn);NET.members.push(n);LB.squad=NET.members.slice();
+  NET.rdy.delete(n);conn._name=n;NET.conns.set(n,conn);NET.members.push(n);LB.squad=NET.members.slice();
   if(!LB.friends.includes(n)){LB.friends.push(n);netSaveReal(n);lbSave()}
   lbMsg(n+' به روم پیوست','check');lbRenderUI();
-  const lb={t:'lobby',squad:NET.members.slice(),host:NET.myName,mode:LB.mode};try{conn.send(lb)}catch(e){}netBroadcast(lb)}
+  const lb=lbPkt();try{conn.send(lb)}catch(e){}netBroadcast(lb)}
+ else if(m.t==='ready'){if(conn._name&&!inMatch){if(m.v)NET.rdy.add(conn._name);else NET.rdy.delete(conn._name);lbRenderUI();netBroadcast(lbPkt())}}
  else if(m.t==='ack'){if(NET.acks&&conn._name)NET.acks.add(conn._name)}
  else if(m.t==='st'){const e=ents.find(x=>x.name===conn._name);
   if(e){e.tg={x:m.x,y:m.y,z:m.z,yaw:m.yaw,vp:m.vp,cr:m.cr,on:m.on}}}
@@ -2305,10 +2314,10 @@ function netRoomMsg(conn,m){
 function netClientMsg(conn,m){
  if(m.t==='badver'){NET.joinT=0;lbMsg('نسخه‌ی بازی‌ت با هاست فرق داره (هاست: '+m.v+' | تو: '+NET_VER+') — هر دو فایل رو آپدیت کنید','alert');try{NET.peer.destroy()}catch(e){}NET.hostConn=null;return}
  if(m.t==='full'){NET.joinT=0;lbMsg('روم پر است یا بازی در جریان است','alert');try{NET.peer.destroy()}catch(e){}NET.hostConn=null;return}
- if(m.t==='roomend'){NET.on=false;NET.mode=null;NET.room='';NET.members=[];LB.squad=[];if(inMatch)leaveMatchMP();netUpdateChip();lbRenderUI();lbMsg('هاست روم رو بست','alert');return}
- if(m.t==='lobby'){NET.joinT=0;const same=NET.on&&NET.mode==='client'&&NET.hostMode===(m.mode||'dm')&&NET.members.join()===m.squad.join();NET.on=true;NET.mode='client';NET.hostMode=m.mode||'dm';NET.members=m.squad.slice();LB.squad=m.squad.slice();if(!same){netUpdateChip();lbRenderUI()}return}
+ if(m.t==='roomend'){NET.rdy.clear();NET.on=false;NET.mode=null;NET.room='';NET.members=[];LB.squad=[];if(inMatch)leaveMatchMP();netUpdateChip();lbRenderUI();lbMsg('هاست روم رو بست','alert');return}
+ if(m.t==='lobby'){NET.joinT=0;const same=NET.on&&NET.mode==='client'&&NET.hostMode===(m.mode||'dm')&&NET.members.join()===m.squad.join()&&[...NET.rdy].join()===(m.rd||[]).join();NET.on=true;NET.mode='client';NET.hostMode=m.mode||'dm';NET.members=m.squad.slice();NET.rdy=new Set(m.rd||[]);LB.squad=m.squad.slice();if(!same){netUpdateChip();lbRenderUI()}return}
  if(m.t==='start'){
- NET.send({t:'ack'});
+ NET.send({t:'ack'});NET.rdy.clear();
  if(inMatch&&NET.lastStartId===m.id)return;
  NET.lastStartId=m.id;
  try{if(inMatch)leaveMatchMP();startMatchMP(m.roster,m.mode)}
@@ -2637,7 +2646,7 @@ function lobbyEnter(){inLobby=true;inMatch=false;
  lbLayout();showMenu();lbRenderUI();if(LBT.on)lbtRefresh()}
 function lobbyExit(){endsClose(true);inLobby=false;$('lbtune').style.display='none';lbClearChars();$('lb').style.display='none';$('lbmenu').style.display='none';$('lbaddp').style.display='none';$('lbset').style.display='none';cam.fov=SET.fov;cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}
 function startMatch(){
- if(inMatch)return;   // دبل‌کلیک/اسپم روی شروع نباید دوباره بازی بسازه
+ if(inMatch)return;NET.rdy.clear();   // دبل‌کلیک/اسپم روی شروع نباید دوباره بازی بسازه
  lobbyExit();bloodClear();
  const me=NET.myName||'تو',isHost=NET.mode==='host',
   sq=(isHost?NET.members.slice(1):LB.squad.slice()).filter(x=>x!==me),used=new Set([me,...sq]);
@@ -2931,6 +2940,7 @@ function separate(){
 
 /* ================= RENDER + HUD ================= */
 const _dv=new THREE.Vector3(),GHOST=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false}),FP_LEG_BACK=.30,FP_LEG_FWD=.12,FP_LEG_TILT=.15,FP_NECK=.80;
+const _cpP=new THREE.Vector3(),_cpS=new THREE.Vector3(),_cpQ=new THREE.Quaternion(),_cpQ2=new THREE.Quaternion(),_cpY=new THREE.Vector3(0,1,0);
 /* ---- کمر و نشستن ----
    HIPJ_F/WAIST_F: ارتفاع مفصل ران و کمر (کسری از قد) | CROUCH_HIP: چند متر باسن موقع کروچ پایین میاد | CROUCH_THIGH: چرخش ران به جلو (رادیان)
    LEAN_K: چقدر از زاویه‌ی نگاه روی کمر میاد | LEAN_FWD/LEAN_BACK: حداکثر خم به جلو/عقب (رادیان) | LEAN_CROUCH: خم اضافه‌ی تنه موقع نشستن */
@@ -3530,7 +3540,15 @@ function render(dt){
     let up,pt;   // سر رو از گردن می‌بُریم تا دوربین توی سر نیفته؛ گردن با خم شدن کمر و نشستن جابه‌جا می‌شه
     if(u.neckM){m.updateMatrixWorld(true);pt=u.neckM.getWorldPosition(_fpP);up=_dv.set(0,0,1).transformDirection(u.neckM.matrixWorld);up.x*=.25;up.y=.25*up.y+.75;up.z*=.25;up.normalize()}   // صفحه‌ی برش رو بیشتر افقی نگه می‌داریم؛ وقتی نشستی و به پایین نگاه می‌کنی با کمر خم‌شده، صفحه‌ی کج پاها/تنه‌ی خودت رو هم می‌برید
     else{up=_dv.set(0,1,0).applyQuaternion(m.quaternion);const nh=CHAR_H*FP_NECK*(1-.26*e.cr);pt=_fpP.set(m.position.x+up.x*nh,m.position.y+up.y*nh,m.position.z+up.z*nh)}
-    u.fpPlane.setFromNormalAndCoplanarPoint(_fpN.copy(up).negate(),pt)}
+    u.fpPlane.setFromNormalAndCoplanarPoint(_fpN.copy(up).negate(),pt);
+     /* درپوش: بالای تنه بعد از بریدن سر باز می‌مونه و موقع نگاه به پایین داخل جلیقه دیده می‌شد → یه دیسک کوچیک روی صفحه‌ی برش می‌ذاریم */
+     {let cap=u.fpCap;if(!cap){const gg=new THREE.CircleGeometry(1,28);gg.rotateX(-Math.PI/2);cap=u.fpCap=new THREE.Mesh(gg,new THREE.MeshLambertMaterial({color:0x4b4e3d,side:THREE.DoubleSide}));cap.frustumCulled=false;cap.castShadow=false;cap.receiveShadow=false;m.add(cap)}
+      m.updateMatrixWorld(true);const sc=m.getWorldScale(_cpS).x||1;
+      _cpP.copy(pt).addScaledVector(up,-.012);m.worldToLocal(_cpP);cap.position.copy(_cpP);
+      _cpQ.setFromUnitVectors(_cpY,up);_cpQ2.setFromAxisAngle(_cpY,e.yaw);_cpQ.multiply(_cpQ2);
+      m.getWorldQuaternion(_cpQ2).invert();cap.quaternion.copy(_cpQ2.multiply(_cpQ));
+      cap.scale.set(CHAR_H*.125/sc,1,CHAR_H*.09/sc);cap.visible=true}}
+    if(!fp&&u.fpCap)u.fpCap.visible=false;
    if(u.botGun&&(e.isP||isSp||u.fpGunHid)){const hg=e.isP?fp:(isSp&&!e.dead);u.botGun.visible=!hg;u.fpGunHid=hg&&!e.isP}
    m.visible=e.isP?(fp||tp||e.dead):true}
   else m.visible=true}
