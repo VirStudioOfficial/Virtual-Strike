@@ -1187,6 +1187,19 @@ function buildNav(){
   PGZ={gx0,gz0,nx,nz,cs,ok,my}}
  if(a1>a0){const M=BOUND_PAD;MBX0=Math.max(MBX0,a0-M);MBX1=Math.min(MBX1,a1+M);MBZ0=Math.max(MBZ0,b0-M);MBZ1=Math.min(MBZ1,b1+M)}}   // مرز دیوار نامرئی = ناحیه‌ی قابل‌راه‌رفتن + حاشیه
  mainComp=best;return{nodes:NN,main:bs,comps:id,edges:EA.length/2}}
+/* ✦ ناحیه‌های ممنوعه برای بات‌ها: مختصاتِ جاهایی که بات‌ها اونجا گیر می‌کنن (پشت‌بوم/لبه‌ی بیرونِ مپ). از هر نقطه، ناحیه‌ی همتراز و همبندش (تا ۲۲ متر، ±۱٫۶ متر ارتفاع)
+   از ناوبری حذف می‌شه: بات‌ها اونجا نه مقصد می‌گیرن، نه مسیرشون ازش رد می‌شه؛ اگه هم رفتن، برمی‌گردن. مختصات رو از HUD (X/Y/Z) بردار و اینجا اضافه کن. */
+const NAV_BAD=[[32.92,3.43,22.38]];
+function navBlockBad(){
+ for(const[sx,sy,sz]of NAV_BAD){let s0=-1,bd=9;
+  for(let n=0;n<NN;n++){const d=Math.hypot(nvx[n]-sx,nvz[n]-sz)+Math.abs(nvy[n]-sy)*1.5;if(d<bd){bd=d;s0=n}}
+  if(s0<0){console.warn('[nav-bad] نودی نزدیک',sx,sy,sz,'نبود (احتمالاً از قبل بیرون ناوبریه)');continue}
+  const seen=new Uint8Array(NN),q=[s0];seen[s0]=1;
+  for(let h=0;h<q.length;h++){const u=q[h];for(let k=adjS[u];k<adjS[u+1];k++){const v=adjT[k];if(seen[v])continue;
+    if(Math.abs(nvy[v]-nvy[s0])>1.6||Math.hypot(nvx[v]-nvx[s0],nvz[v]-nvz[s0])>22)continue;seen[v]=1;q.push(v)}}
+  for(const n of q)ncomp[n]=-5;
+  for(let u=0;u<NN;u++)for(let k=adjS[u];k<adjS[u+1];k++)if(seen[u]||seen[adjT[k]])adjW[k]=1e6;   // یال‌هایی که به ناحیه می‌رسن: هزینه‌ی خیلی زیاد
+  console.log('[nav-bad]',q.length,'نود نزدیک',sx,sy,sz,'از ناوبری بات‌ها حذف شد')}}
 function nearestNode(x,y,z){
  const gx=Math.floor((x-GX0)/NAVC),gz=Math.floor((z-GZ0)/NAVC);
  for(let r=1;r<=3;r++){let bi=-1,bd=1e9;
@@ -1234,7 +1247,7 @@ function findPath(sx,sy,sz,tx,ty,tz,seed){return OPT.path?findPathFast(sx,sy,sz,
 function pathAsync(e,sx,sy,sz,tx,ty,tz,seed){e.pj=++PJID;e.pjt=performance.now();PQ.push({e,id:e.pj,a:[sx,sy,sz,tx,ty,tz,seed]})}
 function pathApply(j,p){const e=j.e;if(e.pj!==j.id)return;e.pj=0;
  if(p&&Math.hypot(nvx[p[0]]-e.p.x,nvz[p[0]]-e.p.z)>8){e.pt=0;return}   // وسط راه جابه‌جا شده (ریسپاون/نجات از گیر) → مسیر کهنه‌ست؛ دوباره بخواه
- e.path=p;e.pi=0;if(p&&p.length>1)e.pi=1;if(!p)e.rgt=0}
+ e.path=p;e.pi=0;if(p&&p.length>1)e.pi=1;if(!p){e.rgt=0;if((e.npf=(e.npf||0)+1)>=3)e.rescue=1}else e.npf=0}   // ۳ بار پشت‌سرهم مسیر پیدا نشد = بات از شبکه‌ی ناوبری بیرونه (روی جعبه/لبه/بیرون مپ) → نجات
 function pathPump(){const T0=performance.now(),BUD=window.TOUCH?2.5:5;
  while(performance.now()-T0<BUD){
   if(!PCUR){let j=null;while(PQ.length){const q=PQ.shift();if(q.e.pj===q.id){j=q;break}}if(!j)return;
@@ -1410,8 +1423,9 @@ function scatterPick(e){ // اسپاون پراکنده: گره‌ی تصادف�
 function spawn(e,scatter){const wasDead=!!e.dead,L=SPAWN[e.team],o=SPAWN[1-e.team];
  let s=L[Math.floor(R()*L.length)];
  if(scatter){const c=scatterPick(e);if(c)s=c}
- else for(let k=0;k<12;k++){const c=L[Math.floor(R()*L.length)];   // نقطه‌ای که کسی کنارش نیست
-  if(clearOK(c,.9)&&!ents.some(t=>t!==e&&!t.dead&&Math.hypot(t.p.x-c[0],t.p.z-c[2])<1.1)){s=c;break}}
+ else{let bs=-1;for(const c of L){if(!clearOK(c,.9))continue;   // ✦ از بین نقطه‌های اسپاون، اونی که از همه‌ی زنده‌ها (هر دو تیم) دورتره؛ دیگه دو نفر روی هم/تو هم اسپاون نمی‌شن
+   let md=1e9;for(const t of ents){if(t===e||t.dead)continue;const d=Math.hypot(t.p.x-c[0],t.p.z-c[2]);if(d<md)md=d}
+   md=Math.min(md,4)+R()*.35;if(md>bs){bs=md;s=c}}}
  e.p.x=s[0]+(R()-.5)*.2;e.p.z=s[2]+(R()-.5)*.2;e.p.y=s[1];e.vy=0;e.hp=(e.team===1&&!e.isP)?EN.hp:100;e.dead=false;e.fall=0;e.rag=null;e.path=null;e.rg=null;e.on=false;e.cr=0;e.vx=e.vz=0;e.coy=e.jb=e.dip=e.sdip=0;e.jh=false;
  const tx=o[0][0]-s[0],tz=o[0][2]-s[2];e.yaw=Math.atan2(-tx,-tz);
  {const pa=findPath(s[0],s[1],s[2],o[0][0],o[0][1],o[0][2]);if(pa&&pa.length>1){let k=1;while(k<pa.length-1&&Math.hypot(nvx[pa[k]]-s[0],nvz[pa[k]]-s[2])<4)k++;
@@ -1759,7 +1773,7 @@ function stepBall(dt){
 /* ================= حالت «گشتن و نابود کردن» (Search & Destroy) =================
    تو و تیمت مهاجمین (بمب پیش توئه، کلید ۴)؛ دشمن‌ها مدافع. بدون ریسپاون؛ بعد از مرگ از دید یارت تماشا می‌کنی.
    مهاجم‌ها برن → اگه همه‌ی دشمن‌ها بمیرن یا بمب منفجر بشه می‌برن؛ اگه همه‌ی خودی‌ها بمیرن (قبل از پلنت)، زمان تموم بشه یا بمب خنثی بشه می‌بازن. */
-const PLANT_T=3.27,DEFUSE_T=10,BOMB_T=40,SD_ROUND_T=120,SD_WIN=8,SD_MAX_ROUNDS=2,SITE_R=4,SD_OVER_T=5.5,SITE_NAME=['A','B'];
+const PLANT_T=3.27,DEFUSE_T=10,BOMB_T=40,SD_ROUND_T=120,SD_WIN=8,SD_MAX_ROUNDS=0,SITE_R=4,SD_OVER_T=5.5,SITE_NAME=['A','B'];
 const SD={on:false,round:0,wins:[0,0],state:'idle',rt:0,bt:0,hasBomb:false,bomb:null,carrier:null,defuser:null,target:0,spec:null,msg:'',msgT:0,overT:0,defT:0,sites:[],mk:null,fx:[],shake:0,beepT:0,ledA:0,led:null,a0:0,a1:0,final:false,drop:null,fetcher:null,markMeshes:null};
 const SD_SWAP_AFTER=4;   // ✦ بعد از این تعداد راند، نقطه‌ی اسپاون دو تیم جابه‌جا می‌شه (نقش‌ها عوض نمی‌شن، فقط جای شروع)
 let SD_SWAPPED=false;
@@ -2813,6 +2827,11 @@ function botUpdate(e,dt){
   e.stuck=m<.7?(e.stuck||0)+1:0;e.kx=e.p.x;e.kz=e.p.z;
   e.slow=m<.7;e.pstuck=(m<.7&&e._rm)?(e.pstuck||0)+1:0;e._rm=0;   // pstuck: وسط مسیریابی ۵ ثانیه تکون نخورده
   if(e.pstuck>=5){unstuckBot(e,false);return}
+  /* ✦ نگهبان «بیرون از مپ»: هر ثانیه چک می‌کنیم بات هنوز نزدیک گره‌های ناوبری اصلی هست (۲٫۵ متر افقی، ۱٫۶ متر ارتفاع). ۳ ثانیه بیرون بود → برمی‌گردونیمش آخرین جای روی مسیر */
+  {const nn=nearestNode(e.p.x,e.p.y,e.p.z);
+   if(nn>=0&&Math.hypot(nvx[nn]-e.p.x,nvz[nn]-e.p.z)<2.5&&Math.abs(nvy[nn]-e.p.y)<1.6){e.nv=[nvx[nn],nvy[nn],nvz[nn]];e.off=0}
+   else if(e.on||e.off)e.off=(e.off||0)+1;
+   if(e.off>=3||e.rescue){e.off=0;e.rescue=0;e.npf=0;if(e.nv)e.safe=e.nv.slice();console.log('[bot-rescue]',e.name,'→ برگشت به مسیر');unstuckBot(e,true);return}}
   if(e.stuck>=2){e.unst=2.5;e.stuck=0;e.rgt=0;e.jumpTry=1}
   /* نوسان چپ/راست: ۴ ثانیه که می‌خواسته جلو بره ولی جابه‌جایی خالصش کمتر از ~۲ متر بوده → گیر کرده */
   const H=e.hist||(e.hist=[]);H.push([e.p.x,e.p.z,e.fwT||0]);e.fwT=0;if(H.length>5)H.shift();
@@ -2863,7 +2882,7 @@ function botUpdate(e,dt){
    const dx=e.p.x-t.p.x,dz=e.p.z-t.p.z,d=Math.hypot(dx,dz);if(d<(fw||sd?6:1.6)&&d>1e-3&&Math.abs(e.p.y-t.p.y)<2){const w=((fw||sd?6:1.6)-d)/(fw||sd?6:1.6);px+=dx/d*w;pz+=dz/d*w}}
   if(px||pz)move(e,px*2.2*dt,pz*2.2*dt)} // هل نرم از هم‌تیمی‌های نزدیک
  e.ck=(e.ck||0)-dt;if(e.ck<=0){e.ck=.25;   // هر ۱/۴ ثانیه: توی جعبه/دیوار فرو رفته و تکون نمی‌خوره؟ → برگرد به آخرین جای سالم
-  if(embedded(e)){if(e.slow){unstuckBot(e,true);return}}else if(e.on)e.safe=[e.p.x,e.p.y,e.p.z]}
+  if(embedded(e)){if(e.slow){unstuckBot(e,true);return}}else if(e.on&&!e.off)e.safe=[e.p.x,e.p.y,e.p.z]}
  if(!e.sdHeld){if(e.plantH){sndStop(e.plantH);e.plantH=null}e.plantT=0;e.defT=0}
  {let tp2=vis&&dir?Math.asin(Math.max(-1,Math.min(1,dir.y))):0;
   if(e.sdHeld&&!vis){   // ✦ موقع پلنت/دفیوز سرش رو پایین می‌گیره سمت جایی که کار می‌کنه
@@ -3663,7 +3682,7 @@ async function boot(){
   st('در حال لود انیمیشن لابی...');await lbfLoad();await lbeLoad();{let k=0;while(typeof AKW!=='undefined'&&!AKW&&k++<40)await new Promise(r=>setTimeout(r,50))}   // گان AK باید آماده باشه تا بدیم دست کاراکترها
   st('در حال ساخت برخورد و مسیرها...');await new Promise(r=>setTimeout(r,30));
   buildCol(pv);
-  const info=buildNav();console.log('nav',info);
+  const info=buildNav();navBlockBad();console.log('nav',info);
   pickSpawns();pickSites();
    try{mergeStaticMap(pv,new Set(SD.markMeshes||[]))}catch(err){console.warn('[merge] انجام نشد، مپ مثل قبل می‌مونه:',err)}
    st('در حال آماده‌سازی GPU...');await warmGPU();
@@ -3688,11 +3707,15 @@ function pickSpawns(){
    console.log('spawn hints (خودکار):',hints.map(h=>h.map(v=>Math.round(v))))}}
  SPAWN=hints.map(([hx,hz])=>{
   let s=-1,bd=1e9;for(let n=0;n<NN;n++){if(ncomp[n]!==mainComp)continue;const d=(nvx[n]-hx)**2+(nvz[n]-hz)**2;if(d<bd){bd=d;s=n}}
-  // چند گره‌ی نزدیک و هم‌ارتفاع
-  const L=[];for(let n=0;n<NN;n++){if(ncomp[n]!==mainComp)continue;if(Math.abs(nvy[n]-nvy[s])>.5)continue;
-   if(Math.hypot(nvx[n]-nvx[s],nvz[n]-nvz[s])<3.5)L.push([nvx[n],nvy[n],nvz[n]])}
-  // گره‌هایی که ≥۱ متر از لبه فاصله دارن (دور از دیوار) رو ترجیح بده
-  return L.filter((_,i)=>i%2===0).slice(0,12)})}
+  /* ✦ نقطه‌های اسپاون: از بین گره‌های هم‌ارتفاعِ تا ۸ متریِ اون ناحیه، جاهای «باز» رو انتخاب می‌کنیم (فاصله‌ی دیوار در ۸ جهت و دو ارتفاع)؛
+     چارچوب در و راهروی باریک خودبه‌خود کنار می‌رن، و نقطه‌ها حداقل ۱٫۸ متر از هم فاصله دارن */
+  const cl=(x,y,z)=>{let m=3;for(const h of[.9,1.6])for(let k=0;k<8;k++){const an=k*Math.PI/4,t=wallDist({x,y:y+h,z},{x:Math.cos(an),y:0,z:Math.sin(an)});if(t<m)m=t}return m};
+  const C=[];for(let n=0;n<NN;n++){if(ncomp[n]!==mainComp)continue;if(Math.abs(nvy[n]-nvy[s])>.5)continue;
+   if(Math.hypot(nvx[n]-nvx[s],nvz[n]-nvz[s])<8)C.push([nvx[n],nvy[n],nvz[n],cl(nvx[n],nvy[n],nvz[n])])}
+  C.sort((a,b)=>b[3]-a[3]);
+  const pick=minCl=>{const L=[];for(const c of C){if(c[3]<minCl)break;if(L.every(q=>Math.hypot(q[0]-c[0],q[2]-c[2])>=1.8))L.push([c[0],c[1],c[2]]);if(L.length>=12)break}return L};
+  let L=pick(1.5);if(L.length<6)L=pick(1.0);if(L.length<6)L=C.slice(0,12).map(c=>[c[0],c[1],c[2]]);
+  console.log('[spawn] تعداد نقطه‌های اسپاون:',L.length);return L})}
 boot();
 /* دیباگ: کلید B → فهرست همه‌ی آبجکت‌های ویومدل (چسبیده به دوربین) با مختصات فضای دوربین چاپ می‌شه.
    مختصات: x منفی = چپ | y منفی = پایین | z منفی = جلو. هر شیء عجیبی توی صفحه دیدی، این خروجی رو بفرست. */
