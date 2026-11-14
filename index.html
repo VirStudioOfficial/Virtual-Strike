@@ -2469,23 +2469,21 @@ function lbeFetch(){if(LBE_RAW)return LBE_RAW;
   new THREE.FBXLoader().load(FILES.lobbyE,o=>res(o),undefined,e=>{console.warn('[lobby-enemy] فایل '+FILES.lobbyE+' لود نشد (باید کنار index.html باشه) → با تُن قهوه‌ای');res(null)})})}
 function lbeLoad(){return lbeFetch().then(o=>{if(!o)return false;
  try{lbfPrep(o,LBE,true);LBE.ok=true;console.log('[lobby-enemy] مدل FBX دشمن آماده شد');return true}catch(err){console.warn('[lobby-enemy] آماده‌سازی شکست خورد → با تُن قهوه‌ای:',err);return false}})}
-/* هر مشِ FBX رو با شبیه‌ترین مشِ مدل دشمنِ بازی (از روی قد/پهنا نسبت به کل بدن) جفت می‌کنیم و متریالش رو (با تکسچر خودش) می‌گیریم */
+/* اطلس تکسچر دشمن (char_t2.glb) یه شبکه‌ی ۳×۳ از ۵ تکسچر جداست؛ FBX جدید هم ۵ مش داره که هرکدوم UV کامل (۰..۱) روی تکسچر خودشه.
+   پس هر مش رو با برشِ مخصوص خودش از اطلس وصل می‌کنیم: obj1=پوست، obj2=ماسک/صورت، obj3=جلیقه، obj4=شلوار و بوت، obj5=دستکش */
+const LBE_CELL={obj1:0,obj2:3,obj3:2,obj4:1,obj5:4};   // شماره‌ی خانه توی اطلس: ستون=n%3، ردیف=floor(n/3) (از بالا)
 function lbeMats(o,D){
  D.mats={};const T=typeof TMPL!=='undefined'&&TMPL.enemy;if(!T){console.warn('[lobby-enemy] مدل دشمن (TMPL.enemy) آماده نیست');return 0}
- const V=THREE.Vector3,feat=(b,U)=>{const z=b.getSize(new V()),H=(U.max.y-U.min.y)||1;return[(b.min.y-U.min.y)/H,(b.max.y-U.min.y)/H,Math.max(z.x,z.z)/H,Math.min(z.x,z.z)/H]};
- T.updateMatrixWorld(true);o.updateMatrixWorld(true);
- const cand=[],UT=new THREE.Box3(),fm=[],UF=new THREE.Box3();
- T.traverse(x=>{if(x.isMesh&&x.material){const ms=Array.isArray(x.material)?x.material:[x.material],q=ms.find(m=>m&&m.map&&m.map.image)||ms[0],b=new THREE.Box3().setFromObject(x);if(q&&!b.isEmpty()){cand.push({x,q,b});UT.union(b)}}});
- o.traverse(x=>{if(x.isSkinnedMesh){const b=new THREE.Box3().setFromObject(x);fm.push({x,b});UF.union(b)}});
- if(!cand.length||!fm.length)return 0;
- cand.forEach(c=>c.f=feat(c.b,UT));let n=0;
- for(const m of fm){const f=feat(m.b,UF);let best=null,bc=1e9;
-  for(const c of cand){const cost=f.reduce((a,v,i)=>a+Math.abs(v-c.f[i]),0);if(cost<bc){bc=cost;best=c}}
-  if(!best)continue;
-  const mm=best.q.clone();mm.skinning=true;
-  const geo=m.x.geometry;if(mm.map&&mm.map.flipY===false&&geo.attributes.uv&&!geo.userData.vflip){const u=geo.attributes.uv.array;for(let i=1;i<u.length;i+=2)u[i]=1-u[i];geo.userData.vflip=1}   // FBX: v از پایین؛ glTF: v از بالا
-  D.mats[m.x.name]=mm;n++;
-  console.log('[lobby-enemy]',m.x.name,'← مشِ',best.x.name||'(بی‌نام)','شباهت',bc.toFixed(3),mm.map?'با تکسچر':'بدون تکسچر')}
+ let base=null;T.traverse(x=>{if(!base&&x.isMesh&&x.material){const ms=Array.isArray(x.material)?x.material:[x.material];base=ms.find(m=>m&&m.map&&m.map.image)||null}});
+ if(!base){console.warn('[lobby-enemy] تکسچر اطلس دشمن پیدا نشد');return 0}
+ const im=base.map.image,W=im.width||im.naturalWidth,H=im.height||im.naturalHeight;if(!W||!H)return 0;
+ const cw=W/3,ch=H/3,cache={};let n=0;
+ o.traverse(x=>{if(!x.isSkinnedMesh)return;const c=LBE_CELL[x.name];if(c===undefined){console.warn('[lobby-enemy] مشِ ناشناخته:',x.name);return}
+  if(!cache[c]){const cv=document.createElement('canvas'),px=Math.max(2,Math.round(cw)-2);cv.width=cv.height=px;
+   cv.getContext('2d').drawImage(im,(c%3)*cw+1,Math.floor(c/3)*ch+1,cw-2,ch-2,0,0,px,px);
+   const t=new THREE.CanvasTexture(cv);t.encoding=base.map.encoding;t.anisotropy=base.map.anisotropy||1;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;
+   const mm=base.clone();mm.map=t;mm.skinning=true;mm.needsUpdate=true;cache[c]=mm}
+  D.mats[x.name]=cache[c];n++;console.log('[lobby-enemy]',x.name,'← خانه‌ی',c,'از اطلس')});
  return n}
 function lbfPrep(o,D,isE){D=D||LBF;
  let mesh=null;o.traverse(x=>{if(x.isSkinnedMesh&&!mesh)mesh=x});
