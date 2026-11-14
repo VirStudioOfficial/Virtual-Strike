@@ -400,10 +400,12 @@ addEventListener('resize',()=>layoutView());
 const VM_LAYER=1;const _vmH=[];
 function vmTop(o){while(o.parent&&o.parent!==scene)o=o.parent;return o}
 function renderWithViewmodel(){
+ const fxo=FX.begin(false);try{
  const setL=o=>o.layers.set(VM_LAYER);
  gun.traverse(setL);if(VM.arms)VM.arms.group.traverse(setL);   // هر فریم: چیزهایی که دیرتر لود می‌شن (پیستول، دست‌ها، خشاب) هم شامل بشن
  hemiL.layers.enable(VM_LAYER);sun.layers.enable(VM_LAYER);     // نور برای پاس ویومدل هم لازمه
  sky.position.copy(cam.position);cam.layers.set(0);ren.render(scene,cam);
+ if(fxo)FX.composite();
  if(!gun.visible&&!(VM.arms&&VM.arms.group.visible)){return}
  const bg=scene.background,fg=scene.fog,sa=ren.shadowMap.autoUpdate;
  scene.background=null;scene.fog=null;ren.shadowMap.autoUpdate=false;   // پس‌زمینه رنگیِ صحنه پاس ۱ رو پاک نکنه
@@ -416,7 +418,8 @@ function renderWithViewmodel(){
   try{ren.render(scene,cam)}finally{scene.autoUpdate=au;for(let i=0;i<_vmH.length;i++)_vmH[i].visible=true;_vmH.length=0}
  }else ren.render(scene,cam);
  ren.autoClear=true;cam.layers.set(0);
- scene.background=bg;scene.fog=fg;ren.shadowMap.autoUpdate=sa}
+ scene.background=bg;scene.fog=fg;ren.shadowMap.autoUpdate=sa
+}finally{FX.end(fxo,false)}}
 const hemiL=new THREE.HemisphereLight(0xdfeaff,0x80704f,.62);scene.add(hemiL);
 const sky=new THREE.Mesh(new THREE.SphereGeometry(500,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
  vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -427,6 +430,403 @@ const exL=new THREE.PointLight(0xff8a2a,0,28,2);scene.add(exL);let exI=0,exT=0; 
 const sun=new THREE.DirectionalLight(0xfff0d0,1.05);sun.position.set(60,120,30);scene.add(sun,sun.target);
 sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);sun.shadow.bias=-.0008;sun.shadow.normalBias=.04;
 {const sc=sun.shadow.camera;sc.left=sc.bottom=-100;sc.right=sc.top=100;sc.near=1;sc.far=450;sc.updateProjectionMatrix()}   // پوشش سایه برای مپ ~۱۰۶ متری
+/* ================= ULTRA FX (فقط کیفیت «خیلی بالا») =================
+   پایپ‌لاین HDR سینمایی روی three r128:
+   رندر HDR (HalfFloat) ← AO نیم‌رزولوشن ← نور حجمی (Raymarch روی شدو‌مپ خورشید = پرتوهای نور از در و پنجره + مه جوی)
+   ← تاری حرکت دوربین ← ویومدل ← بلوم فیزیکی (۶ مرحله) ← نوردهی خودکار ← فلر خورشید ← ACES ← گریید رنگ ← FXAA + شارپ + گرین.
+   آسمان هم با شیدر جوّی و ابر پروسیجرال عوض می‌شه. هر خطایی → خودکار خاموش و برگشت به رندر قبلی.
+   خاموش‌کردن: تنظیمات ← گرافیک ← «افکت‌های سینمایی»   یا   ?nofx=1 توی آدرس */
+const FX=(()=>{
+ const T=THREE,fx={dead:false,inited:false,_ap:null,sup:null,W:0,H:0,k:0,fr:0,lite:false,t0:performance.now(),hasPrev:false};
+ try{if(new URLSearchParams(location.search).get('nofx'))fx.dead=true}catch(e){}
+ const V2=T.Vector2,V3=T.Vector3,M4=T.Matrix4,_v=new V3(),_d=new V3(),_s=new V2();
+ fx.sunDir=new V3(.43,.86,.26);fx.prevVP=new M4();fx.curVP=new M4();
+ const VS='varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}';
+ const HD='precision highp float;precision highp sampler2D;varying vec2 vUv;\n';
+ const DEP='uniform sampler2D tDepth;uniform mat4 uPI;\nvec3 vpos(vec2 uv,float d){vec4 c=uPI*vec4(uv*2.-1.,d*2.-1.,1.);return c.xyz/c.w;}\nfloat ign(vec2 p){return fract(52.9829189*fract(dot(p,vec2(.06711056,.00583715))));}\n';
+ const LUM='const vec3 LW=vec3(.2126,.7152,.0722);\n';
+
+ /* ---------- ۱) AO (نیم‌رزولوشن، فقط از عمق) ---------- */
+ const F_AO=HD+DEP+`uniform vec2 uRes;uniform vec2 uPx;uniform float uP11,uR,uInt,uSeed;
+void main(){
+ float d=texture2D(tDepth,vUv).x;
+ if(d>=.99999){gl_FragColor=vec4(1.);return;}
+ vec3 P=vpos(vUv,d);
+ vec2 o=uPx;
+ float dl=texture2D(tDepth,vUv-vec2(o.x,0.)).x,dr=texture2D(tDepth,vUv+vec2(o.x,0.)).x,du=texture2D(tDepth,vUv+vec2(0.,o.y)).x,dd=texture2D(tDepth,vUv-vec2(0.,o.y)).x;
+ vec3 Pl=vpos(vUv-vec2(o.x,0.),dl),Pr=vpos(vUv+vec2(o.x,0.),dr),Pu=vpos(vUv+vec2(0.,o.y),du),Pd=vpos(vUv-vec2(0.,o.y),dd);
+ vec3 dx=abs(Pr.z-P.z)<abs(P.z-Pl.z)?Pr-P:P-Pl;
+ vec3 dy=abs(Pu.z-P.z)<abs(P.z-Pd.z)?Pu-P:P-Pd;
+ vec3 N=normalize(cross(dx,dy));if(dot(N,P)>0.)N=-N;
+ float rPx=clamp(uR*uP11*.5*uRes.y/max(-P.z,.1),2.,uRes.y*.12);
+ float n=ign(gl_FragCoord.xy+uSeed)*6.2831853;
+ float bias=.03+.002*(-P.z);
+ float occ=0.;
+ for(int i=0;i<12;i++){
+  float fi=(float(i)+.5)/12.;
+  float a=n+float(i)*2.399963;
+  vec2 su=vUv+vec2(cos(a),sin(a))*(rPx*(.2+.8*fi))/uRes;
+  float sd=texture2D(tDepth,su).x;
+  if(sd>=.99999)continue;
+  vec3 v=vpos(su,sd)-P;float vv=dot(v,v);
+  occ+=uR*max(0.,dot(v,N)-bias)/(vv+.05*uR*uR)*smoothstep(uR*2.5,uR*.7,sqrt(vv));
+ }
+ float ao=clamp(1.-uInt*occ/12.,0.,1.);
+ ao=mix(ao,1.,smoothstep(40.,100.,-P.z));
+ gl_FragColor=vec4(ao,ao,ao,1.);
+}`;
+
+ /* ---------- ۲) نور حجمی: Raymarch توی شدو‌مپ خورشید (شدو‌مپ r128 = RGBA packed) ---------- */
+ const F_VOL=HD+DEP+`uniform vec2 uRes;uniform mat4 uCW;uniform sampler2D tShadow;uniform mat4 uSM;uniform float uUseSh;
+uniform vec3 uSunDir,uSunCol,uAmb;uniform float uDens,uMaxD,uSeed,uInt,uGY;
+float unpackD(vec4 v){return dot(v,vec4(255./256.)/vec4(16777216.,65536.,256.,1.));}
+float vis(vec3 wp){
+ if(uUseSh<.5)return 1.;
+ vec4 sc=uSM*vec4(wp,1.);vec3 p=sc.xyz/sc.w;
+ if(p.x<0.||p.x>1.||p.y<0.||p.y>1.||p.z>1.)return 1.;
+ return step(p.z-.0015,unpackD(texture2D(tShadow,p.xy)));
+}
+void main(){
+ float d=texture2D(tDepth,vUv).x;
+ vec3 ro=uCW[3].xyz;
+ vec3 vp=vpos(vUv,min(d,.999999));
+ vec3 wp=(uCW*vec4(vp,1.)).xyz;
+ vec3 rd=normalize(wp-ro);
+ float tEnd=d>=.99999?uMaxD:min(length(wp-ro),uMaxD);
+ const int N=24;
+ float seg=tEnd/float(N);
+ float jit=ign(gl_FragCoord.xy+uSeed);
+ float c=dot(rd,uSunDir);const float g=.45;
+ float ph=(1.-g*g)/pow(1.+g*g-2.*g*c,1.5);
+ vec3 acc=vec3(0.);float tr=1.;
+ for(int i=0;i<N;i++){
+  float t=(float(i)+jit)*seg;
+  vec3 pos=ro+rd*t;
+  float rho=exp(-max(pos.y-uGY,0.)*.045);
+  float sg=uDens*rho;
+  acc+=tr*sg*seg*(uSunCol*ph*vis(pos)+uAmb);
+  tr*=exp(-sg*seg);
+ }
+ gl_FragColor=vec4(acc*uInt,tr);
+}`;
+
+ /* ---------- ۳) بلور دوطرفه‌ی عمق‌آگاه (برای AO و نور حجمی) ---------- */
+ const F_BLUR=HD+`uniform sampler2D tSrc,tDepth;uniform vec2 uDir;uniform float uNear,uFar;
+float lz(float d){return (uNear*uFar)/((uFar-uNear)*d-uFar);}
+void main(){
+ float z0=lz(texture2D(tDepth,vUv).x);vec4 s=vec4(0.);float ws=0.;
+ for(int i=-3;i<=3;i++){
+  float fi=float(i);vec2 uv=vUv+uDir*fi;
+  float z=lz(texture2D(tDepth,uv).x);
+  float w=exp(-fi*fi*.18)*exp(-abs(z-z0)/(.06*abs(z0)+.1));
+  s+=texture2D(tSrc,uv)*w;ws+=w;
+ }
+ gl_FragColor=s/ws;
+}`;
+
+ /* ---------- ۴) ترکیب دنیا: تاری حرکت + AO + نور حجمی ---------- */
+ const F_COMP=HD+DEP+LUM+`uniform sampler2D tColor,tAO,tVol;uniform mat4 uCW,uPrevVP;uniform float uMB,uAOI,uVolOn,uSeed;
+void main(){
+ float d=texture2D(tDepth,vUv).x;
+ vec3 col;
+ if(uMB>0.){
+  vec4 wp=uCW*vec4(vpos(vUv,min(d,.999999)),1.);
+  vec4 pc=uPrevVP*wp;
+  vec2 vel=pc.w>0.?(vUv-(pc.xy/pc.w*.5+.5))*uMB:vec2(0.);
+  float L=length(vel);
+  if(L>.25)vel=vec2(0.);else if(L>.035)vel*=.035/L;
+  float j=ign(gl_FragCoord.xy+uSeed)-.5;
+  vec3 s=vec3(0.);
+  for(int i=0;i<8;i++){float f=(float(i)+.5)/8.-.5+j/8.;s+=texture2D(tColor,vUv+vel*f).rgb;}
+  col=s/8.;
+ }else col=texture2D(tColor,vUv).rgb;
+ col*=mix(1.,texture2D(tAO,vUv).r,uAOI);
+ if(uVolOn>.5){vec4 v=texture2D(tVol,vUv);col=col*v.a+v.rgb;}
+ gl_FragColor=vec4(col,1.);
+}`;
+
+ /* ---------- ۵) بلوم: داون (۱۳ تپ + Karis) و آپ (تنت ۹ تپ، جمع‌شونده) ---------- */
+ const F_DOWN=HD+`uniform sampler2D tSrc;uniform vec2 uTx;uniform float uKaris;
+vec3 S(vec2 o){return texture2D(tSrc,vUv+o*uTx).rgb;}
+float kw(vec3 c){return 1./(1.+dot(c,vec3(.2126,.7152,.0722)));}
+void main(){
+ vec3 a=S(vec2(-2,2)),b=S(vec2(0,2)),c=S(vec2(2,2)),d=S(vec2(-2,0)),e=S(vec2(0,0)),f=S(vec2(2,0)),g=S(vec2(-2,-2)),h=S(vec2(0,-2)),i=S(vec2(2,-2));
+ vec3 j=S(vec2(-1,1)),k=S(vec2(1,1)),l=S(vec2(-1,-1)),m=S(vec2(1,-1));
+ vec3 o;
+ if(uKaris>.5){
+  vec3 g0=(j+k+l+m)*.25,g1=(a+b+d+e)*.25,g2=(b+c+e+f)*.25,g3=(d+e+g+h)*.25,g4=(e+f+h+i)*.25;
+  float w0=.5*kw(g0),w1=.125*kw(g1),w2=.125*kw(g2),w3=.125*kw(g3),w4=.125*kw(g4);
+  o=(g0*w0+g1*w1+g2*w2+g3*w3+g4*w4)/(w0+w1+w2+w3+w4);
+ }else o=e*.125+(a+c+g+i)*.03125+(b+d+f+h)*.0625+(j+k+l+m)*.125;
+ gl_FragColor=vec4(min(o,vec3(60000.)),1.);
+}`;
+ const F_UP=HD+`uniform sampler2D tSrc;uniform vec2 uTx;uniform float uW;
+vec3 S(vec2 o){return texture2D(tSrc,vUv+o*uTx).rgb;}
+void main(){
+ vec3 s=S(vec2(-1,1))+S(vec2(0,1))*2.+S(vec2(1,1))+S(vec2(-1,0))*2.+S(vec2(0,0))*4.+S(vec2(1,0))*2.+S(vec2(-1,-1))+S(vec2(0,-1))*2.+S(vec2(1,-1));
+ gl_FragColor=vec4(s/16.*uW,1.);
+}`;
+
+ /* ---------- ۶) نوردهی خودکار (۱×۱، ping-pong، همه‌چیز روی GPU) ---------- */
+ const F_EXP=HD+LUM+`uniform sampler2D tSrc,tPrev;uniform float uDt,uKey,uMin,uMax,uInit;
+void main(){
+ if(uInit>.5){gl_FragColor=vec4(1.);return;}
+ float prev=texture2D(tPrev,vec2(.5)).r,sum=0.;
+ for(int y=0;y<4;y++)for(int x=0;x<4;x++){vec3 c=texture2D(tSrc,(vec2(float(x),float(y))+.5)/4.).rgb;sum+=log(dot(c,LW)+1e-4);}
+ float avg=exp(sum/16.);
+ float tg=clamp(pow(uKey/avg,.55),uMin,uMax);
+ float sp=tg<prev?2.6:1.1;
+ float e=mix(prev,tg,1.-exp(-uDt*sp));
+ gl_FragColor=vec4(e,e,e,1.);
+}`;
+
+ /* ---------- ۷) خروجی: بلوم + فلر + نوردهی + ACES(مثل three) + گریید رنگ → LDR ---------- */
+ const F_FIN=HD+LUM+`uniform sampler2D tScene,tBloom,tExp,tDepth;uniform float uBloom,uExp,uCA,uNorm,uFlare,uAsp,uSunVis,uGrade;uniform vec2 uSunUV;
+vec3 fit(vec3 v){vec3 a=v*(v+.0245786)-.000090537;vec3 b=v*(.983729*v+.4329510)+.238081;return a/b;}
+vec3 aces(vec3 c,float e){
+ const mat3 AI=mat3(vec3(.59719,.07600,.02840),vec3(.35458,.90834,.13383),vec3(.04823,.01566,.83777));
+ const mat3 AO=mat3(vec3(1.60475,-.10208,-.00327),vec3(-.53108,1.10813,-.07276),vec3(-.07367,-.00605,1.07602));
+ c*=e/.6;c=AI*c;c=fit(c);c=AO*c;return clamp(c,0.,1.);
+}
+void main(){
+ vec2 q0=vUv-.5;
+ vec2 off=q0*uCA*dot(q0,q0)*4.;
+ vec3 hdr=vec3(texture2D(tScene,vUv+off).r,texture2D(tScene,vUv).g,texture2D(tScene,vUv-off).b);
+ hdr=mix(hdr,texture2D(tBloom,vUv).rgb*uNorm,uBloom);
+ if(uSunVis>.001){
+  float sv=0.;
+  vec2 so[5];so[0]=vec2(0.);so[1]=vec2(.012,0.);so[2]=vec2(-.012,0.);so[3]=vec2(0.,.012);so[4]=vec2(0.,-.012);
+  for(int i=0;i<5;i++)sv+=step(.99999,texture2D(tDepth,uSunUV+so[i]).x);
+  sv=sv/5.*uSunVis*uFlare;
+  if(sv>.001){
+   vec2 q=q0*vec2(uAsp,1.),s=(uSunUV-.5)*vec2(uAsp,1.);
+   vec3 fl=vec3(0.);
+   for(int i=1;i<=4;i++){
+    float fi=float(i);vec2 gp=s*(-.32*fi);float dd=length(q-gp);float rad=.035+.018*fi;
+    vec3 tint=vec3(.6+.4*sin(fi*1.7),.6+.4*sin(fi*2.3+1.),.6+.4*sin(fi*3.1+2.));
+    fl+=tint*smoothstep(rad,rad*.25,dd)*.05/fi;
+   }
+   float dc=length(q-s*-.6);fl+=vec3(.9,.7,.5)*smoothstep(.012,.0,abs(dc-.32))*.05;
+   fl+=vec3(.5,.65,1.)*exp(-abs(q.y-s.y)*55.)*exp(-abs(q.x-s.x)*2.2)*.06;
+   hdr+=fl*sv;
+  }
+ }
+ float e=uExp*texture2D(tExp,vec2(.5)).r;
+ vec3 g0=aces(hdr,e),g=g0;
+ float l=dot(g,LW);
+ g=mix(g,g*vec3(.94,.99,1.08),(1.-smoothstep(0.,.55,l))*.55);
+ g=mix(g,g*vec3(1.07,1.,.92),smoothstep(.45,1.,l)*.55);
+ g=mix(vec3(dot(g,LW)),g,1.12);
+ g=mix(g,g*g*(3.-2.*g),.22);
+ g=mix(g0,g,uGrade);
+ gl_FragColor=vec4(clamp(g,0.,1.),1.);
+}`;
+
+ /* ---------- ۸) FXAA + شارپ (CAS-lite) + گرین فیلم ---------- */
+ const F_AA=HD+LUM+`uniform sampler2D tLDR;uniform vec2 uPx;uniform float uTime,uGrain,uSharp;
+float hash(vec2 p){p=fract(p*vec2(443.897,441.423));p+=dot(p,p.yx+19.19);return fract((p.x+p.y)*p.x);}
+void main(){
+ vec2 inv=uPx;
+ vec3 rgbNW=texture2D(tLDR,vUv+vec2(-1.,-1.)*inv).rgb,rgbNE=texture2D(tLDR,vUv+vec2(1.,-1.)*inv).rgb,rgbSW=texture2D(tLDR,vUv+vec2(-1.,1.)*inv).rgb,rgbSE=texture2D(tLDR,vUv+vec2(1.,1.)*inv).rgb;
+ vec3 rgbM=texture2D(tLDR,vUv).rgb;
+ const vec3 lu=vec3(.299,.587,.114);
+ float lNW=dot(rgbNW,lu),lNE=dot(rgbNE,lu),lSW=dot(rgbSW,lu),lSE=dot(rgbSE,lu),lM=dot(rgbM,lu);
+ float lMin=min(lM,min(min(lNW,lNE),min(lSW,lSE))),lMax=max(lM,max(max(lNW,lNE),max(lSW,lSE)));
+ vec2 dir;dir.x=-((lNW+lNE)-(lSW+lSE));dir.y=((lNW+lSW)-(lNE+lSE));
+ float dr=max((lNW+lNE+lSW+lSE)*(.25*.125),1./128.);
+ float rcp=1./(min(abs(dir.x),abs(dir.y))+dr);
+ dir=min(vec2(8.),max(vec2(-8.),dir*rcp))*inv;
+ vec3 rgbA=.5*(texture2D(tLDR,vUv+dir*(1./3.-.5)).rgb+texture2D(tLDR,vUv+dir*(2./3.-.5)).rgb);
+ vec3 rgbB=rgbA*.5+.25*(texture2D(tLDR,vUv+dir*-.5).rgb+texture2D(tLDR,vUv+dir*.5).rgb);
+ float lB=dot(rgbB,lu);
+ vec3 c=(lB<lMin||lB>lMax)?rgbA:rgbB;
+ vec3 nb=texture2D(tLDR,vUv+vec2(0.,inv.y)).rgb+texture2D(tLDR,vUv-vec2(0.,inv.y)).rgb+texture2D(tLDR,vUv+vec2(inv.x,0.)).rgb+texture2D(tLDR,vUv-vec2(inv.x,0.)).rgb;
+ vec3 sh=(c-nb*.25)*uSharp;
+ c+=clamp(sh,-.08,.08);
+ float n=hash(gl_FragCoord.xy+uTime)-.5;
+ c+=n*uGrain*(1.-.6*dot(c,LW));
+ gl_FragColor=vec4(clamp(c,0.,1.),1.);
+}`;
+
+ /* ---------- آسمان HDR: گرادیان جوّی + ابر fbm + خورشید (HDR برای بلوم)؛ رنگ‌ها «display-space» نوشته شده و با معکوس ACES به خطی تبدیل می‌شن ---------- */
+ const SKY_F=`varying vec3 vP;uniform vec3 uSun;uniform float uT,uE;
+float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x),mix(h21(i+vec2(0.,1.)),h21(i+vec2(1.,1.)),f.x),f.y);}
+float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*vn(p);p=p*2.03+vec2(17.1,9.7);a*=.5;}return s;}
+vec3 inv(vec3 y,float e){y=clamp(y,0.,.999);vec3 A=.983729*y-1.;vec3 B=.432951*y-.0245786;vec3 C=.238081*y+.000090537;vec3 v=(-B-sqrt(B*B-4.*A*C))/(2.*A);return max(v,0.)*.6/e;}
+void main(){
+ vec3 d=normalize(vP);float h=d.y;
+ vec3 hor=vec3(.80,.87,.95),top=vec3(.22,.47,.86);
+ vec3 D=mix(hor,top,pow(clamp(h,0.,1.),.45));
+ D=mix(D,vec3(.72,.70,.64),smoothstep(0.,-.25,h));
+ float sd=max(dot(d,uSun),0.);
+ D+=vec3(1.,.82,.55)*pow(sd,6.)*.10;
+ float cov=0.;
+ if(h>.015){
+  vec2 uv=d.xz/(h+.12)*.55+vec2(uT*.004,uT*.0016);
+  float dn=fbm(uv*1.4);
+  cov=smoothstep(.47,.80,dn)*smoothstep(.015,.2,h);
+  float sh=clamp((dn-fbm(uv*1.4+uSun.xz*.07))*3.2+.55,0.,1.);
+  vec3 cc=mix(vec3(.60,.66,.78),vec3(1.),sh)+vec3(1.,.9,.7)*pow(sd,8.)*.25;
+  D=mix(D,min(cc,vec3(.999)),cov*.88);
+ }
+ vec3 L=inv(D,uE);
+ float glow=pow(sd,400.)*6.+pow(sd,40.)*.45+pow(sd,8.)*.06;
+ float disc=smoothstep(.99965,.99985,sd)*60.;
+ L+=vec3(1.,.9,.72)*(glow+disc)*(1.-cov*.75);
+ gl_FragColor=vec4(L,1.);
+}`;
+
+ const mk=(w,h,type,db,dt)=>{const r=new T.WebGLRenderTarget(w,h,{type:type===undefined?T.HalfFloatType:type,format:T.RGBAFormat,minFilter:T.LinearFilter,magFilter:T.LinearFilter,depthBuffer:!!db,stencilBuffer:false});r.texture.generateMipmaps=false;if(dt)r.depthTexture=new T.DepthTexture(w,h,T.UnsignedIntType);return r};
+ const mat=(frag,u,ex)=>new T.ShaderMaterial(Object.assign({uniforms:u,vertexShader:VS,fragmentShader:frag,depthTest:false,depthWrite:false,toneMapped:false},ex||{}));
+ const U=(v)=>({value:v});
+ const quad=new T.Mesh(new T.PlaneGeometry(2,2),null);quad.frustumCulled=false;
+ const fsS=new T.Scene();fsS.add(quad);const fsC=new T.OrthographicCamera(-1,1,1,-1,0,1);
+ fx.pass=(m,rt)=>{quad.material=m;ren.setRenderTarget(rt);ren.render(fsS,fsC)};
+ const NB=6;let M=null;
+
+ fx.supported=function(){
+  if(fx.sup!==null)return fx.sup;
+  try{const c=ren.capabilities,e=ren.extensions;fx.sup=!!(c.isWebGL2&&(e.has('EXT_color_buffer_float')||e.has('EXT_color_buffer_half_float')))}catch(e){fx.sup=false}
+  return fx.sup};
+ fx.want=()=>!fx.dead&&SET.q==='ultra'&&SET.fx!==false&&fx.supported();
+
+ fx.init=function(){
+  if(fx.inited)return true;if(fx.dead)return false;
+  try{
+   M={ao:mat(F_AO,{tDepth:U(null),uPI:U(null),uRes:U(new V2()),uPx:U(new V2()),uP11:U(1),uR:U(1.1),uInt:U(1.25),uSeed:U(0)}),
+    vol:mat(F_VOL,{tDepth:U(null),uPI:U(null),uRes:U(new V2()),uCW:U(null),tShadow:U(null),uSM:U(new M4()),uUseSh:U(0),uSunDir:U(new V3()),uSunCol:U(new V3(1,.82,.55)),uAmb:U(new V3(.25,.36,.55)),uDens:U(.0036),uMaxD:U(75),uSeed:U(0),uInt:U(1.5),uGY:U(0)}),
+    blur:mat(F_BLUR,{tSrc:U(null),tDepth:U(null),uDir:U(new V2()),uNear:U(.1),uFar:U(650)}),
+    comp:mat(F_COMP,{tColor:U(null),tDepth:U(null),tAO:U(null),tVol:U(null),uPI:U(null),uCW:U(null),uPrevVP:U(null),uMB:U(0),uAOI:U(.9),uVolOn:U(1),uSeed:U(0)}),
+    down:mat(F_DOWN,{tSrc:U(null),uTx:U(new V2()),uKaris:U(0)}),
+    up:mat(F_UP,{tSrc:U(null),uTx:U(new V2()),uW:U(.85)},{blending:T.AdditiveBlending}),
+    exp:mat(F_EXP,{tSrc:U(null),tPrev:U(null),uDt:U(.016),uKey:U(.6),uMin:U(.8),uMax:U(1.3),uInit:U(1)}),
+    fin:mat(F_FIN,{tScene:U(null),tBloom:U(null),tExp:U(null),tDepth:U(null),uBloom:U(.075),uExp:U(1),uCA:U(.006),uNorm:U(1),uFlare:U(1),uAsp:U(1.78),uSunVis:U(0),uGrade:U(1),uSunUV:U(new V2(.5,.5))}),
+    aa:mat(F_AA,{tLDR:U(null),uPx:U(new V2()),uTime:U(0),uGrain:U(.03),uSharp:U(.35)})};
+   fx.skyMat=new T.ShaderMaterial({side:T.BackSide,depthWrite:false,fog:false,uniforms:{uSun:U(new V3(.43,.86,.26)),uT:U(0),uE:U(.95)},
+    vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:SKY_F});
+   ren.getDrawingBufferSize(_s);fx.alloc(Math.max(2,_s.x|0),Math.max(2,_s.y|0));
+   /* کامپایل همه‌ی شیدرها همین الان (نه وسط بازی) + اعتبارسنجی؛ خطا → خاموش */
+   for(const k in M){quad.material=M[k];ren.compile(fsS,fsC)}
+   const bad=[];for(const k in M){const p=ren.properties.get(M[k]).currentProgram;if(!p||(p.diagnostics&&p.diagnostics.runnable===false))bad.push(k)}
+   if(bad.length)throw new Error('shader compile failed: '+bad.join(','));
+   fx.inited=true;console.log('[FX] ultra pipeline ready');return true;
+  }catch(e){fx.fail(e);return false}};
+
+ fx.alloc=function(w,h){
+  const hw=Math.max(2,w>>1),hh=Math.max(2,h>>1);
+  if(!fx.rtA){
+   fx.rtA=mk(w,h,T.HalfFloatType,false,true);fx.rtB=mk(w,h,T.HalfFloatType,true);fx.rtL=mk(w,h,T.UnsignedByteType,false);
+   fx.aoA=mk(hw,hh,T.UnsignedByteType);fx.aoB=mk(hw,hh,T.UnsignedByteType);fx.vlA=mk(hw,hh);fx.vlB=mk(hw,hh);
+   fx.bl=[];for(let i=0;i<NB;i++)fx.bl.push(mk(Math.max(1,w>>(i+1)),Math.max(1,h>>(i+1))));
+   fx.ex=[mk(1,1),mk(1,1)];fx.exInit=true;
+  }else{
+   fx.rtA.setSize(w,h);fx.rtB.setSize(w,h);fx.rtL.setSize(w,h);fx.aoA.setSize(hw,hh);fx.aoB.setSize(hw,hh);fx.vlA.setSize(hw,hh);fx.vlB.setSize(hw,hh);
+   fx.bl.forEach((r,i)=>r.setSize(Math.max(1,w>>(i+1)),Math.max(1,h>>(i+1))));
+  }
+  fx.W=w;fx.H=h;fx.hasPrev=false};
+ fx.size=function(){ren.getDrawingBufferSize(_s);const w=Math.max(2,_s.x|0),h=Math.max(2,_s.y|0);if(w!==fx.W||h!==fx.H)fx.alloc(w,h)};
+
+ /* ---------- حالت رندر: tone-mapping رندرر خاموش (HDR)، آسمان و مه عوض می‌شن ---------- */
+ const aInv=(y,e)=>{y=Math.min(Math.max(y,0),.999);const A=.983729*y-1,B=.432951*y-.0245786,C=.238081*y+.000090537;return Math.max((-B-Math.sqrt(B*B-4*A*C))/(2*A),0)*.6/e};
+ fx.flush=function(){
+  const seen=new Set(),f=m=>{if(m&&!seen.has(m)){seen.add(m);m.needsUpdate=true}};
+  scene.traverse(o=>{if(o.material)Array.isArray(o.material)?o.material.forEach(f):f(o.material)});
+  try{PFXP.forEach(a=>a.forEach(q=>q&&f(q.material)))}catch(e){}try{BL.mats.forEach(f)}catch(e){}};
+ fx.apply=function(on){
+  if(fx._ap===on)return;fx._ap=on;
+  if(on){
+   if(!fx.keep)fx.keep={sky:sky.material,fog:scene.fog.color.clone(),bg:scene.background.clone()};
+   ren.toneMapping=T.NoToneMapping;sky.material=fx.skyMat;
+   const e=.95,c=fx.keep.fog;const l=new T.Color(aInv(c.r,e),aInv(c.g,e),aInv(c.b,e));scene.fog.color.copy(l);scene.background.copy(l);
+  }else{
+   ren.toneMapping=T.ACESFilmicToneMapping;
+   if(fx.keep){sky.material=fx.keep.sky;scene.fog.color.copy(fx.keep.fog);scene.background.copy(fx.keep.bg)}
+  }
+  fx.flush()};
+ fx.sync=function(){try{if(fx.want()){if(fx.init())fx.apply(true)}else fx.apply(false)}catch(e){fx.fail(e)}};
+ fx.fail=function(e){
+  console.error('[FX] خاموش شد (برگشت به رندر عادی):',e);fx.dead=true;
+  try{ren.setRenderTarget(null);ren.autoClear=true}catch(_){}
+  try{fx.apply(false)}catch(_){}
+  try{SET.fx=false;saveSet()}catch(_){}};
+
+ /* ---------- هر فریم ---------- */
+ fx.begin=function(lite){
+  if(!fx.want()){if(fx._ap)fx.apply(false);return false}
+  if(!fx.init())return false;
+  try{
+   fx.apply(true);fx.size();if(fx.lite!==!!lite)fx.hasPrev=false;fx.lite=!!lite;fx._ac=ren.autoClear;fx.fr++;
+   const now=performance.now();fx.dt=Math.min(.1,Math.max(.001,(now-(fx._tn||now-16))/1000));fx._tn=now;
+   fx.sunDir.copy(sun.position).sub(sun.target.position).normalize();
+   fx.skyMat.uniforms.uSun.value.copy(fx.sunDir);fx.skyMat.uniforms.uT.value=now*.001;
+   ren.setRenderTarget(lite?fx.rtB:fx.rtA);return true;
+  }catch(e){fx.fail(e);return false}};
+
+ fx.composite=function(){   // بعد از پاس دنیا
+  try{
+   const u=M,W=fx.W,H=fx.H,hw=fx.aoA.width,hh=fx.aoA.height,dp=fx.rtA.depthTexture;
+   ren.autoClear=false;
+   const pi=cam.projectionMatrixInverse,cw=cam.matrixWorld,seed=fx.fr%64;
+   const sm=sun.shadow.map,useSh=!!(sm&&sun.castShadow&&ren.shadowMap.enabled);
+   const doVol=SET.fxVol!==false,mb=SET.fxMB!==false;
+   /* AO */
+   let m=u.ao.uniforms;m.tDepth.value=dp;m.uPI.value=pi;m.uRes.value.set(hw,hh);m.uPx.value.set(1/W,1/H);m.uP11.value=cam.projectionMatrix.elements[5];m.uSeed.value=seed;
+   fx.pass(u.ao,fx.aoA);
+   m=u.blur.uniforms;m.tDepth.value=dp;m.uNear.value=cam.near;m.uFar.value=cam.far;
+   m.tSrc.value=fx.aoA.texture;m.uDir.value.set(1/hw,0);fx.pass(u.blur,fx.aoB);
+   m.tSrc.value=fx.aoB.texture;m.uDir.value.set(0,1/hh);fx.pass(u.blur,fx.aoA);
+   /* نور حجمی */
+   if(doVol){
+    m=u.vol.uniforms;m.tDepth.value=dp;m.uPI.value=pi;m.uCW.value=cw;m.uRes.value.set(hw,hh);m.uSeed.value=seed;
+    m.tShadow.value=useSh?sm.texture:null;m.uUseSh.value=useSh?1:0;if(useSh)m.uSM.value.copy(sun.shadow.matrix);
+    m.uSunDir.value.copy(fx.sunDir);m.uGY.value=cam.position.y-1.7;
+    fx.pass(u.vol,fx.vlA);
+    m=u.blur.uniforms;
+    m.tSrc.value=fx.vlA.texture;m.uDir.value.set(1/hw,0);fx.pass(u.blur,fx.vlB);
+    m.tSrc.value=fx.vlB.texture;m.uDir.value.set(0,1/hh);fx.pass(u.blur,fx.vlA);
+   }
+   /* ترکیب */
+   m=u.comp.uniforms;m.tColor.value=fx.rtA.texture;m.tDepth.value=dp;m.tAO.value=fx.aoA.texture;m.tVol.value=fx.vlA.texture;m.uPI.value=pi;m.uCW.value=cw;
+   if(!fx.hasPrev){fx.prevVP.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);fx.hasPrev=true}
+   m.uPrevVP.value=fx.prevVP;m.uMB.value=mb?.5*.7:0;m.uVolOn.value=doVol?1:0;m.uSeed.value=seed;
+   fx.pass(u.comp,fx.rtB);
+   fx.prevVP.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);
+   fx.vol=doVol;fx.depth=dp;
+   ren.autoClear=fx._ac;   // رندر ویومدل بعدش خودش autoClear رو مدیریت می‌کنه؛ rtB الان bind شده
+  }catch(e){fx.fail(e)}};
+
+ fx.end=function(on,lite){
+  if(!on)return;
+  try{
+   const u=M,W=fx.W,H=fx.H,bl=fx.bl;
+   ren.autoClear=false;
+   /* بلوم: داون */
+   let m=u.down.uniforms;m.uKaris.value=1;m.tSrc.value=fx.rtB.texture;m.uTx.value.set(1/W,1/H);fx.pass(u.down,bl[0]);
+   m.uKaris.value=0;for(let i=1;i<NB;i++){m.tSrc.value=bl[i-1].texture;m.uTx.value.set(1/bl[i-1].width,1/bl[i-1].height);fx.pass(u.down,bl[i])}
+   /* نوردهی خودکار از عمیق‌ترین مرحله (قبل از آپ‌سمپل) */
+   const k=fx.k;m=u.exp.uniforms;m.tSrc.value=bl[NB-1].texture;m.tPrev.value=fx.ex[k].texture;m.uDt.value=fx.dt;m.uInit.value=fx.exInit?1:0;
+   fx.exInit=false;fx.pass(u.exp,fx.ex[1-k]);fx.k=1-k;
+   /* بلوم: آپ */
+   const w=.85;m=u.up.uniforms;m.uW.value=w;
+   for(let i=NB-1;i>=1;i--){m.tSrc.value=bl[i].texture;m.uTx.value.set(1/bl[i].width,1/bl[i].height);fx.pass(u.up,bl[i-1])}
+   let nrm=0;for(let i=0;i<NB;i++)nrm+=Math.pow(w,i);
+   /* خورشید روی صفحه (برای فلر) */
+   let sv=0,suv=_s.set(.5,.5);
+   if(!lite){cam.getWorldDirection(_d);if(_d.dot(fx.sunDir)>.05){_v.copy(fx.sunDir).multiplyScalar(500).add(cam.position).project(cam);
+    suv=_s.set(_v.x*.5+.5,_v.y*.5+.5);const ex=Math.max(Math.abs(_v.x),Math.abs(_v.y));sv=Math.min(1,Math.max(0,(1.35-ex)/.35))}}
+   /* خروجی */
+   m=u.fin.uniforms;m.tScene.value=fx.rtB.texture;m.tBloom.value=bl[0].texture;m.tExp.value=fx.ex[fx.k].texture;m.tDepth.value=lite?null:fx.depth;
+   m.uBloom.value=(lite?.06:.075)*Math.max(0,(SET.fxBloom==null?100:SET.fxBloom)/100);m.uGrade.value=Math.max(0,(SET.fxGrade==null?100:SET.fxGrade)/100);m.uExp.value=ren.toneMappingExposure;m.uNorm.value=1/nrm;m.uAsp.value=W/H;m.uSunVis.value=lite?0:sv;m.uSunUV.value.copy(suv);m.uFlare.value=1;
+   fx.pass(u.fin,fx.rtL);
+   m=u.aa.uniforms;m.tLDR.value=fx.rtL.texture;m.uPx.value.set(1/W,1/H);m.uTime.value=(fx.fr%97)*1.37;
+   fx.pass(u.aa,null);
+   /* بعد از اولین فریم‌ها: اگه برنامه‌ای کامپایل‌نشده بود → خاموش */
+  }catch(e){fx.fail(e)}
+  finally{try{ren.setRenderTarget(null);ren.autoClear=fx._ac}catch(_){}}};
+
+ return fx})();
+
 /* ---- اسلحه: AK-47 (فایل ak47_cs2.glb کنار همین HTML باشه؛ اگه لود نشد، جعبه‌ی قدیمی می‌مونه) ---- */
 const gun=new THREE.Group();gun.position.set(.17,-.2,-.385);cam.add(gun);
 const gunBox=new THREE.Mesh(new THREE.BoxGeometry(.08,.11,.55),new THREE.MeshLambertMaterial({color:0x222222}));gun.add(gunBox);
@@ -2067,7 +2467,7 @@ addEventListener('mousemove',e=>{if(!locked||P.dead)return;if(skipMM>0){skipMM--
 let inMatch=false,inLobby=false;
 /* ---- تنظیمات (ذخیره در localStorage) ---- */
 const BIND_DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',walk:'ShiftLeft',crouch:'KeyC',fire:'Mouse0',alt:'Mouse2',reload:'KeyR',use:'KeyE',w1:'Digit1',w2:'Digit2',w3:'Digit3',w4:'Digit4',g5:'Digit5',g6:'Digit6',g7:'Digit7',g8:'Digit8',last:'KeyQ',buy:'KeyB',tp:'KeyV'};
-const SET_DEF={sens:1,sensY:1,invY:false,raw:false,wheel:'off',crouchTog:false,walkTog:false,fov:75,fovAxis:'v',ar:'auto',arMode:'stretch',q:'high',res:100,shadow:'preset',vd:0,fog:true,lights:true,bright:1,aa:true,fps:0,showFps:false,hudScale:100,tsize:100,talpha:100,tsens:1.8,tpos:{},adapt:true,vib:true,aimAs:true,tjw:true,tjf:true,mq:0,showMM:true,mmSize:200,showKF:true,showPos:true,vign:true,vol:100,
+const SET_DEF={sens:1,sensY:1,invY:false,raw:false,wheel:'off',crouchTog:false,walkTog:false,fov:75,fovAxis:'v',ar:'auto',arMode:'stretch',q:'high',fx:!matchMedia('(pointer:coarse)').matches,fxVol:true,fxMB:true,fxBloom:100,fxGrade:100,res:100,shadow:'preset',vd:0,fog:true,lights:true,bright:1,aa:true,fps:0,showFps:false,hudScale:100,tsize:100,talpha:100,tsens:1.8,tpos:{},adapt:true,vib:true,aimAs:true,tjw:true,tjf:true,mq:0,showMM:true,mmSize:200,showKF:true,showPos:true,vign:true,vol:100,
  cx:{style:'cross',color:'#33ff33',size:8,thick:2,gap:3,outline:true,ol:1,alpha:100,dot:false,ds:2,dyn:true,hit:'#ff3333'},bind:BIND_DEF};
 const SET=(()=>{let s={};try{s=JSON.parse(localStorage.getItem('ms_set')||'{}')||{}}catch(e){}const o=Object.assign({},SET_DEF,s);o.cx=Object.assign({},SET_DEF.cx,s.cx);o.bind=Object.assign({},BIND_DEF,s.bind);o.tpos=Object.assign({},s.tpos||{});return o})();
 const saveSet=()=>{try{localStorage.setItem('ms_set',JSON.stringify(SET))}catch(e){}};
@@ -2112,7 +2512,7 @@ function applySet(save){SENS=.0022*SET.sens;const d=devicePixelRatio||1,b=QUAL[S
  scene.fog.near=SET.fog?q.fogN:1e6;scene.fog.far=SET.fog?q.fogF:1e6+1;cam.far=q.far;sky.scale.setScalar(Math.min(1,(q.far-5)/500));
  if(mflash.visible!==q.lights){mflash.visible=exL.visible=q.lights}
  ren.toneMappingExposure=.95*SET.bright;if(MASTER)MASTER.gain.value=SET.vol/100;
- layoutView();if(save)saveSet()}
+ FX.sync();layoutView();if(save)saveSet()}
 applySet(false);
 const lockIn=()=>{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
  if(!MASTER){try{const real=AC.destination;MASTER=AC.createGain();MASTER.gain.value=SET.vol/100;MASTER.connect(real);Object.defineProperty(AC,'destination',{get:()=>MASTER,configurable:true})}catch(e){MASTER=null}}
@@ -2654,7 +3054,7 @@ function lobbyFrame(dt){const s=LB3.spot;if(!s)return;gun.visible=false;if(VM.ar
  LB3.meshes.forEach((m,i)=>{m.userData.body.position.y=Math.sin(t*1.5+i*1.3)*.006;
   {const cp=m.userData.cp||m.position;_lv.set(cp.x,cp.y,cp.z).project(cam)}
   const c=cd[i];if(c)c.style.transform=`translate(${((_lv.x*.5+.5)*innerWidth).toFixed(1)}px,${((-_lv.y*.5+.5)*innerHeight+8).toFixed(1)}px) translateX(-50%)`});
- ren.render(scene,cam)}
+ {const fxo=FX.begin(true);try{ren.render(scene,cam)}finally{FX.end(fxo,true)}}}
 function lobbyEnter(){inLobby=true;inMatch=false;
  if(!LB3.spot){const b=lbFindSpot(),c=b.c;LB3.spot={x:c[0],y:c[1],z:c[2]};LB3.f={x:b.fx,z:b.fz};LB3.r={x:-b.fz,z:b.fx}}
  lbLayout();showMenu();lbRenderUI();if(LBT.on)lbtRefresh()}
@@ -3793,10 +4193,15 @@ addEventListener('keydown',e=>{if(e.code==='F10'&&READY&&!e.repeat&&!TUNE.on){
 const BN={fwd:'جلو',back:'عقب',left:'چپ',right:'راست',jump:'پرش',walk:'آهسته‌راه رفتن',crouch:'نشستن',fire:'شلیک / ضربه',alt:'شلیک دوم (ضربه‌ی سنگین / پرتاب آروم)',reload:'ریلود',use:'پلنت / خنثی‌سازی بمب',w1:'تفنگ',w2:'پیستول',w3:'چاقو',w4:'بمب C4',g5:'نارنجک HE',g6:'اسموک',g7:'فلش',g8:'مولوتف',last:'سلاح قبلی',buy:'منوی خرید',tp:'دید سوم‌شخص'};
 window.TOUCH=(()=>{try{return matchMedia('(pointer:coarse)').matches||(('ontouchstart' in window)&&navigator.maxTouchPoints>0&&!matchMedia('(pointer:fine)').matches)}catch(e){return false}})();
 const TABS=[['ctl','ماوس و کنترل'],['keys','کلیدها'],['cx','کراس‌هیر'],['gfx','گرافیک'],['hud','HUD و صدا']].filter(t=>!(window.TOUCH&&t[0]==='keys')).concat(window.TOUCH?[['touch','کنترل لمسی']]:[]);
-const TK={ctl:['sens','sensY','invY','raw','wheel','crouchTog','walkTog'],keys:['bind'],cx:['cx'],gfx:['q','ar','arMode','fov','fovAxis','res','shadow','vd','fog','lights','bright','aa','fps','showFps'],touch:['tsize','talpha','tsens','tpos','adapt','vib','aimAs','tjw','tjf'],hud:['hudScale','showMM','mmSize','showKF','showPos','vign','vol']};
+const TK={ctl:['sens','sensY','invY','raw','wheel','crouchTog','walkTog'],keys:['bind'],cx:['cx'],gfx:['q','fx','fxVol','fxMB','fxBloom','fxGrade','ar','arMode','fov','fovAxis','res','shadow','vd','fog','lights','bright','aa','fps','showFps'],touch:['tsize','talpha','tsens','tpos','adapt','vib','aimAs','tjw','tjf'],hud:['hudScale','showMM','mmSize','showKF','showPos','vign','vol']};
 const S_ITEMS={
  ctl:[['r','sens','حساسیت ماوس',.05,5,.01],['r','sensY','ضریب حساسیت عمودی',.3,2,.05,'۱ = برابر حساسیت افقی'],['t','invY','معکوس کردن محور عمودی (Invert Y)'],['t','raw','ورودی خام ماوس (بدون شتاب ویندوز)','دفعه‌ی بعدی که ماوس قفل بشه اعمال می‌شه'],['s','wheel','چرخ ماوس',[['off','خاموش'],['weapon','عوض کردن سلاح'],['jump','پرش']]],['t','crouchTog','نشستن به‌صورت تاگل (یک‌بار بزن)'],['t','walkTog','آهسته‌راه رفتن به‌صورت تاگل']],
  gfx:[['s','q','کیفیت کلی',[['low','کم'],['mid','متوسط'],['high','بالا'],['ultra','خیلی بالا']]],
+  ['t','fx','افکت‌های سینمایی (فقط «خیلی بالا»)','HDR، نور حجمی، AO، بلوم، نوردهی خودکار، رنگ‌بندی فیلم، آسمان ابری — GPU زیاد می‌خواد'],
+  ['t','fxVol','نور حجمی و مه جوّی','پرتوهای نور از در و پنجره + غبار هوا'],
+  ['t','fxMB','تاری حرکت دوربین'],
+  ['r','fxBloom','شدت بلوم (درخشش)',0,200,10,'٪ — ۱۰۰ = پیش‌فرض'],
+  ['r','fxGrade','رنگ‌بندی سینمایی',0,150,10,'٪ — ۰ = رنگ خام'],
   ['s','ar','نسبت تصویر (داخل بازی)',[['auto','خودکار'],['16:9','16:9'],['16:10','16:10'],['3:2','3:2'],['4:3','4:3'],['5:4','5:4'],['21:9','21:9']]],
   ['s','arMode','حالت نسبت تصویر',[['stretch','کشیده تا کل صفحه'],['bars','نوار سیاه کنار تصویر']],'«کشیده» مثل ۴:۳ استرچ کانتره'],
   ['r','fov','میدان دید (FOV)',50,130,1],['s','fovAxis','نوع FOV',[['v','عمودی'],['h','افقی (مثل کانتر)']],'افقی: مقدار معمول ۹۰ تا ۱۰۶'],
