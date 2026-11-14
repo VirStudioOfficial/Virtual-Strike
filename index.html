@@ -425,7 +425,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(500,32,16),new THREE.ShaderMat
  vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
  fragmentShader:'varying vec3 vP;void main(){float h=normalize(vP).y;vec3 hor=vec3(.78,.86,.95),top=vec3(.26,.50,.85);vec3 c=mix(hor,top,pow(clamp(h,0.,1.),.5));c=mix(c,vec3(.72,.70,.64),smoothstep(0.,-.25,h));float s=pow(max(dot(normalize(vP),normalize(vec3(60.,120.,30.))),0.),180.);c+=vec3(1.,.9,.7)*s*.8;gl_FragColor=vec4(c,1.);}'}));
 sky.renderOrder=OPT.sky?10:-10;sky.frustumCulled=false;scene.add(sky);
-const mflash=new THREE.PointLight(0xffb04a,0,14,2);scene.add(mflash);let mfT=0;
+const mflash=new THREE.PointLight(0xffb04a,0,18,2);scene.add(mflash);let mfT=0;
 const exL=new THREE.PointLight(0xff8a2a,0,28,2);scene.add(exL);let exI=0,exT=0;   // نور انفجار HE؛ آروم‌آروم خاموش می‌شه
 const sun=new THREE.DirectionalLight(0xfff0d0,1.05);sun.position.set(60,120,30);scene.add(sun,sun.target);
 sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);sun.shadow.bias=-.0008;sun.shadow.normalBias=.04;
@@ -1875,9 +1875,29 @@ function footstep(e,sp){const dist=e.isP?0:Math.hypot(e.p.x-P.p.x,e.p.z-P.p.z);i
  sfx('f'+k,v,.93+R()*.14,pan)}
 const tr=[];
 const TRP=[],TRMAT=new THREE.LineBasicMaterial({color:0xffee88});
-function tracer(a,b){let l=OPT.tracer?TRP.pop():null;   // هر شلیک قبلاً یه Geometry+Material جدید و dispose می‌ساخت (آپلود بافر GPU + آشغال)؛ حالا دوباره‌استفاده می‌شه
- if(!l){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3));l=new THREE.Line(g,OPT.tracer?TRMAT:new THREE.LineBasicMaterial({color:0xffee88}));l.frustumCulled=false}
- const pp=l.geometry.attributes.position;pp.setXYZ(0,a.x,a.y,a.z);pp.setXYZ(1,b.x,b.y,b.z);pp.needsUpdate=true;scene.add(l);tr.push({l,t:.06})}
+/* ===== ترسر نورانی (HDR + بلوم): گلوله‌ی درخشان با دنباله‌ی محو‌شونده که واقعاً در مسیر حرکت می‌کنه ===== */
+const TR_SPD=380,TR_TAIL=7;
+const TRG=new THREE.PlaneBufferGeometry(1,1);
+const TR_VS='uniform vec3 uP0,uP1;uniform float uW;varying vec2 vUv;varying vec3 vW;void main(){vUv=uv;vec3 p=mix(uP0,uP1,uv.x);vec3 ax=uP1-uP0;vec3 tc=cameraPosition-p;vec3 sd=cross(ax,tc);float sl=length(sd);sd=sl>1e-5?sd/sl:vec3(0.,1.,0.);float w=uW*(.3+.7*uv.x)*(1.+length(tc)*.01);p+=sd*(uv.y-.5)*w;vW=p;gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}';
+const TR_FS='uniform float uA;uniform vec3 uCol;varying vec2 vUv;varying vec3 vW;void main(){float a=vUv.x;float cy=1.-abs(vUv.y*2.-1.);float core=cy*cy*cy;float glow=cy*cy;float al=pow(a,1.8)*smoothstep(1.,.9,a);vec3 c=uCol*glow*.9+vec3(1.,.93,.75)*core*3.;float nf=smoothstep(.5,3.,length(cameraPosition-vW));gl_FragColor=vec4(c*al*uA*nf*2.5,1.);}';
+function trMake(){const m=new THREE.ShaderMaterial({uniforms:{uP0:{value:new THREE.Vector3()},uP1:{value:new THREE.Vector3()},uW:{value:.05},uA:{value:1},uCol:{value:new THREE.Vector3(1.,.55,.15)}},vertexShader:TR_VS,fragmentShader:TR_FS,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false,fog:false,side:THREE.DoubleSide});
+ const l=new THREE.Mesh(TRG,m);l.frustumCulled=false;l.renderOrder=5;return l}
+function trUpd(o,dt){o.age+=dt;const hd=Math.min(o.len,o.age*TR_SPD),tl=Math.max(0,o.age*TR_SPD-TR_TAIL),u=o.l.material.uniforms;
+ u.uP0.value.set(o.a.x+o.d.x*Math.min(tl,o.len),o.a.y+o.d.y*Math.min(tl,o.len),o.a.z+o.d.z*Math.min(tl,o.len));
+ u.uP1.value.set(o.a.x+o.d.x*hd,o.a.y+o.d.y*hd,o.a.z+o.d.z*hd);
+ o.t=(o.len+TR_TAIL)/TR_SPD-o.age+.02;u.uA.value=Math.min(1,Math.max(0,(o.len-tl)/Math.max(1,Math.min(o.len,TR_TAIL))))}
+function tracer(a,b){const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,len=Math.hypot(dx,dy,dz);if(len<.3)return;
+ const l=TRP.pop()||trMake();scene.add(l);const o={l,t:1,age:0,a:{x:a.x,y:a.y,z:a.z},d:{x:dx/len,y:dy/len,z:dz/len},len};trUpd(o,0);o.u=trUpd;tr.push(o)}
+/* ===== فلش دهانه: اسپرایت ستاره‌ای HDR که با نور نقطه‌ای همزمانه ===== */
+const MZS=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');x.translate(64,64);
+ for(let k=0;k<6;k++){x.save();x.rotate(k*Math.PI/3+.2);const g=x.createLinearGradient(0,0,60,0);g.addColorStop(0,'rgba(255,230,160,.95)');g.addColorStop(1,'rgba(255,120,20,0)');x.fillStyle=g;x.beginPath();x.moveTo(0,-4);x.lineTo(60,0);x.lineTo(0,4);x.fill();x.restore()}
+ const r=x.createRadialGradient(0,0,0,0,0,34);r.addColorStop(0,'rgba(255,255,240,1)');r.addColorStop(.3,'rgba(255,200,110,.8)');r.addColorStop(1,'rgba(255,110,20,0)');x.fillStyle=r;x.beginPath();x.arc(0,0,34,0,6.2832);x.fill();
+ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,fog:false,toneMapped:false,color:new THREE.Color(3.2,2.2,1.1)}));sp.visible=false;sp.renderOrder=6;scene.add(sp);return sp})();
+let _mfPrev=0;
+function mzUpdate(){const on=mfT>0&&mflash.intensity>0&&mflash.intensity<12&&mflash.visible;
+ if(on){if(mfT>_mfPrev+.01){const big=mflash.intensity>=8;MZS.userData.s=(big?.42:.22)*(.8+Math.random()*.5);MZS.material.rotation=Math.random()*6.28}
+  MZS.position.copy(mflash.position);MZS.scale.setScalar(MZS.userData.s*(.6+.4*Math.min(1,mfT/.05)))}
+ MZS.visible=on;_mfPrev=on?mfT:0}
 /* ================= خون: پاشش ذرات + لکه‌ی روی در و دیوار/کف + حوض زیر جسد =================
    - ذره‌ها قطره‌های واقعی با جاذبه‌ان؛ هرکدوم به سطحی بخوره همون‌جا لکه (دکال) می‌ذاره، روی دیوار با رگه‌ی چکه‌ی رو به پایین
    - تکسچرها با canvas ساخته می‌شن (فایل بیرونی لازم نیست) | سقف تعداد: BL.N ذره و BL.MAXD لکه (قدیمی‌ترین‌ها بازیافت می‌شن) */
@@ -2033,7 +2053,7 @@ function fire(e,d){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;o
   const adv=.03+ex;ox=px+d.x*adv;oy=py+d.y*adv;oz=pz+d.z*adv;trav+=wd+adv;mul*=PEN_DMG;walls++}
  L=Math.min(L,100);const end={x:o0.x+d.x*L,y:o0.y+d.y*L,z:o0.z+d.z*L},o=o0;
  tracer(e.isP?muzzlePos():(botMuzzle(e)||{x:o.x,y:o.y-.15,z:o.z}),end);smokeShot(o0,end);
- {const mp=e.isP?muzzlePos():(botMuzzle(e)||{x:o.x,y:o.y-.15,z:o.z});mflash.position.set(mp.x,mp.y,mp.z);mflash.intensity=e.isP?4:2;mfT=.05}   // برای بازیکن: از سر لوله
+ {const mp=e.isP?muzzlePos():(botMuzzle(e)||{x:o.x,y:o.y-.15,z:o.z});mflash.position.set(mp.x,mp.y,mp.z);mflash.intensity=e.isP?9:3.5;mfT=.06}   // برای بازیکن: از سر لوله
  if(!e.isP&&SD.on&&P.dead&&SD.spec===e)VM.kick=Math.min(.11,VM.kick+.07);   // لگد گان موقع تماشا
  const dist=Math.hypot(e.p.x-P.p.x,e.p.z-P.p.z);if(!((!e.isP||(e.wp||0)!==2)&&sfx('shot',e.isP?.75:.6/(1+dist/8),.96+R()*.08)))beep(e.isP?((e.wp||0)===2?230:180):140,e.isP?.05:.05/(1+dist/6));
  if(hit&&!hit.isP)bloodHit(end,d,zone);   // پاشش خون
@@ -2752,7 +2772,7 @@ function netClientMsg(conn,m){
   return}
  if(m.t==='shot'){if(m.by===NET.myName)return;
   const o={x:m.o[0],y:m.o[1],z:m.o[2]},d={x:m.d[0],y:m.d[1],z:m.d[2]},end={x:m.end[0],y:m.end[1],z:m.end[2]};
-  tracer(o,end);smokeShot(o,end);mflash.position.set(o.x,o.y,o.z);mflash.intensity=2;mfT=.05;
+  tracer(o,end);smokeShot(o,end);mflash.position.set(o.x,o.y,o.z);mflash.intensity=3.5;mfT=.06;
   const dist=P?Math.hypot(P.p.x-o.x,P.p.z-o.z):50;
   if(!sfx('shot',.6/(1+dist/8),.96+R()*.08))beep(140,.05/(1+dist/6));
   const t=ents.find(x=>x.name===m.hit);if(t&&!t.isP&&!t.dead)bloodHit(end,d,m.zone);
@@ -3983,8 +4003,8 @@ function render(dt){
  try{nadesHud()}catch(e){}try{buyHud()}catch(e){}
  if(POSV){const q=$('pos'),w=(SD.on&&P.dead&&SD.spec&&!SD.spec.dead)?SD.spec:P;if(q)setTx('pos','X '+w.p.x.toFixed(2)+'\nY '+w.p.y.toFixed(2)+'\nZ '+w.p.z.toFixed(2))}
  bloodUpdate(dt);
- for(let i=tr.length-1;i>=0;i--){tr[i].t-=dt;if(tr[i].t<=0){scene.remove(tr[i].l);if(OPT.tracer)TRP.push(tr[i].l);else tr[i].l.geometry.dispose();tr.splice(i,1)}}
- mfT-=dt;if(mfT<=0)mflash.intensity=0;
+ for(let i=tr.length-1;i>=0;i--){const o=tr[i];o.t-=dt;if(o.u)o.u(o,dt);if(o.t<=0){scene.remove(o.l);TRP.push(o.l);tr.splice(i,1)}}
+ mfT-=dt;if(mfT<=0)mflash.intensity=0;mzUpdate();
  hm-=dt;crossFrame(dt);
  $('dmg').style.opacity=0;if(P.hp<35&&!P.dead)$('dmg').style.opacity=.6;
  {const sp=!!(SD.on&&P.dead),hd=$('hud');if(hd&&hd._sp!==sp){hd._sp=sp;hd.classList.toggle('spec',sp)}}   // تماشا: HUD شخصی رو مخفی کن
