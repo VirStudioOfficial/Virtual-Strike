@@ -1947,7 +1947,7 @@ function bloodInit(){if(BL.ok)return;
   vertexShader:'attribute float size;attribute float alpha;attribute float tone;varying float vA;varying float vT;uniform float uS;void main(){vA=alpha;vT=tone;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=max(2.,size*uS/max(.05,-mv.z));gl_Position=projectionMatrix*mv;}',
   fragmentShader:'varying float vA;varying float vT;void main(){vec2 c=gl_PointCoord-.5;float d=length(c);if(d>.5)discard;float a=smoothstep(.5,.28,d)*vA;vec3 col=mix(vec3(.26,0.,.01),vec3(.62,.03,.03),vT);gl_FragColor=vec4(col,a);}'});
  BL.pt=new THREE.Points(g,mt);BL.pt.frustumCulled=false;BL.pt.renderOrder=5;scene.add(BL.pt);BL.ok=true}
-function bloodClear(){nadesClear();if(!BL.ok)return;for(const m of BL.dc)if(m){m.visible=false;m.userData.id++}BL.grow.length=0;BL.L.fill(0);BL.S.fill(0);BL.pt.geometry.attributes.size.needsUpdate=true}
+function bloodClear(){nadesClear();for(const m of BHL.a)if(m)m.visible=false;if(!BL.ok)return;for(const m of BL.dc)if(m){m.visible=false;m.userData.id++}BL.grow.length=0;BL.L.fill(0);BL.S.fill(0);BL.pt.geometry.attributes.size.needsUpdate=true}
 /* لکه روی سطحی با نرمال n (باید به سمت پرتاب‌کننده باشه) */
 function bloodDecal(px,py,pz,nx,ny,nz,size,kind,off){
  let m=BL.dc[BL.di];if(!m){m=new THREE.Mesh(BL.geo,BL.mats[0]);m.userData.id=0;m.renderOrder=2;scene.add(m);BL.dc[BL.di]=m}
@@ -2053,15 +2053,32 @@ function rayCap(o,d,ax,ay,az,bx,by,bz,r){   // برخورد پرتو با کپس
  for(let k=0;k<2;k++){const cx=k?o.x-bx:oax,cy=k?o.y-by:oay,cz=k?o.z-bz:oaz,b2=d.x*cx+d.y*cy+d.z*cz,c2=cx*cx+cy*cy+cz*cz-r*r,h2=b2*b2-c2;
   if(h2>=0){const t2=-b2-Math.sqrt(h2);if(t2>=0&&t2<best)best=t2}}
  return best}
+/* ===== سوراخ گلوله روی دیوار/کف (مثل CS2): دکال کوچیک با هاله‌ی گچ و ترک؛ ۸۰ تای آخر نگه داشته می‌شه ===== */
+const BHL={N:80,i:0,a:[],mat:null,geo:null};
+function bhTex(){const S=64,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');x.translate(32,32);
+ let g=x.createRadialGradient(0,0,2,0,0,30);g.addColorStop(0,'rgba(24,19,14,.55)');g.addColorStop(.5,'rgba(44,37,30,.26)');g.addColorStop(1,'rgba(44,37,30,0)');x.fillStyle=g;x.beginPath();x.arc(0,0,30,0,6.2832);x.fill();
+ x.strokeStyle='rgba(28,22,17,.55)';x.lineWidth=1;for(let k=0;k<7;k++){const a=k*.9+Math.random()*.5,l=9+Math.random()*13;x.beginPath();x.moveTo(Math.cos(a)*4,Math.sin(a)*4);x.lineTo(Math.cos(a+.15)*l*.6,Math.sin(a+.15)*l*.6);x.lineTo(Math.cos(a-.1)*l,Math.sin(a-.1)*l);x.stroke()}
+ g=x.createRadialGradient(0,0,0,0,0,6);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(.7,'rgba(6,5,4,.95)');g.addColorStop(1,'rgba(10,8,6,0)');x.fillStyle=g;x.beginPath();x.arc(0,0,6,0,6.2832);x.fill();
+ const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t}
+function bulletHole(px,py,pz,nx,ny,nz){
+ if(!BHL.mat){BHL.geo=new THREE.PlaneGeometry(1,1);BHL.mat=new THREE.MeshLambertMaterial({map:bhTex(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-5,polygonOffsetUnits:-5})}
+ let m=BHL.a[BHL.i];if(!m){m=new THREE.Mesh(BHL.geo,BHL.mat);m.renderOrder=3;scene.add(m);BHL.a[BHL.i]=m}
+ BHL.i=(BHL.i+1)%BHL.N;
+ _kn.set(nx,ny,nz);const wall=Math.abs(ny)<.7;
+ if(wall){_kx.copy(_ku).cross(_kn).normalize()}else{_kx.set(1,0,0).addScaledVector(_kn,-_kn.x).normalize()}
+ _ky.copy(_kn).cross(_kx);_km.makeBasis(_kx,_ky,_kn);m.quaternion.setFromRotationMatrix(_km);
+ _kq.setFromAxisAngle(_kz,Math.random()*6.2832);m.quaternion.multiply(_kq);
+ const o=.012+(BHL.i%5)*.0012;m.position.set(px+nx*o,py+ny*o,pz+nz*o);const s=.1+Math.random()*.04;m.scale.set(s,s,1);m.visible=true}
 function fire(e,d){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z}
  const o0={x:ox,y:oy,z:oz};let hit=null,zone='body',trav=0,mul=1,walls=0,L=100,bh=false;
  for(;;){
-  const org={x:ox,y:oy,z:oz},wd=Math.min(castRay(ox,oy,oz,d.x,d.y,d.z,200,false),1e8),ny=HNY;let best=wd;
+  const org={x:ox,y:oy,z:oz},wd=Math.min(castRay(ox,oy,oz,d.x,d.y,d.z,200,false),1e8),ny=HNY,hnx=HNX,hnz=HNZ;let best=wd;
   for(const t of ents){if(t===e||t.dead||t.team===e.team)continue;
    const[a,b,g]=hbRay(org,d,t);
    if(a<best){best=a;hit=t;zone='head'}if(b<best){best=b;hit=t;zone='body'}if(g<best){best=g;hit=t;zone='legs'}}
   if(!hit&&BALL){const bt=raySph(org,d,{x:BALL.p.x,y:BALL.p.y,z:BALL.p.z},BALL_R);if(bt<best){best=bt;bh=true}}   // توپ جلوی مسیره؟
-  if(hit||bh){L=trav+best;break}
+  if(!hit&&!bh&&wd<80){let a=hnx,b=ny,c=hnz;if(a*d.x+b*d.y+c*d.z>0){a=-a;b=-b;c=-c}bulletHole(org.x+d.x*wd,org.y+d.y*wd,org.z+d.z*wd,a,b,c)}   /* برخورد به دیوار/کف → سوراخ گلوله */
+   if(hit||bh){L=trav+best;break}
   if(wd>=1e8||trav+wd>=100||walls>=(e.isP?PEN_WALLS:0)||Math.abs(ny)>.7){L=trav+Math.min(wd,100);break}   // دیوار ضخیم/کف/سقف، یا برد تموم شد
   const px=ox+d.x*wd,py=oy+d.y*wd,pz=oz+d.z*wd,ex=castRay(px+d.x*.01,py+d.y*.01,pz+d.z*.01,d.x,d.y,d.z,PEN_THICK,false);   // سطح خروج باید تو ضخامت مجاز باشه
   if(ex===Infinity||ex>=PEN_THICK||Math.abs(HNY)>.7){L=trav+wd;break}
