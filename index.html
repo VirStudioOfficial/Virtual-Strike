@@ -1919,7 +1919,7 @@ function shellUpd(dt){for(const m of SHL){if(!m||!m.visible)continue;const u=m.u
 /* ================= خون: پاشش ذرات + لکه‌ی روی در و دیوار/کف + حوض زیر جسد =================
    - ذره‌ها قطره‌های واقعی با جاذبه‌ان؛ هرکدوم به سطحی بخوره همون‌جا لکه (دکال) می‌ذاره، روی دیوار با رگه‌ی چکه‌ی رو به پایین
    - تکسچرها با canvas ساخته می‌شن (فایل بیرونی لازم نیست) | سقف تعداد: BL.N ذره و BL.MAXD لکه (قدیمی‌ترین‌ها بازیافت می‌شن) */
-const BL={N:420,MAXD:220,ok:false,dc:[],di:0,grow:[],mats:[],geo:null,pt:null,pi:0};
+const BL={N:900,MAXD:260,ok:false,dc:[],di:0,grow:[],mats:[],geo:null,pt:null,pi:0,sp:[],spl:0,dirty:false};
 const bRnd=Math.random,bGs=()=>(bRnd()+bRnd()+bRnd()-1.5)/1.5;
 const _kn=new THREE.Vector3(),_kx=new THREE.Vector3(),_ky=new THREE.Vector3(),_km=new THREE.Matrix4(),_kq=new THREE.Quaternion(),_kz=new THREE.Vector3(0,0,1),_ku=new THREE.Vector3(0,1,0);
 function bloodTex(kind){const S=256,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');
@@ -1942,34 +1942,83 @@ function bloodTex(kind){const S=256,c=document.createElement('canvas');c.width=c
 function bloodInit(){if(BL.ok)return;
  BL.geo=new THREE.PlaneGeometry(1,1);
  for(let k=0;k<4;k++){const t=bloodTex(k);for(const tint of[0xffffff,0xc4c4c4])BL.mats.push(new THREE.MeshLambertMaterial({map:t,color:tint,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4}))}
- const N=BL.N,g=new THREE.BufferGeometry();
- BL.P=new Float32Array(N*3);BL.V=new Float32Array(N*3);BL.L=new Float32Array(N);BL.L0=new Float32Array(N);BL.S=new Float32Array(N);BL.S0=new Float32Array(N);BL.A=new Float32Array(N);BL.A0=new Float32Array(N);BL.T=new Float32Array(N);BL.M=new Uint8Array(N);
- g.setAttribute('position',new THREE.BufferAttribute(BL.P,3));g.setAttribute('size',new THREE.BufferAttribute(BL.S,1));g.setAttribute('alpha',new THREE.BufferAttribute(BL.A,1));g.setAttribute('tone',new THREE.BufferAttribute(BL.T,1));
+ /* ذره‌های سه‌بعدیِ خون: هر ذره یه کوادِ instanced که تو شیدر جهت سرعتش کشیده می‌شه (قطره‌ی کشیده/رگه‌ی خون تو هوا، نه نقطه‌ی گرد) */
+ const N=BL.N,g=new THREE.InstancedBufferGeometry();
+ g.setAttribute('position',new THREE.BufferAttribute(new Float32Array([-1,-1,0,1,-1,0,1,1,0,-1,1,0]),3));g.setIndex([0,1,2,0,2,3]);g.instanceCount=N;
+ BL.P=new Float32Array(N*3);BL.V=new Float32Array(N*3);BL.L=new Float32Array(N);BL.L0=new Float32Array(N);BL.S=new Float32Array(N);BL.S0=new Float32Array(N);BL.A=new Float32Array(N);BL.A0=new Float32Array(N);BL.T=new Float32Array(N);BL.M=new Float32Array(N);BL.C=new Uint8Array(N);
+ const ia=(arr,n,name)=>{const at=new THREE.InstancedBufferAttribute(arr,n);at.setUsage(THREE.DynamicDrawUsage);g.setAttribute(name,at)};
+ ia(BL.P,3,'ipos');ia(BL.V,3,'ivel');ia(BL.S,1,'size');ia(BL.A,1,'alpha');ia(BL.T,1,'tone');ia(BL.M,1,'kind');
  BL.U={uS:{value:600}};
- const mt=new THREE.ShaderMaterial({uniforms:BL.U,transparent:true,depthWrite:false,
-  vertexShader:'attribute float size;attribute float alpha;attribute float tone;varying float vA;varying float vT;uniform float uS;void main(){vA=alpha;vT=tone;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=max(2.,size*uS/max(.05,-mv.z));gl_Position=projectionMatrix*mv;}',
-  fragmentShader:'varying float vA;varying float vT;void main(){vec2 c=gl_PointCoord-.5;float d=length(c);if(d>.5)discard;float a=smoothstep(.5,.28,d)*vA;vec3 col=mix(vec3(.26,0.,.01),vec3(.62,.03,.03),vT);gl_FragColor=vec4(col,a);}'});
- BL.pt=new THREE.Points(g,mt);BL.pt.frustumCulled=false;BL.pt.renderOrder=5;scene.add(BL.pt);BL.ok=true}
-function bloodClear(){nadesClear();for(const m of BHL.a)if(m)m.visible=false;if(!BL.ok)return;for(const m of BL.dc)if(m){m.visible=false;m.userData.id++}BL.grow.length=0;BL.L.fill(0);BL.S.fill(0);BL.pt.geometry.attributes.size.needsUpdate=true}
-/* لکه روی سطحی با نرمال n (باید به سمت پرتاب‌کننده باشه) */
+ const mt=new THREE.ShaderMaterial({uniforms:BL.U,transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  vertexShader:`attribute vec3 ipos;attribute vec3 ivel;attribute float size;attribute float alpha;attribute float tone;attribute float kind;
+uniform float uS;varying vec2 vU;varying float vA;varying float vT;varying float vK;varying float vS;
+void main(){
+ if(size<=0.){gl_Position=vec4(2.,2.,2.,1.);vU=vec2(0.);vA=0.;vT=0.;vK=0.;vS=1.;return;}
+ vec4 mv=modelViewMatrix*vec4(ipos,1.);
+ float z=max(.05,-mv.z);
+ float sz=max(size,2.4*z/uS);
+ float len=sz;vec2 dir=vec2(1.,0.);
+ if(kind<.5){
+  vec3 v=(modelViewMatrix*vec4(ivel,0.)).xyz;
+  float sp=length(v),l2=length(v.xy);
+  if(l2>1e-3)dir=v.xy/l2;
+  len=sz+min(sp*.026,.65)*clamp(l2/max(sp,1e-3),.25,1.);
+ }
+ vec2 perp=vec2(-dir.y,dir.x);vec2 c=position.xy;
+ mv.xy+=dir*(c.x*len*.5-(len-sz)*.5)+perp*c.y*sz*.5;
+ gl_Position=projectionMatrix*mv;
+ vU=c;vA=alpha*mix(.55,1.,clamp(size/sz,0.,1.));vT=tone;vK=kind;vS=len/sz;
+}`,
+  fragmentShader:`varying vec2 vU;varying float vA;varying float vT;varying float vK;varying float vS;
+void main(){
+ if(vA<=0.)discard;
+ if(vK>.5){float d=length(vU);if(d>1.)discard;gl_FragColor=vec4(mix(vec3(.2,0.,.01),vec3(.5,.02,.03),vT),smoothstep(1.,.1,d)*vA);return;}
+ float hl=vS,x=vU.x*hl,ex=max(abs(x)-(hl-1.),0.);
+ float tail=clamp((1.-vU.x)*.5,0.,1.),st=clamp((hl-1.)*.6,0.,1.);
+ float wf=mix(1.,.2,tail*st);
+ float d=length(vec2(ex,vU.y/wf));
+ if(d>1.)discard;
+ float a=vA*smoothstep(1.,.6,d)*mix(1.,.3,tail*st);
+ vec3 col=mix(vec3(.2,0.,.01),vec3(.64,.03,.03),vT);
+ float hi=pow(max(0.,1.-length(vec2(ex-.2,vU.y/wf+.45)*1.6)),3.);
+ col+=vec3(.6,.15,.12)*hi*.8*(1.-tail*.7);
+ col*=1.-d*.3;
+ gl_FragColor=vec4(col,a);
+}`});
+ BL.pt=new THREE.Mesh(g,mt);BL.pt.frustumCulled=false;BL.pt.renderOrder=5;scene.add(BL.pt);BL.ok=true}
+function bloodClear(){nadesClear();for(const m of BHL.a)if(m)m.visible=false;if(!BL.ok)return;for(const m of BL.dc)if(m){m.visible=false;m.userData.id++}BL.grow.length=0;BL.sp.length=0;BL.L.fill(0);BL.S.fill(0);BL.pt.geometry.attributes.size.needsUpdate=true}
+/* لکه روی سطحی با نرمال n (باید به سمت پرتاب‌کننده باشه)
+   لکه‌های بزرگ قبل از گذاشتن با چند پرتو چک می‌شن که تموم سطحشون واقعاً روی دیوار/کف باشه؛ لبه‌ی دیوار/چارچوب در/پله که باشه کوچیک می‌شن تا نصفه‌ی لکه تو هوا معلق نمونه */
 function bloodDecal(px,py,pz,nx,ny,nz,size,kind,off){
  let m=BL.dc[BL.di];if(!m){m=new THREE.Mesh(BL.geo,BL.mats[0]);m.userData.id=0;m.renderOrder=2;scene.add(m);BL.dc[BL.di]=m}
  BL.di=(BL.di+1)%BL.MAXD;m.userData.id++;m.material=BL.mats[kind*2+(bRnd()<.5?0:1)];
  _kn.set(nx,ny,nz);const wall=Math.abs(ny)<.7;
  if(wall){_kx.copy(_ku).cross(_kn).normalize()}else{_kx.set(1,0,0).addScaledVector(_kn,-_kn.x).normalize()}
- _ky.copy(_kn).cross(_kx);_km.makeBasis(_kx,_ky,_kn);m.quaternion.setFromRotationMatrix(_km);
+ _ky.copy(_kn).cross(_kx);
+ if(size>.2){const h0=HNX,h1=HNY,h2=HNZ,e=.02;
+  for(let it=0;it<4;it++){let ok=true;const r=size*.4;
+   for(let c=0;c<6&&ok;c++){const an=c*1.0472,u=Math.cos(an)*r,v=Math.sin(an)*r;
+    const qx=px+_kx.x*u+_ky.x*v+nx*e,qy=py+_kx.y*u+_ky.y*v+ny*e,qz=pz+_kx.z*u+_ky.z*v+nz*e;
+    if(castRay(qx,qy,qz,-nx,-ny,-nz,e+.07,false)===Infinity)ok=false}
+   if(ok)break;size*=.66}
+  HNX=h0;HNY=h1;HNZ=h2}
+ _km.makeBasis(_kx,_ky,_kn);m.quaternion.setFromRotationMatrix(_km);
  _kq.setFromAxisAngle(_kz,wall?bGs()*.35:bRnd()*6.2832);m.quaternion.multiply(_kq);
  const o=(off||.008)+(BL.di%6)*.0012;m.position.set(px+nx*o,py+ny*o,pz+nz*o);m.scale.set(size,size,1);m.visible=true;return m}
 function bloodSpawn(x,y,z,vx,vy,vz,size,alpha,life,tone,mist){const i=BL.pi;BL.pi=(BL.pi+1)%BL.N;
- BL.P[3*i]=x;BL.P[3*i+1]=y;BL.P[3*i+2]=z;BL.V[3*i]=vx;BL.V[3*i+1]=vy;BL.V[3*i+2]=vz;BL.L[i]=BL.L0[i]=life;BL.S[i]=BL.S0[i]=size;BL.A[i]=BL.A0[i]=alpha;BL.T[i]=tone;BL.M[i]=mist?1:0}
-/* ضربه‌ی گلوله به بدن: p نقطه‌ی برخورد، d جهت گلوله (یکه) */
-function bloodHit(p,d,zone){bloodInit();const head=zone==='head',legs=zone==='legs';
- const n=head?34:legs?12:22;   // قطره‌های پرتابی: بیشترشون رو به جهت گلوله (زخم خروجی)، کمتر به عقب، چندتا هم بالا
+ BL.P[3*i]=x;BL.P[3*i+1]=y;BL.P[3*i+2]=z;BL.V[3*i]=vx;BL.V[3*i+1]=vy;BL.V[3*i+2]=vz;BL.L[i]=BL.L0[i]=life;BL.S[i]=BL.S0[i]=size;BL.A[i]=BL.A0[i]=alpha;BL.T[i]=tone;BL.M[i]=mist?1:0;BL.C[i]=0;BL.dirty=true;return i}
+/* ضربه‌ی گلوله به بدن: p نقطه‌ی برخورد، d جهت گلوله (یکه)، ent هدف (برای دنبال‌کردن زخم) */
+function bloodHit(p,d,zone,ent){bloodInit();const head=zone==='head',legs=zone==='legs';
+ const n=head?46:legs?16:30;   // قطره‌های پرتابی: بیشترشون رو به جهت گلوله (زخم خروجی)، کمتر به عقب، چندتا هم بالا
  for(let i=0;i<n;i++){const r=bRnd(),sg=r<.62?1:r<.88?-1:0,sp=2+bRnd()*6.5;
   let vx=d.x*sg+bGs()*.55,vy=d.y*sg+bGs()*.5+(sg===0?1.1:.25),vz=d.z*sg+bGs()*.55;const l=Math.hypot(vx,vy,vz)||1;vx*=sp/l;vy*=sp/l;vz*=sp/l;
   const s=.012+bRnd()*bRnd()*.034;bloodSpawn(p.x+bGs()*.04,p.y+bGs()*.05,p.z+bGs()*.04,vx,vy,vz,s,1,1.8,bRnd())}
- for(let i=0;i<(head?10:6);i++){const sp=.4+bRnd()*1.8;   // مه‌ی ریز خون
-  bloodSpawn(p.x,p.y,p.z,d.x*sp+bGs()*.8,d.y*sp+bGs()*.8+.3,d.z*sp+bGs()*.8,.07+bRnd()*.07,.38,.28+bRnd()*.22,.75+bRnd()*.25,true)}
+ for(let i=0;i<(head?16:9);i++){const sp=.4+bRnd()*1.8;   // ابر/مه‌ی خون که تو هوا می‌مونه
+  bloodSpawn(p.x,p.y,p.z,d.x*sp+bGs()*.8,d.y*sp+bGs()*.8+.3,d.z*sp+bGs()*.8,.08+bRnd()*.1,.36,.4+bRnd()*.65,.75+bRnd()*.25,true)}
+ /* فواره‌ی خون: چند ثانیه‌ی بعد از ضربه هم زخم به‌صورت نبضی (مثل ضربان) قطره‌های پرفشار تو هوا می‌پاشه و با بدن حرکت می‌کنه */
+ const fe=ent&&ent.p?ent:null;
+ BL.sp.push({ent:fe,ox:fe?p.x-fe.p.x:0,oy:fe?p.y-fe.p.y:0,oz:fe?p.z-fe.p.z:0,x:p.x,y:p.y,z:p.z,dx:d.x,dz:d.z,t:0,dur:head?.9:legs?.3:.55,f:3+bRnd()*1.6,acc:0,pw:head?1:.7});
+ if(BL.sp.length>12)BL.sp.shift();
  const cast=(dx,dy,dz,maxT)=>{const l=Math.hypot(dx,dy,dz)||1;dx/=l;dy/=l;dz/=l;const t=castRay(p.x,p.y,p.z,dx,dy,dz,maxT,false);if(t===Infinity)return null;
   let a=HNX,b=HNY,c=HNZ;if(a*dx+b*dy+c*dz>0){a=-a;b=-b;c=-c}return{t,x:p.x+dx*t,y:p.y+dy*t,z:p.z+dz*t,a,b,c}};
  const main=cast(d.x,d.y,d.z,4.5);   // لکه‌ی اصلی پشت هدف + چکه
@@ -1979,21 +2028,40 @@ function bloodHit(p,d,zone){bloodInit();const head=zone==='head',legs=zone==='le
  for(let i=0;i<(head?4:3);i++){const q=cast(bGs()*.5,-1,bGs()*.5,3);if(q)bloodDecal(q.x,q.y,q.z,q.a,q.b,q.c,.12+bRnd()*.22,2)}   // قطره‌های کف
 }
 function bloodPool(t){bloodInit();const o={x:t.p.x,y:t.p.y+.6,z:t.p.z},h=castRay(o.x,o.y,o.z,0,-1,0,2.5,false);if(h===Infinity)return;
- const m=bloodDecal(o.x,o.y-h,o.z,0,1,0,.15,3,.014);BL.grow.push({m,id:m.userData.id,t:0,s1:.8+bRnd()*.55})}   // حوض خون زیر جسد آروم بزرگ می‌شه
+ const h0=HNX,h1=HNY,h2=HNZ,fy=o.y-h;let s1=.8+bRnd()*.55;
+ for(let it=0;it<5;it++){let ok=true;const r=s1*.42;   // حوض فقط تا جایی بزرگ می‌شه که زیرش کف باشه (لبه‌ی پله/پرتگاه تو هوا نمی‌مونه)
+  for(let c=0;c<8&&ok;c++){const an=c*.7854;if(castRay(o.x+Math.cos(an)*r,fy+.06,o.z+Math.sin(an)*r,0,-1,0,.2,false)===Infinity)ok=false}
+  if(ok)break;s1*=.72}
+ HNX=h0;HNY=h1;HNZ=h2;
+ const m=bloodDecal(o.x,fy,o.z,0,1,0,.15,3,.014);BL.grow.push({m,id:m.userData.id,t:0,s1})}   // حوض خون زیر جسد آروم بزرگ می‌شه
 function bloodUpdate(dt){if(!BL.ok)return;
  BL.U.uS.value=ren.domElement.height/(2*Math.tan(cam.fov*Math.PI/360));
+ BL.spl=0;
+ for(let i=BL.sp.length-1;i>=0;i--){const e=BL.sp[i];e.t+=dt;if(e.t>=e.dur){BL.sp.splice(i,1);continue}   // فواره‌های فعال زخم
+  if(e.ent&&e.ent.p){e.x=e.ent.p.x+e.ox;e.y=e.ent.p.y+e.oy;e.z=e.ent.p.z+e.oz}
+  const s=1-e.t/e.dur,pulse=((e.t*e.f)%1)<.35;
+  e.acc+=(pulse?150:16)*s*e.pw*dt;
+  while(e.acc>=1){e.acc-=1;const sg=bRnd()<.4?-.6:.55,sp=(pulse?3.2+bRnd()*4.2:.8+bRnd()*1.6)*(.55+.45*s);
+   let vx=e.dx*sg+bGs()*.38,vy=.85+bGs()*.3,vz=e.dz*sg+bGs()*.38;const l=Math.hypot(vx,vy,vz)||1;
+   bloodSpawn(e.x+bGs()*.02,e.y+bGs()*.02,e.z+bGs()*.02,vx/l*sp,vy/l*sp,vz/l*sp,.014+bRnd()*bRnd()*.03,1,1.6,bRnd())}}
  const P=BL.P,V=BL.V,L=BL.L,N=BL.N;let any=false;
  for(let i=0;i<N;i++){if(L[i]<=0)continue;any=true;L[i]-=dt;
   if(L[i]<=0){BL.S[i]=0;continue}
   const k=3*i;
-  if(BL.M[i]){const f=Math.max(0,1-3.2*dt);V[k]*=f;V[k+1]=V[k+1]*f+.5*dt;V[k+2]*=f;const u=L[i]/BL.L0[i];BL.A[i]=BL.A0[i]*u;BL.S[i]=BL.S0[i]*(1.6-.6*u)}
+  if(BL.M[i]>.5){const f=Math.max(0,1-3.2*dt);V[k]*=f;V[k+1]=V[k+1]*f+.5*dt;V[k+2]*=f;const u=L[i]/BL.L0[i];BL.A[i]=BL.A0[i]*u;BL.S[i]=BL.S0[i]*(1.6-.6*u)}
   else{V[k+1]-=9.8*dt;const f=1-.35*dt;V[k]*=f;V[k+1]*=f;V[k+2]*=f;
    const sp=Math.hypot(V[k],V[k+1],V[k+2]),st=sp*dt;
    if(st>1e-4){const dx=V[k]/sp,dy=V[k+1]/sp,dz=V[k+2]/sp,t=castRay(P[k],P[k+1],P[k+2],dx,dy,dz,st+.015,false);
     if(t<=st+.015){let a=HNX,b=HNY,c=HNZ;if(a*dx+b*dy+c*dz>0){a=-a;b=-b;c=-c}
-     bloodDecal(P[k]+dx*t,P[k+1]+dy*t,P[k+2]+dz*t,a,b,c,BL.S0[i]*(5+bRnd()*4)*(sp>5?1.2:1),BL.S0[i]<.02?2:(bRnd()<.4?0:2));L[i]=0;BL.S[i]=0;continue}}}
+     const hx=P[k]+dx*t,hy=P[k+1]+dy*t,hz=P[k+2]+dz*t,s0=BL.S0[i],tn=BL.T[i],child=BL.C[i];
+     bloodDecal(hx,hy,hz,a,b,c,s0*(5+bRnd()*4)*(sp>5?1.2:1),s0<.02?2:(bRnd()<.4?0:2));L[i]=0;BL.S[i]=0;
+     if(!child&&b>.7&&sp>4.5&&BL.spl<8){BL.spl++;   // پاشیدنِ قطره‌ی پرسرعت روی کف: ۲ قطره‌ی ریز می‌پره هوا
+      for(let j=0;j<2;j++){const q=bloodSpawn(hx,hy+.01,hz,bGs()*sp*.22,sp*(.1+bRnd()*.14),bGs()*sp*.22,s0*.6,1,.55,tn);BL.C[q]=1}}
+     else if(!child&&Math.abs(b)<.7&&s0>.018&&bRnd()<.3&&BL.spl<8){BL.spl++;   // روی دیوار: قطره‌ی خون آروم سُر می‌خوره/می‌چکه پایین
+      const q=bloodSpawn(hx+a*.02,hy,hz+c*.02,a*.05,-.05,c*.05,s0*.65,1,1.3,tn);BL.C[q]=1}
+     continue}}}
   P[k]+=V[k]*dt;P[k+1]+=V[k+1]*dt;P[k+2]+=V[k+2]*dt}
- if(any){const a=BL.pt.geometry.attributes;a.position.needsUpdate=a.size.needsUpdate=a.alpha.needsUpdate=true}
+ if(any||BL.dirty){const a=BL.pt.geometry.attributes;a.ipos.needsUpdate=a.ivel.needsUpdate=a.size.needsUpdate=a.alpha.needsUpdate=a.tone.needsUpdate=a.kind.needsUpdate=true;BL.dirty=false}
  for(let i=BL.grow.length-1;i>=0;i--){const g=BL.grow[i];if(g.m.userData.id!==g.id){BL.grow.splice(i,1);continue}
   g.t+=dt;const u=Math.min(1,g.t/5),e=1-Math.pow(1-u,3),s=.15+(g.s1-.15)*e;g.m.scale.set(s,s,1);if(u>=1)BL.grow.splice(i,1)}}
 
@@ -2091,7 +2159,7 @@ function fire(e,d){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;o
  {const mp=e.isP?muzzlePos():(botMuzzle(e)||{x:o.x,y:o.y-.15,z:o.z});mflash.position.set(mp.x,mp.y,mp.z);mflash.intensity=e.isP?9:3.5;mfT=.06}   // برای بازیکن: از سر لوله
  if(!e.isP&&SD.on&&P.dead&&SD.spec===e)VM.kick=Math.min(.21,VM.kick+.12);   // لگد گان موقع تماشا
  const dist=Math.hypot(e.p.x-P.p.x,e.p.z-P.p.z);if(!(sfx((e.wp||0)===2?'gs':'shot',e.isP?.75:.6/(1+dist/8),.96+R()*.08)))beep(e.isP?((e.wp||0)===2?230:180):140,e.isP?.05:.05/(1+dist/6));
- if(hit&&!hit.isP)bloodHit(end,d,zone);   // پاشش خون
+ if(hit&&!hit.isP)bloodHit(end,d,zone,hit);   // پاشش خون
  if(hit){const pp=e.isP&&(e.wp||0)===2,D={head:e.isP?[100]:[25],body:e.isP?[pp?28:34]:[12],legs:e.isP?[pp?14:18]:[6]};let base=D[zone][0];
   if(e.isP&&(e.wp||0)===0){const bc=hit.p.y+.98-.27*(hit.cr||0),zm=zone==='head'?AK_HEAD:zone==='legs'?AK_LEG:(end.y<bc+.1?AK_STOM:AK_CHEST);base=AK_DMG*zm*Math.pow(AK_RANGE,L/AK_RANGE_M)}   // AK بازیکن: فرمول CS2 (مسافت کل مسیر گلوله)
   if(NET.mode!=='client')damage(hit,walls?Math.max(1,Math.round(base*mul*(e.team===1&&!e.isP?EN.dmg:1))):Math.round(base*(e.team===1&&!e.isP?EN.dmg:1)),e,zone,walls>0)}   // روی کلاینت فقط پیش‌بینی بصریه؛ دمیج رو هاست اعمال می‌کنه
@@ -2817,7 +2885,7 @@ function netClientMsg(conn,m){
   tracer(o,end);smokeShot(o,end);mflash.position.set(o.x,o.y,o.z);mflash.intensity=3.5;mfT=.06;
   const dist=P?Math.hypot(P.p.x-o.x,P.p.z-o.z):50;
   if(!sfx('shot',.6/(1+dist/8),.96+R()*.08))beep(140,.05/(1+dist/6));
-  const t=ents.find(x=>x.name===m.hit);if(t&&!t.isP&&!t.dead)bloodHit(end,d,m.zone);
+  const t=ents.find(x=>x.name===m.hit);if(t&&!t.isP&&!t.dead)bloodHit(end,d,m.zone,t);
   return}
 
  if(m.t==='sdr'){if(inMatch&&P&&SD.on)sdClientRound(m);return}
