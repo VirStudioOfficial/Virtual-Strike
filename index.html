@@ -1321,7 +1321,7 @@ function vmUpdate(dt){
  if(VM.model)VM.model.visible=!kn&&!pi&&!bm&&!nd;knifeG.visible=kn;pistolG.visible=pi;bombG.visible=bm;nadeG.visible=nd&&!(P.nsw>0);if(VM.arms)VM.arms.group.visible=vis&&!(nd&&P.nsw>0);if(nd){for(const q in nadeHold)nadeHold[q].visible=(+q===(P.wp||0))}
  if(pi)pistolAnim(dt);else{VM.pWas=false;fallMag.visible=false}
  VM.lc=0;
- if(!kn&&!bm&&P.arm>0){P.arm=Math.max(0,P.arm-dt);const t=1-P.arm/P.armD,sm=_sm;   // مسلح کردن: گان کج می‌شه، دست چپ از روی گان می‌ره سمت دسته‌ی اسلحه‌کش، می‌گیره، عقب می‌کشه و ول می‌کنه
+ if(!kn&&!bm&&P.arm>0){P.arm=Math.max(0,P.arm-((locked||netLive())?dt:0));const t=1-P.arm/P.armD,sm=_sm;   // مسلح کردن: گان کج می‌شه، دست چپ از روی گان می‌ره سمت دسته‌ی اسلحه‌کش، می‌گیره، عقب می‌کشه و ول می‌کنه
   const e=sm(t/.26)*(1-sm((t-.8)/.2));k.g=[k.g[0]+ARM_TILT[0]*e,k.g[1]+ARM_TILT[1]*e,k.g[2]+ARM_TILT[2]*e];k.p=[k.p[0]+ARM_TILT_P[0]*e,k.p[1]+ARM_TILT_P[1]*e,k.p[2]+ARM_TILT_P[2]*e];
   const AK=[[0,GRIP_L,IDLE.ld,IDLE.lp,0],...ARM_KEYS,[1,GRIP_L,IDLE.ld,IDLE.lp,0]];
   let a=0;while(a<AK.length-2&&t>AK[a+1][0])a++;const A=AK[a],B=AK[a+1],x=sm((t-A[0])/(B[0]-A[0]));
@@ -3263,7 +3263,7 @@ function playerUpdate(dt){
  if(P.rl>0){P.rl-=dt;if(P.rl<=0){P.ammo=AMAX[P.wp||0];if((P.wp||0)===0){P.arm=P.armD=.55;P.s1=P.s2=0}}}   // بعد از ریلود AK: همون انیمیشن مسلح‌کردن، ولی سریع‌تر
  else if(!FZ&&(ps?P.pbuf>0:mouse)&&P.cd<=0&&P.ammo>0&&(P.wp||0)!==1&&(P.wp||0)!==3&&(P.wp||0)<4&&!(P.arm>.32*P.armD)){P.cd=ps?.15:.1;P.ammo--;VM.kick=Math.min(ps?.085:.21,VM.kick+(ps?.05:.12));if(ps){P.pbuf=0;if(VM.pistolReady){PM.clip='firstperson_shoot_unsilenced_additive';PM.t=0}}const cp=Math.cos(pitch);
    /* ---- CS2: الگوی ریکوییل ثابت (recoilAt) + اینکوراسی تصادفیِ کوچک که فقط با حرکت/پرش/شلیک زیاد می‌شه؛ تیر اول ایستاده تقریباً دقیق ---- */
-   const rec=recoilAt(P.ri||0,ps),spd=Math.hypot(P.vx,P.vz)/6.5,mv=Math.max(0,(spd-.34)/.66),sp=(.0009+mv*.045+(P.on?0:.11)+(P.rtmp||0))*(P.cr>.5?.6:1)*(ps?.8:1);
+   const rec=recoilAt(P.ri||0,ps),spd=Math.hypot(P.vx,P.vz)/6.5,mv=Math.max(0,(spd-.34)/.66),sp=(.0009+mv*.027+(P.on?0:.11)+(P.rtmp||0))*(P.cr>.5?.75:1)*(ps?.8:1);
    const ra=R()*6.2832,rr=Math.sqrt(R())*sp,ep=pitch+rec.p+Math.sin(ra)*rr,eyw=P.yaw-rec.y+Math.cos(ra)*rr,cpe=Math.cos(ep);   // +yaw = چپ؛ پس آفست راستِ الگو از yaw کم می‌شه
    const dx=-Math.sin(eyw)*cpe,dy=Math.sin(ep),dz=-Math.cos(eyw)*cpe,dn=Math.hypot(dx,dy,dz);
   fire(P,{x:dx/dn,y:dy/dn,z:dz/dn});if(!ps)ejectShell();
@@ -3272,7 +3272,7 @@ function playerUpdate(dt){
    P.ri=Math.min(Math.floor(P.ri||0)+1,RECOIL_MAX);P.fireT=ps?.35:.22;   // تیر بعدی → خونه‌ی بعدیِ الگو
    if(P.ammo===0)reload()}
  P.fireT=(P.fireT||0)-dt;
- if(P.fireT<=0){P.rtmp=Math.max(0,(P.rtmp||0)-dt*.05);P.ri=Math.max(0,(P.ri||0)-dt*(ps?10:16))}   // ول‌کردن ماشه: الگو همون مسیر رو برمی‌گرده
+ if(P.fireT<=0){P.rtmp=Math.max(0,(P.rtmp||0)-dt*(P.cr>.5?.09:.05));P.ri=Math.max(0,(P.ri||0)-dt*(ps?10:16))}   // ول‌کردن ماشه: الگو همون مسیر رو برمی‌گرده
  {const tg=recoilAt(P.ri||0,ps),pv=P.pv||(P.pv={p:0,y:0}),k=Math.min(1,dt*(P.fireT>0?34:10));pv.p+=(tg.p-pv.p)*k;pv.y+=(tg.y-pv.y)*k}}   // پانچ دیدیِ دوربین: نرم دنبال الگو (نشانه‌گیری واقعی دست‌نخورده می‌مونه)
 /* نقطه‌ی گشت: از بین چند گره‌ی تصادفی، اونی که از هدف هم‌تیمی‌ها دورتره (و کمی به سمت تیم مقابل) */
 const PICK_RND=14;   // رندوم بودن انتخاب نقطه‌ی گشت (قبلاً ۶)؛ بیشتر = پراکنده‌تر
