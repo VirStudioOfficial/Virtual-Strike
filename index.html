@@ -22,7 +22,7 @@ canvas{display:block}
 #hp,#ammo,#money,#nades,#score,#kf,#toast,#buy{zoom:var(--hs,1)}
 /* موقع تماشا (مرده‌ای): HUD شخصی (جون/مهمات/نارنجک/پول/خرید/نشانه‌گیر) مخفی؛ نوار بالا، مینی‌مپ، کیل‌فید و اسم تماشا‌شونده می‌مونن */
 #hud.spec #hp,#hud.spec #ammo,#hud.spec #nades,#hud.spec #money,#hud.spec #buy,#hud.spec #cross,#hud.spec #xp,#hud.spec #pbar{display:none!important}
-#fpsc{position:fixed;bottom:4px;left:50%;transform:translateX(-50%);white-space:nowrap;direction:ltr;unicode-bidi:isolate;text-align:center;z-index:25;font:600 13px monospace;color:#9fe8a8;text-shadow:0 0 3px #000;display:none;pointer-events:none}
+#fpsc{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);white-space:nowrap;direction:ltr;unicode-bidi:isolate;text-align:center;z-index:25;font:600 13px monospace;color:#9fe8a8;text-shadow:0 0 3px #000;display:none;pointer-events:none}
 .shd{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;font-size:19px;color:#fd6}
 .stb{display:flex;gap:4px;padding:0 14px;border-bottom:1px solid #fff2}
 .stb button{background:none;border:0;border-bottom:3px solid transparent;color:#fffb;padding:9px 14px;font:inherit;font-size:14px;cursor:pointer}.stb button.on{color:#fff;border-color:#4aa3ff}
@@ -2984,7 +2984,9 @@ function netLeaveRoom(silent){if(NET.mode==='host')netBroadcast({t:'roomend'});
  NET.on=false;NET.mode=null;NET.room='';NET.members=[];NET.conns=new Map();NET.hostConn=null;LB.squad=[];
  if(!silent){netUpdateChip();lbRenderUI();lbMsg('از روم خارج شدی','info')}};
 /* ---- صحنه‌ی سه‌بعدی لابی: همون مپ، دوربین سینمایی، کاراکترها ردیف ---- */
-const LB3={meshes:[],mix:[],byName:{},spot:null,f:null,r:null,D:4.6,t:0},LB_SLOTS=[[0,-.5],[-1.3,.3],[1.3,.3],[-2.5,.95],[2.5,.95]],_lv=new THREE.Vector3();
+const LB3={meshes:[],mix:[],byName:{},spot:null,f:null,r:null,D:4.6,t:0},LB_SLOTS=[[0,-.5],[-1.3,.3],[1.3,.3],[-2.5,.95],[2.5,.95]],_lv=new THREE.Vector3(),_lh=new THREE.Vector3();
+let LB_PIN=(()=>{try{const v=JSON.parse(localStorage.getItem('ms_lobbypin')||'null');if(v&&isFinite(v.x+v.y+v.z+v.fx+v.fz))return v}catch(e){}return{x:20.92,y:5.76,z:-30.53}})();   /* نقطه‌ی دوربین لابی: تو مچ با F2 ذخیره می‌شه (Shift+F2 = برگشت به انتخاب خودکار)؛ یا دستی: LB_PIN={x,y,z,fx,fz} */
+
 function lbFindSpot(){ // مکان «ثابت»: بدون هیچ رندومی؛ هر بار همون بازترین نقطه‌ی نزدیک اسپاون (جای ۵ نفر + مسیر راه‌رفتن + دوربین)
  const o0=SPAWN[0][0],seen=new Set(),cands=[],add=(x,y,z)=>{const k=Math.round(x*2)+','+Math.round(z*2)+','+Math.round(y);if(seen.has(k))return;seen.add(k);cands.push([x,y,z])};
  for(const c of SPAWN[0])add(c[0],c[1],c[2]);
@@ -2998,8 +3000,8 @@ function lbFindSpot(){ // مکان «ثابت»: بدون هیچ رندومی؛ 
    if(back<6)sc-=200;if(sl<3.4||sr<3.4)sc-=150;if(fwd<9)sc-=100;   // دوربین پشت، ۵ نفر کنار هم، و جلو برای راه‌رفتن جا لازمه
    if(sc<=bs)continue;
    let bad=0;   // زمین زیر ۵ نفر و نقطه‌ی شروع راه‌رفتنشون باید صاف باشه
-   for(const[sx,sd]of LB_SLOTS)for(const bk of[0,1.8]){const x=c[0]+rx*sx+fx*(sd+bk),z=c[2]+rz*sx+fz*(sd+bk),t=castRay(x,c[1]+1.5,z,0,-1,0,4,false);
-    if(!(t<4)||Math.abs(c[1]+1.5-t-c[1])>.25)bad++}
+   for(const[sx,sd]of LB_SLOTS)for(const bk of[0,1.8,3.6]){const x=c[0]+rx*sx+fx*(sd+bk),z=c[2]+rz*sx+fz*(sd+bk),t=castRay(x,c[1]+1.5,z,0,-1,0,4,false);
+    if(!(t<4)||Math.abs(c[1]+1.5-t-c[1])>.2)bad++}
    sc-=bad*40;
    if(sc>bs){bs=sc;best={c,fx,fz}}}}
  if(!best){const a=Math.PI/4;best={c:o0,fx:Math.cos(a),fz:Math.sin(a)}}
@@ -3125,10 +3127,10 @@ function lbfMake(i){
  const useE=!!(ENDS&&!ENDS.win),D=(useE&&LBE.ok)?LBE:LBF;   // دشمن برنده شده → مدل و اسکین تیم دشمن (FBX جدا)
  const w=new THREE.Group(),inner=new THREE.Group(),o=THREE.SkeletonUtils.clone(D.src);
  inner.scale.setScalar(D.sc);inner.add(o);w.add(inner);
- let gunO=null;const rh=lbfBones(o).RightHand;if(rh){const g=lbfGunObj();g.userData.D=D;lbtApply(g);rh.add(g);gunO=g}
+ let gunO=null;const bn0=lbfBones(o),rh=bn0.RightHand;if(rh){const g=lbfGunObj();g.userData.D=D;lbtApply(g);rh.add(g);gunO=g}
  o.traverse(x=>{if(x.isSkinnedMesh){x.frustumCulled=false;x.castShadow=true;x.receiveShadow=true;if(D===LBE){const mm=LBE.mats&&LBE.mats[x.name];if(mm)x.material=mm}else if(LBF.matE)x.material=useE?LBF.matE:LBF.matA}});
  const mx=new THREE.AnimationMixer(o),ac=mx.clipAction(D.clip);ac.setLoop(THREE.LoopOnce,1);ac.clampWhenFinished=true;ac.timeScale=.94+((i*5)%4)*.04;ac.play();
- w.userData={body:inner,mx,ac,slot:i,gun:gunO,enemy:useE,D};scene.add(w);return w}
+ w.userData={body:inner,mx,ac,slot:i,gun:gunO,enemy:useE,D,hips:bn0.Hips||null};scene.add(w);return w}
 function lbfPlace(w,x,y,z,cx,cz,i){   // ته مسیر راه‌رفتن دقیقاً روی جای خودش می‌شینه؛ از چند قدم عقب‌تر شروع می‌کنه
  const D=w.userData.D||LBF,a=Math.atan2(cx-x,cz-z)+D.off+((i%3)-1)*.03,c=Math.cos(a),s=Math.sin(a),hx=D.he.x,hz=D.he.z;
  w.rotation.y=a;w.position.set(x-(hx*c+hz*s),y,z-(-hx*s+hz*c));w.userData.cp={x,y,z};w.userData.slot=i}
@@ -3182,11 +3184,29 @@ function lobbyFrame(dt){const s=LB3.spot;if(!s)return;gun.visible=false;if(VM.ar
  {const dtc=Math.min(dt,.05);for(const mx of LB3.mix)mx.update(dtc)}
  const cd=$('lbcards').children;
  LB3.meshes.forEach((m,i)=>{m.userData.body.position.y=Math.sin(t*1.5+i*1.3)*.006;
+   {const hb=m.userData.hips,c0=m.userData.cp;if(hb&&c0){hb.getWorldPosition(_lh);const tt=castRay(_lh.x,c0.y+1.9,_lh.z,0,-1,0,4.5,false);   // موقع راه‌رفتن تو، ارتفاع کاراکتر با شیب/پله‌ی زیر پاش هماهنگ می‌شه (پا تو زمین نره)
+    if(tt<4.5){const g=Math.max(c0.y-1.2,Math.min(c0.y+1.2,c0.y+1.9-tt));m.position.y+=(g-m.position.y)*Math.min(1,dt*14)}}}
   {const cp=m.userData.cp||m.position;_lv.set(cp.x,cp.y,cp.z).project(cam)}
   const c=cd[i];if(c)c.style.transform=`translate(${((_lv.x*.5+.5)*innerWidth).toFixed(1)}px,${((-_lv.y*.5+.5)*innerHeight+8).toFixed(1)}px) translateX(-50%)`});
  {const fxo=FX.begin(true);try{ren.render(scene,cam)}finally{FX.end(fxo,true)}}}
+/* F2 تو مچ: نقطه و جهت نگاه فعلی‌ت می‌شه جای دوربینِ لابی (تو localStorage می‌مونه) | Shift+F2: برگرده به انتخاب خودکار */
+function pinToast(t){let d=document.getElementById('pintoast');if(!d){d=document.createElement('div');d.id='pintoast';d.style.cssText='position:fixed;top:14%;left:50%;transform:translateX(-50%);z-index:60;padding:8px 16px;border-radius:8px;background:rgba(0,0,0,.72);color:#9fe8a8;font-weight:600;font-size:14px;line-height:1.6;pointer-events:none;transition:opacity .4s;direction:rtl';document.body.appendChild(d)}d.textContent=t;d.style.opacity=1;clearTimeout(d._t);d._t=setTimeout(()=>{d.style.opacity=0},2400)}
+addEventListener('keydown',e=>{if(e.code!=='F2'||!inMatch||!P||e.repeat)return;e.preventDefault();
+ if(e.shiftKey){LB_PIN=null;try{localStorage.removeItem('ms_lobbypin')}catch(x){}LB3.spot=null;pinToast('جای لابی برگشت به حالت خودکار');return}
+ LB_PIN={x:+P.p.x.toFixed(2),y:+P.p.y.toFixed(2),z:+P.p.z.toFixed(2),fx:+(-Math.sin(P.yaw)).toFixed(3),fz:+(-Math.cos(P.yaw)).toFixed(3)};
+ try{localStorage.setItem('ms_lobbypin',JSON.stringify(LB_PIN))}catch(x){}LB3.spot=null;
+ console.log('[lobby] LB_PIN =',JSON.stringify(LB_PIN));pinToast('جای دوربین لابی ذخیره شد: X '+LB_PIN.x+'  Y '+LB_PIN.y+'  Z '+LB_PIN.z)});
 function lobbyEnter(){inLobby=true;inMatch=false;
- if(!LB3.spot){const b=lbFindSpot(),c=b.c;LB3.spot={x:c[0],y:c[1],z:c[2]};LB3.f={x:b.fx,z:b.fz};LB3.r={x:-b.fz,z:b.fx}}
+ if(!LB3.spot&&LB_PIN){let q=LB_PIN;
+  if(q.fx==null){let bs=-1e9,bf=[1,0];   // جهت داده نشده: بهترین جهت رو از روی فضای باز جلو و دو طرف کاراکترها انتخاب می‌کنه
+   for(let k=0;k<24;k++){const a=k/24*Math.PI*2,fx=Math.cos(a),fz=Math.sin(a),o={x:q.x,y:q.y+1.4,z:q.z},m={x:q.x+fx*LB3.D,y:o.y,z:q.z+fz*LB3.D};
+    const fw=wallDist(o,{x:fx,y:0,z:fz}),sl=wallDist(m,{x:-fz,y:0,z:fx}),sr=wallDist(m,{x:fz,y:0,z:-fx});
+    let sc=Math.min(fw,25)+Math.min(sl,4.5)*3+Math.min(sr,4.5)*3;if(fw<9)sc-=100;if(sl<3.4||sr<3.4)sc-=150;
+    if(sc>bs){bs=sc;bf=[fx,fz]}}
+   q={x:q.x,y:q.y,z:q.z,fx:bf[0],fz:bf[1]}}
+  const sx=q.x+q.fx*LB3.D,sz=q.z+q.fz*LB3.D,tt=castRay(sx,q.y+2,sz,0,-1,0,6,false);   // دوربین دقیقاً از نقطه‌ی تو؛ کاراکترها D متر جلوتر تو جهت نگاهت
+  LB3.spot={x:sx,y:tt<6?q.y+2-tt:q.y,z:sz};LB3.f={x:q.fx,z:q.fz};LB3.r={x:-q.fz,z:q.fx}}
+  if(!LB3.spot){const b=lbFindSpot(),c=b.c;LB3.spot={x:c[0],y:c[1],z:c[2]};LB3.f={x:b.fx,z:b.fz};LB3.r={x:-b.fz,z:b.fx}}
  lbLayout();showMenu();lbRenderUI();if(LBT.on)lbtRefresh()}
 function lobbyExit(){endsClose(true);inLobby=false;$('lbtune').style.display='none';lbClearChars();$('lb').style.display='none';$('lbmenu').style.display='none';$('lbaddp').style.display='none';$('lbset').style.display='none';cam.fov=SET.fov;cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}
 function startMatch(){
