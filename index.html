@@ -1920,7 +1920,7 @@ function shellUpd(dt){for(const m of SHL){if(!m||!m.visible)continue;const u=m.u
 /* ================= خون: پاشش ذرات + لکه‌ی روی در و دیوار/کف + حوض زیر جسد =================
    - ذره‌ها قطره‌های واقعی با جاذبه‌ان؛ هرکدوم به سطحی بخوره همون‌جا لکه (دکال) می‌ذاره، روی دیوار با رگه‌ی چکه‌ی رو به پایین
    - تکسچرها با canvas ساخته می‌شن (فایل بیرونی لازم نیست) | سقف تعداد: BL.N ذره و BL.MAXD لکه (قدیمی‌ترین‌ها بازیافت می‌شن) */
-const BL={N:900,MAXD:260,ok:false,dc:[],di:0,grow:[],mats:[],geo:null,pt:null,pi:0,sp:[],spl:0,dirty:false};
+const BL={N:900,MAXD:260,ok:false,dc:[],di:0,grow:[],mats:[],geo:null,pt:null,pi:0,sp:[],pend:[],spl:0,dirty:false};
 const bRnd=Math.random,bGs=()=>(bRnd()+bRnd()+bRnd()-1.5)/1.5;
 const _kn=new THREE.Vector3(),_kx=new THREE.Vector3(),_ky=new THREE.Vector3(),_km=new THREE.Matrix4(),_kq=new THREE.Quaternion(),_kz=new THREE.Vector3(0,0,1),_ku=new THREE.Vector3(0,1,0);
 function bloodTex(kind){const S=256,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');
@@ -1987,7 +1987,7 @@ void main(){
  gl_FragColor=vec4(col,a);
 }`});
  BL.pt=new THREE.Mesh(g,mt);BL.pt.frustumCulled=false;BL.pt.renderOrder=5;scene.add(BL.pt);BL.ok=true}
-function bloodClear(){nadesClear();for(const m of BHL.a)if(m)m.visible=false;if(!BL.ok)return;for(const m of BL.dc)if(m){m.visible=false;m.userData.id++}BL.grow.length=0;BL.sp.length=0;BL.L.fill(0);BL.S.fill(0);BL.pt.geometry.attributes.size.needsUpdate=true}
+function bloodClear(){nadesClear();for(const m of BHL.a)if(m)m.visible=false;if(!BL.ok)return;for(const m of BL.dc)if(m){m.visible=false;m.userData.id++}BL.grow.length=0;BL.sp.length=0;BL.pend.length=0;BL.L.fill(0);BL.S.fill(0);BL.pt.geometry.attributes.size.needsUpdate=true}
 /* لکه روی سطحی با نرمال n (باید به سمت پرتاب‌کننده باشه)
    لکه‌های بزرگ قبل از گذاشتن با چند پرتو چک می‌شن که تموم سطحشون واقعاً روی دیوار/کف باشه؛ لبه‌ی دیوار/چارچوب در/پله که باشه کوچیک می‌شن تا نصفه‌ی لکه تو هوا معلق نمونه */
 function bloodDecal(px,py,pz,nx,ny,nz,size,kind,off){
@@ -2029,13 +2029,16 @@ function bloodHit(p,d,zone,ent){bloodInit();const head=zone==='head',legs=zone==
  for(let i=0;i<(head?4:3);i++){const q=cast(bGs()*.5,-1,bGs()*.5,3);if(q)bloodDecal(q.x,q.y,q.z,q.a,q.b,q.c,.12+bRnd()*.22,2)}   // قطره‌های کف
 }
 function bloodPool(t){bloodInit();const o={x:t.p.x,y:t.p.y+.6,z:t.p.z},h=castRay(o.x,o.y,o.z,0,-1,0,2.5,false);if(h===Infinity)return;
- const h0=HNX,h1=HNY,h2=HNZ,fy=o.y-h;let s1=.8+bRnd()*.55;
+ const h0=HNX,h1=HNY,h2=HNZ,fy=o.y-h;let s1=.6+bRnd()*.35;
  for(let it=0;it<5;it++){let ok=true;const r=s1*.42;   // حوض فقط تا جایی بزرگ می‌شه که زیرش کف باشه (لبه‌ی پله/پرتگاه تو هوا نمی‌مونه)
   for(let c=0;c<8&&ok;c++){const an=c*.7854;if(castRay(o.x+Math.cos(an)*r,fy+.06,o.z+Math.sin(an)*r,0,-1,0,.2,false)===Infinity)ok=false}
   if(ok)break;s1*=.72}
  HNX=h0;HNY=h1;HNZ=h2;
  const m=bloodDecal(o.x,fy,o.z,0,1,0,.15,3,.014);BL.grow.push({m,id:m.userData.id,t:0,s1})}   // حوض خون زیر جسد آروم بزرگ می‌شه
+/* حوض خون با تأخیر: صبر می‌کنه جسد (راگدال) بیفته و جا بگیره، بعد زیر خودِ جسد ساخته می‌شه، نه جایی که ایستاده بود */
+function bloodPoolLater(t){bloodInit();BL.pend.push({t,d:t.rag?1.5:.05})}
 function bloodUpdate(dt){if(!BL.ok)return;
+ for(let i=BL.pend.length-1;i>=0;i--){const q=BL.pend[i];q.d-=dt;if(q.d<=0){BL.pend.splice(i,1);if(q.t.dead)bloodPool(q.t)}}
  BL.U.uS.value=ren.domElement.height/(2*Math.tan(cam.fov*Math.PI/360));
  BL.spl=0;
  for(let i=BL.sp.length-1;i>=0;i--){const e=BL.sp[i];e.t+=dt;if(e.t>=e.dur){BL.sp.splice(i,1);continue}   // فواره‌های فعال زخم
@@ -2197,7 +2200,7 @@ function charVoice(t,kind){if(!t||t.isP||!AC)return;const n=kind==='dm'?3:6,d=Ma
 function damage(t,a,by,zone,wb){t.hp-=a;if(!t.dead)charVoice(t,t.hp<=0?'dt':'dm');if(!t.isP&&!t.dead&&by&&by.p){t.mem=Math.max(t.mem||0,2);t.lk=[by.p.x,by.p.z]}   // ازش تیر خورده → به سمت تیرانداز می‌چرخه
  if(t.isP){$('dmg').style.opacity=1;hap(a>=40?60:30)}if(by.isP){$('cross').classList.add('hit');hm=.12;hap(14);if(zone==='head')sfx('hs',.85)}
  if(t.hp<=0&&!t.dead){t.dead=true;if(t.isP){t.pl=0;t.pld=-1}   // وسط پلنت مردی: نوار پیشرفت پاک بشه
-  t.rt=SD.on?1e9:4.5;if(by.team!==t.team)by.kl=(by.kl||0)+1;t.ds=(t.ds||0)+1;score[by.team]++;moneyKill(by,t);killFeed(by,t,zone==='head',wb);ragStart(t,by,zone);bloodPool(t);
+  t.rt=SD.on?1e9:4.5;if(by.team!==t.team)by.kl=(by.kl||0)+1;t.ds=(t.ds||0)+1;score[by.team]++;moneyKill(by,t);killFeed(by,t,zone==='head',wb);ragStart(t,by,zone);bloodPoolLater(t);
   if(NET.mode==='host')NET.send({t:'kill',by:by.name,bteam:by.team,tg:t.name,zone,hs:zone==='head'?1:0,wb:wb?1:0,bx:+by.p.x.toFixed(2),bz:+by.p.z.toFixed(2)})}}
 /* ---- ragdoll v3: فیزیک واقعی — اسکلت ذره‌ای (سر، شونه‌ها، لگن، زانو، پا، دست) + میله‌های فاصله + محدودیت مفصل + برخورد با مپ.
    ragStart فقط ضربه‌ی گلوله رو می‌ده و اسکلت رو از پوز لحظه‌ی مرگ می‌سازه؛ بقیه‌ش فیزیکه (ragStep/ragSub) و رندر (ragRender/ragPose) ---- */
@@ -2878,7 +2881,7 @@ function netClientMsg(conn,m){
    const b={name:m.by,team:m.bteam,isP:false,wp:0,p:{x:m.bx,y:t.p.y,z:m.bz}};
    killFeed(b,t,!!m.hs,!!m.wb);if(P&&m.by===P.name&&m.bteam!==t.team)moneyAdd(KILL_R);
    if(!t.rag){try{ragStart(t,{p:{x:m.bx,y:t.p.y,z:m.bz},lx:t.lx,lz:t.lz},m.zone)}catch(e){}}
-   bloodPool(t);
+   bloodPoolLater(t);
    if(t.isP){pitch=Math.max(pitch,.1)}}
   return}
  if(m.t==='shot'){if(m.by===NET.myName)return;
