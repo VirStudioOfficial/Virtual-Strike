@@ -1688,7 +1688,7 @@ function move(e,dx,dz){
   const adv=Math.max(0,best-RAD);e.p.x+=ux*adv;e.p.z+=uz*adv;
   let nl=Math.hypot(bnx,bnz);if(nl<1e-4)return;bnx/=nl;bnz/=nl;if(bnx*ux+bnz*uz>0){bnx=-bnx;bnz=-bnz}
   const rem=len-adv,dot=ux*bnx+uz*bnz;dx=(ux-dot*bnx)*rem;dz=(uz-dot*bnz)*rem}}
-const GOFF=[[0,0],[.34,0],[-.34,0],[0,.34],[0,-.34],[.24,.24],[.24,-.24],[-.24,.24],[-.24,-.24]];
+const GOFF=[[0,0],[.34,0],[-.34,0],[0,.34],[0,-.34],[.24,.24],[.24,-.24],[-.24,.24],[-.24,-.24]],_gh=new Float64Array(9);
 const PG_R=2.2,PG_UP=3.2;   // PG_R: چند متر دورتر از نقاط راه‌رفتنیِ مپ هنوز «داخل مپ» حساب می‌شه | PG_UP: حداکثر ارتفاع بالاتر از سطح راه‌رفتنی (جلوی رفتن روی دیوارها/سقف‌های بیرونی)
 const BOUND_PAD=6;   // فاصله‌ی دیوار نامرئی از آخرین نقطه‌ی قابل‌راه‌رفتن (متر)
 function pgOK(x,y,z){const g=PGZ;if(!g)return true;const X=Math.floor((x-g.gx0)/g.cs),Z=Math.floor((z-g.gz0)/g.cs);if(X<0||Z<0||X>=g.nx||Z>=g.nz)return false;const k=Z*g.nx+X;return g.ok[k]===1&&y<=g.my[k]+PG_UP}
@@ -1706,9 +1706,12 @@ function phys(e,dt){
  if(e.vy>0){const t=castRay(e.p.x,e.p.y+1.5,e.p.z,0,1,0,e.vy*dt+.3,false);if(t<Infinity){e.vy=0;ny=e.p.y}}
  let fh=-1e9;
  if(e.on&&e.vy<=0&&e.fcy!==undefined&&e.fcx===e.p.x&&e.fcz===e.p.z&&Math.abs(e.p.y-e.fcy)<.001)fh=e.fcy;   // ایستاده و جابه‌جا نشده: ارتفاع زمین عوض نشده (مپ ثابته) → ۹ پرتو رو دوباره نزن
- else{for(const[ox,oz]of GOFF){const t=castRay(e.p.x+ox,e.p.y+STEP+.02,e.p.z+oz,0,-1,0,150,false);   // چند پرتو: از درز بین مثلث‌ها رد نشه
-  if(t!==Infinity)fh=Math.max(fh,e.p.y+STEP+.02-t)}e.fcx=e.p.x;e.fcz=e.p.z;e.fcy=fh}
- if(e.vy<=0&&(ny<=fh||(e.on&&fh>=e.p.y-.4))){const dh=fh-e.p.y;if(e.on&&Math.abs(dh)>.03&&Math.abs(dh)<=STEP)e.sdip=Math.max(-.5,Math.min(.5,e.sdip+dh));e.p.y=fh;e.vy=0;e.on=true;e.gx=e.p.x;e.gy=e.p.y;e.gz=e.p.z}else{e.p.y=ny;e.on=false}
+ else{for(let i=0;i<9;i++){const g=GOFF[i],t=castRay(e.p.x+g[0],e.p.y+STEP+.02,e.p.z+g[1],0,-1,0,150,false);   // چند پرتو: از درز بین مثلث‌ها رد نشه
+   _gh[i]=t!==Infinity?e.p.y+STEP+.02-t:-1e9}
+  /* فقط سطحِ «پهن» زمین حساب می‌شه: یا پرتوِ وسط روشه یا حداقل ۳ پرتو هم‌ارتفاع. قرنیز/زائده‌ی باریک کنار دیوار فقط زیر یه پرتوِ کناریه، پس دیگه نمی‌شه با پرش بهش گیر کرد و از دیوار بالا رفت */
+  for(let i=0;i<9;i++){const h=_gh[i];if(h<-1e8||h<=fh)continue;let c=0,mid=false;for(let j=0;j<9;j++)if(Math.abs(_gh[j]-h)<.12){c++;if(j===0)mid=true}if(mid||c>=3)fh=h}
+  e.fcx=e.p.x;e.fcz=e.p.z;e.fcy=fh}
+ if(e.vy<=0&&(ny<=fh||(e.on&&fh>=e.p.y-.4))){const dh=fh-e.p.y;if(Math.abs(dh)>.03&&Math.abs(dh)<=STEP+.03&&(e.on||dh>0))e.sdip=Math.max(-.5,Math.min(.9,e.sdip+dh));   /* پرش روی مانع: ارتفاع جدید رو دوربین/بدن نرم دنبال می‌کنه، نه یهویی (قبلاً فقط روی زمین/پله بود، تو هوا نه) */e.p.y=fh;e.vy=0;e.on=true;e.gx=e.p.x;e.gy=e.p.y;e.gz=e.p.z}else{e.p.y=ny;e.on=false}
  if(e.gy!==undefined&&e.p.y<e.gy-2.5&&fh<-1e8){e.p.x=e.gx;e.p.y=e.gy+.05;e.p.z=e.gz;e.vy=0;e.sx=undefined}   // از زمین سوراخ‌نشده افتاد: برگرد به آخرین جای محکم
  if(e.p.y<MAPMIN-12){spawn(e,true);return}
  clampBounds(e);
@@ -1995,7 +1998,7 @@ function bloodUpdate(dt){if(!BL.ok)return;
   g.t+=dt;const u=Math.min(1,g.t/5),e=1-Math.pow(1-u,3),s=.15+(g.s1-.15)*e;g.m.scale.set(s,s,1);if(u>=1)BL.grow.splice(i,1)}}
 
 /* ---- والبنگ: گلوله از دیوار/در نازک (ضخامت ≤ PEN_THICK متر) رد می‌شه؛ حداکثر PEN_WALLS دیوار، و هر دیوار PEN_DMG از دمیج کم می‌کنه. کف و سقف رد نمی‌شن ---- */
-const PEN_THICK=.5,PEN_WALLS=2,PEN_DMG=.6;
+const PEN_THICK=.5,PEN_WALLS=2,PEN_DMG=.85;   // PEN_DMG: ضریب دمیج بعد از هر دیوار (قبلاً .6 بود → هدشات AK از دیوار فقط ~۸۶ دمیج می‌داد و دشمن ۱۱۵ جونی نمی‌مرد؛ با .85 هدشات از یه دیوار تا ~۳۷ متر وان‌تپ می‌مونه)
 /* ---- دمیج AK مثل CS2: ۳۶ پایه | سر ×۴ | شکم ×۱.۲۵ | پا ×۰.۷۵ | افت برد: ۰.۹۸ به ازای هر ۵۰۰ یونیت (= ۱۲.۷ متر) ---- */
 const AK_DMG=36,AK_HEAD=4,AK_CHEST=1,AK_STOM=1.25,AK_LEG=.75,AK_RANGE=.98,AK_RANGE_M=12.7;
 const _bmz=new THREE.Vector3();
@@ -3422,6 +3425,7 @@ const HIPJ_F=.50,WAIST_F=.55,CROUCH_HIP=.50,CROUCH_THIGH=1.4,LEAN_K=.5,LEAN_FWD=
 const _gq=new THREE.Quaternion(),_gX=new THREE.Vector3(1,0,0);
 /* ---- ragdoll v3: موتور ---- */
 const RG_G=13,RG_H=1/90,RG_IT=6;
+const RG_JK=.08,RG_JD=[5,3,6,4,7,5,8,6,9,1,10,2];   // RG_JK: اصطکاک مفصل‌ها (۰=ژله‌ای/ول، بالاتر=سفت‌تر و سنگین‌تر؛ ~۰٫۰۴ تا ۰٫۱۲)؛ RG_JD: جفت‌های (اندام، والد): زانو↔ران، پا↔زانو، دست↔شونه
 const RG_FR=.90,RG_MU=2.2;   // RG_FR: ضریب اصطکاک نمایی در هر گام (کمتر = سفت‌تر)؛ RG_MU: اصطکاک ثابت
 const _rI=new THREE.Matrix4(),_rM=new THREE.Matrix4(),_rQ=new THREE.Quaternion(),_rQ2=new THREE.Quaternion(),_rQ3=new THREE.Quaternion();
 const _rU=new THREE.Vector3(),_rR=new THREE.Vector3(),_rF=new THREE.Vector3(),_r1=new THREE.Vector3(),_r2=new THREE.Vector3(),_r3=new THREE.Vector3(),_r4=new THREE.Vector3(),_r5=new THREE.Vector3();
@@ -3550,6 +3554,7 @@ function ragSub(r){
  for(let i=0;i<n;i++){const p=P[i];let vx=(p.x-p.px)*.9985,vy=(p.y-p.py)*.9985,vz=(p.z-p.pz)*.9985;
   const sp=Math.hypot(vx,vy,vz);if(sp>.16){const k=.16/sp;vx*=k;vy*=k;vz*=k}
   p.px=p.x;p.py=p.y;p.pz=p.z;p.x+=vx;p.y+=vy-g;p.z+=vz}
+ for(let k=0;k<RG_JD.length;k+=2){const c=P[RG_JD[k]],a=P[RG_JD[k+1]],rx=(c.x-c.px)-(a.x-a.px),ry=(c.y-c.py)-(a.y-a.py),rz=(c.z-c.pz)-(a.z-a.pz);c.px+=rx*RG_JK;c.py+=ry*RG_JK;c.pz+=rz*RG_JK}   /* اصطکاک مفصل: سرعت نسبیِ اندام به والدش میرا می‌شه تا دست و پا شلاق‌وار ول نخورن */
  for(let it=0;it<RG_IT;it++){
   for(let k=0;k<S.length;k++){const s=S[k],a=P[s[0]],b=P[s[1]],dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d=Math.hypot(dx,dy,dz);if(d<1e-8)continue;
    const c=(d-s[2])/d/(a.w+b.w);a.x+=dx*c*a.w;a.y+=dy*c*a.w;a.z+=dz*c*a.w;b.x-=dx*c*b.w;b.y-=dy*c*b.w;b.z-=dz*c*b.w}
