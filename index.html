@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen"><meta name="theme-color" content="#000000"><meta name="format-detection" content="telephone=no">
-<title>Mini Strike</title>
+<title>Virtual Strike</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:Tahoma,sans-serif;color:#fff}
@@ -222,7 +222,7 @@ canvas{display:block}
 #mm.big{position:fixed;top:50%;left:50%;right:auto;transform:translate(-50%,-50%);border-radius:12px;z-index:6;box-shadow:0 0 0 2px rgba(255,255,255,.25),0 12px 44px rgba(0,0,0,.75)}
 </style></head><body>
 <div id="hud"><div id="sdbar"></div><div id="fb"></div><div id="pos"></div><canvas id="mm"></canvas><div id="kf"></div><div id="flash"></div><div id="pbar"><i></i></div><div id="sdhint"></div><div id="dmg"></div><div id="cross"></div><div id="score" class="t"></div><div id="msg" class="t"></div><div id="hp" class="t"><svg width="26" height="26" viewBox="0 0 24 24" fill="#e74c3c" style="vertical-align:-3px;margin-right:6px"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.6 4.5 6.3 4.5c2.1 0 3.7 1.1 5.7 3.3 2-2.2 3.6-3.3 5.7-3.3 3.7 0 5.4 3.9 3.9 7.3C19.5 16.4 12 21 12 21z"/></svg><span id="hpv"></span></div><div id="ammo" class="t"></div><div id="nades"></div><div id="money" class="t"><span id="mv"></span><i id="mgain"></i></div><div id="buy"></div><div id="toast"></div><div id="tune" class="t" style="top:60px;left:16px;font-size:14px;direction:ltr;text-align:left;white-space:pre;color:#8f8"></div></div>
-<div id="menu"><h1>Mini Strike</h1>
+<div id="menu"><h1>Virtual Strike</h1>
 <div id="load">در حال لود مپ و کاراکترها...</div>
 <div id="pause"><div id="pnote" style="display:none;margin-bottom:14px;font-size:14px;opacity:.85;direction:rtl">بازی آنلاینه؛ پاز واقعی نداره و بازی ادامه داره</div><button class="lbb g" id="lbresume" style="font-size:22px;padding:10px 40px">ادامه بازی</button><br><br><button class="lbb" id="pset" style="font-size:16px">⚙ تنظیمات</button><br><br><button class="lbb r" id="lbleave" style="font-size:16px">بازگشت به لابی</button></div>
 <div id="keyhint"></div>
@@ -255,7 +255,7 @@ canvas{display:block}
    سیگنالینگ از رله‌های عمومی (Nostr) رد می‌شه، نه سرور PeerJS؛ بعدش اتصال WebRTC مستقیمه.
    هر Peer با id یه «اتاق» به اسم همون id داره؛ صاحبش (owner) خودش رو معرفی می‌کنه و بقیه بهش وصل می‌شن. */
 (function(){
- const TRY='https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm',APP='ministrike-fps-v1',WAIT=15000;
+ const TRY='https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm',APP='virtualstrike-fps-v1',WAIT=15000;
  let libP=null;const lib=()=>libP||(libP=import(TRY));
  const ROOMS=new Map();   // اتاق‌های مشترک (یه اتاق رو نمی‌شه دو بار join کرد → refcount)
  class Ev{on(e,f){(this._h||(this._h={}))[e]=(this._h[e]||[]).concat(f);return this}
@@ -322,7 +322,7 @@ canvas{display:block}
    بار اول از سرور دانلود می‌شه و ذخیره می‌شه؛ دفعه‌های بعد مستقیم از دیسک لود می‌شه.
    با یه درخواست HEAD (فقط هدر، چند بایت) چک می‌کنیم فایل عوض نشده باشه؛ اگه عوض شده بود، دوباره دانلود می‌شه. */
 (function(){
- const DB='mini-strike-cache',ST='files';let dbp=null;
+ const DB='virtual-strike-cache',ST='files';let dbp=null;
  const db=()=>dbp||(dbp=new Promise(r=>{setTimeout(()=>r(null),4000);try{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore(ST);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null);q.onblocked=()=>r(null)}catch(e){r(null)}}));
  const idb=(mode,fn)=>db().then(d=>d?new Promise(r=>{try{const q=fn(d.transaction(ST,mode).objectStore(ST));q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}}):null);
  const sig=u=>Promise.race([new Promise(r=>setTimeout(()=>r(null),6000)),fetch(u,{method:'HEAD'})]).then(r=>r.ok?(r.headers.get('etag')||'')+'|'+(r.headers.get('last-modified')||'')+'|'+(r.headers.get('content-length')||''):null).catch(()=>null);
