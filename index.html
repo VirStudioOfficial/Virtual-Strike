@@ -250,6 +250,67 @@ canvas{display:block}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script>
+/* ===== Peer روی WebSocket (حالت لن) — هم‌شکل PeerJS، فقط وقتی window.VS_LOCAL باشه فعال می‌شه ===== */
+(function(){
+ class Ev{on(e,f){(this._h||(this._h={}))[e]=(this._h[e]||[]).concat(f);return this}
+  emit(e,...a){for(const f of ((this._h||{})[e]||[]))try{f(...a)}catch(x){console.error('[ws-ev]',e,x)}}}
+ const WAIT=15000;
+ const S={ws:null,open:false,wait:[],ready:[],fail:[],peers:new Map(),regp:new Map(),conns:new Map(),pend:new Map(),tok:0};
+ function sock(){
+  if(S.ws)return;
+  let w;try{w=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws')}catch(e){const f=S.fail.splice(0);S.ready=[];f.forEach(x=>x(e));return}
+  S.ws=w;
+  w.onopen=()=>{S.open=true;for(const m of S.wait.splice(0))w.send(m);const r=S.ready.splice(0);S.fail=[];r.forEach(f=>f())};
+  w.onmessage=e=>{let d;try{d=JSON.parse(e.data)}catch(x){return}route(d)};
+  w.onerror=()=>{};
+  w.onclose=()=>{const was=S.open;S.ws=null;S.open=false;S.wait=[];
+   const f=S.fail.splice(0);S.ready=[];f.forEach(x=>x(new Error('ws closed')));
+   for(const c of [...S.conns.values()])c._closed();
+   S.pend.clear();S.regp.clear();
+   if(was)for(const p of S.peers.values()){p.disconnected=true;p.emit('disconnected')}}}
+ function tx(d){const s=JSON.stringify(d);if(S.open&&S.ws)try{S.ws.send(s)}catch(e){}else{S.wait.push(s);sock()}}
+ function onReady(ok,bad){if(S.open)ok();else{S.ready.push(ok);S.fail.push(bad);sock()}}
+ function route(d){
+  if(d.k==='reg'){const p=S.regp.get(d.id);S.regp.delete(d.id);if(!p||p.destroyed)return;
+   if(d.ok){S.peers.set(d.id,p);p.disconnected=false;if(!p._opened){p._opened=true;p.emit('open',d.id)}}
+   else p.emit('error',{type:'unavailable-id',message:'ID taken'})}
+  else if(d.k==='in'){const p=S.peers.get(d.to);if(!p||p.destroyed){tx({k:'x',cid:d.cid});return}
+   const c=new Conn(p);c.cid=d.cid;S.conns.set(d.cid,c);p._conns.add(c);p.emit('connection',c);setTimeout(()=>c._op(),0)}
+  else if(d.k==='out'){const c=S.pend.get(d.t);S.pend.delete(d.t);if(!c)return;
+   if(c._cl){tx({k:'x',cid:d.cid});return}
+   clearTimeout(c._to);c.cid=d.cid;S.conns.set(d.cid,c);c._op()}
+  else if(d.k==='na'){const c=S.pend.get(d.t);S.pend.delete(d.t);if(!c||c._cl)return;
+   clearTimeout(c._to);c._cl=true;c.peer.emit('error',{type:'peer-unavailable',message:'no owner'})}
+  else if(d.k==='d'){const c=S.conns.get(d.cid);if(c)c._data(d.m)}
+  else if(d.k==='x'){const c=S.conns.get(d.cid);if(c)c._closed()}}
+ class Conn extends Ev{
+  constructor(peer){super();this.peer=peer;this.cid=0;this.open=false;this._cl=false;this._q=[];this.peerConnection=null}
+  _op(){if(this.open||this._cl)return;this.open=true;this.emit('open');const q=this._q;this._q=null;for(const m of q)this.emit('data',m)}
+  _data(m){if(this.open)this.emit('data',m);else if(!this._cl&&this._q)this._q.push(m)}
+  _closed(){if(this._cl)return;this._cl=true;const was=this.open;this.open=false;
+   clearTimeout(this._to);if(this.cid)S.conns.delete(this.cid);if(this.peer)this.peer._conns.delete(this);if(was)this.emit('close')}
+  send(m){if(!this.open||!this.cid)return;tx({k:'d',cid:this.cid,m})}
+  close(){if(this._cl)return;if(this.cid)tx({k:'x',cid:this.cid});this._closed()}}
+ class WPeer extends Ev{
+  constructor(a){super();this.id=typeof a==='string'?a:null;this.destroyed=false;this.disconnected=false;this._conns=new Set();this._opened=false;
+   setTimeout(()=>this._start(),0)}
+  _start(){if(this.destroyed)return;
+   onReady(()=>{if(this.destroyed)return;
+    if(!this.id){this._opened=true;this.emit('open','');return}
+    S.regp.set(this.id,this);tx({k:'reg',id:this.id})},
+    e=>{if(!this.destroyed)this.emit('error',{type:'network',message:'سرور لن در دسترس نیست'})})}
+  connect(id){const c=new Conn(this);this._conns.add(c);const t=++S.tok;S.pend.set(t,c);
+   onReady(()=>{if(!c._cl)tx({k:'conn',to:id,t})},()=>{if(!c._cl){c._cl=true;this.emit('error',{type:'network',message:'سرور لن در دسترس نیست'})}});
+   c._to=setTimeout(()=>{if(!c.open&&!c._cl){c._cl=true;S.pend.delete(t);this.emit('error',{type:'peer-unavailable',message:'timeout'})}},WAIT);
+   return c}
+  reconnect(){if(this.destroyed)return;this._start()}
+  destroy(){if(this.destroyed)return;this.destroyed=true;
+   for(const c of [...this._conns])try{c.close()}catch(e){}
+   if(this.id&&S.peers.get(this.id)===this){S.peers.delete(this.id);tx({k:'unreg',id:this.id})}}}
+ window.__WSPeer=WPeer;
+})();
+</script>
+<script>
 /* ===== جایگزین PeerJS با Trystero =====
    یه کلاس Peer هم‌شکل PeerJS (new Peer(id) / peer.connect(id) / conn.on('open'|'data'|'close') / conn.send) روی Trystero.
    سیگنالینگ از رله‌های عمومی (Nostr) رد می‌شه، نه سرور PeerJS؛ بعدش اتصال WebRTC مستقیمه.
@@ -314,7 +375,7 @@ canvas{display:block}
    for(const c of [...this._conns])try{c.close()}catch(e){}
    for(const en of this._ens){if(en.owner===this){en.owner=null;for(const s of [...en.srv.values()])try{s.close()}catch(e){}}release(en)}
    this._ens=[]}}
- window.Peer=Peer;
+ window.Peer=(window.VS_LOCAL&&window.__WSPeer)?window.__WSPeer:Peer;
 })();
 </script>
 <script>
