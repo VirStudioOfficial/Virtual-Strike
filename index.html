@@ -143,6 +143,9 @@ canvas{display:block}
 #lb.ends>*:not(#lbcards):not(#lbvig){display:none!important}
 .pck{margin:4px auto 0;display:flex;gap:8px;justify-content:center;align-items:baseline;font-size:12px;background:rgba(0,0,0,.55);padding:2px 10px;border-radius:3px;direction:rtl;width:max-content}
 .pck b{font-size:17px;color:#ffd24a}.pck span{opacity:.7}
+.pcp,#pingd{display:flex;gap:4px;justify-content:center;align-items:center;font-size:11px;background:rgba(0,0,0,.55);padding:1px 8px;border-radius:3px;direction:ltr}.pcp{margin:3px auto 0;width:max-content}
+.pcp .svgi,#pingd .svgi{width:12px;height:12px}.pcp.ok,#pingd.ok{color:#7dff9f}.pcp.mid,#pingd.mid{color:#ffd24a}.pcp.bad,#pingd.bad{color:#ff8a8a}
+#pingd{position:absolute;top:38px;left:50%;transform:translateX(-50%);display:none;pointer-events:none}
 #ends{position:fixed;inset:0;z-index:60;display:none;pointer-events:none;direction:rtl;color:#fff}
 #ends .eb{position:absolute;top:6%;left:50%;transform:translateX(-50%);min-width:min(560px,92vw);padding:8px 40px 10px;text-align:center;animation:endsIn .6s cubic-bezier(.2,.8,.2,1)}
 #ends.win .eb{background:linear-gradient(90deg,transparent,rgba(24,190,88,.62) 15%,rgba(24,190,88,.62) 85%,transparent);border-top:1px solid #5dff9a;border-bottom:1px solid #5dff9a}
@@ -428,6 +431,7 @@ eye:`<svg ${IC_ATTR}><path d="M12 5C6.5 5 2.3 9 1 12c1.3 3 5.5 7 11 7s9.7-4 11-7
 home:`<svg ${IC_ATTR}><path d="M12 2.6 1.8 11.4h2.7V20a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-8.6h2.7zM9.8 21v-5a2.2 2.2 0 0 1 4.4 0v5z"/></svg>`,
 gear:`<svg ${IC_ATTR}><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>`,
 map:`<svg ${IC_ATTR}><path d="M2.5 6.4 8.3 4v13.7L2.5 20zM9.5 4.1l5 1.9v13.7l-5-1.9zM15.7 6l5.8-2.3v13.9l-5.8 2.4z"/></svg>`,
+ping:`<svg ${IC_ATTR}><path d="M3.5 20h3v-4.5h-3zM8.8 20h3v-8.5h-3zM14.1 20h3V7.5h-3zM19.4 20h3V3.5h-3z"/></svg>`,
 crown:`<svg ${IC_ATTR}><path d="M2.5 7.5l5 4 4.5-7.5 4.5 7.5 5-4-2 10.5h-15zM5 19.6h14V22H5zM12 11.6a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8z"/></svg>`,
 headshot:`<svg ${IC_ATTR}><path d="M12 2C7.3 2 3.5 5.5 3.5 10c0 2.7 1.3 4.7 3.5 5.9v3.6a1.5 1.5 0 0 0 1.5 1.5h1v-2.2H11V21h2v-2.2h1.5V21h1a1.5 1.5 0 0 0 1.5-1.5v-3.6c2.2-1.2 3.5-3.2 3.5-5.9C20.5 5.5 16.7 2 12 2zM8.6 8.2a2.3 2.3 0 1 0 0 4.6 2.3 2.3 0 0 0 0-4.6zM15.4 8.2a2.3 2.3 0 1 0 0 4.6 2.3 2.3 0 0 0 0-4.6zM12 13l-1.3 2.6h2.6z"/></svg>`,
 wall:`<svg ${IC_ATTR}><path d="M3 4.5h8.5v4H3zM12.5 4.5H21v4h-8.5zM3 9.5h3.5v4H3zM7.5 9.5h9v4h-9zM17.5 9.5H21v4h-3.5zM3 14.5h8.5v4H3zM12.5 14.5H21v4h-8.5z"/></svg>`,
@@ -2205,7 +2209,8 @@ function bulletHole(px,py,pz,nx,ny,nz){
  _ky.copy(_kn).cross(_kx);_km.makeBasis(_kx,_ky,_kn);m.quaternion.setFromRotationMatrix(_km);
  _kq.setFromAxisAngle(_kz,Math.random()*6.2832);m.quaternion.multiply(_kq);
  const o=.012+(BHL.i%5)*.0012;m.position.set(px+nx*o,py+ny*o,pz+nz*o);const s=.1+Math.random()*.04;m.scale.set(s,s,1);m.visible=true}
-function fire(e,d){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z}
+let FIRE_CLAIM=null;   // کلاینت: نتیجه‌ی هیت محلی که همراه پیام fire به هاست میره
+function fire(e,d,claim){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;oz=o.z;if(claim&&claim.o&&Math.hypot(claim.o[0]-ox,claim.o[1]-oy,claim.o[2]-oz)<6){ox=claim.o[0];oy=claim.o[1];oz=claim.o[2]}}
  const o0={x:ox,y:oy,z:oz};let hit=null,zone='body',trav=0,mul=1,walls=0,L=100,bh=false;
  for(;;){
   const org={x:ox,y:oy,z:oz},wd=Math.min(castRay(ox,oy,oz,d.x,d.y,d.z,200,false),1e8),ny=HNY,hnx=HNX,hnz=HNZ;let best=wd;
@@ -2219,7 +2224,12 @@ function fire(e,d){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;o
   const px=ox+d.x*wd,py=oy+d.y*wd,pz=oz+d.z*wd,ex=castRay(px+d.x*.01,py+d.y*.01,pz+d.z*.01,d.x,d.y,d.z,PEN_THICK,false);   // سطح خروج باید تو ضخامت مجاز باشه
   if(ex===Infinity||ex>=PEN_THICK||Math.abs(HNY)>.7){L=trav+wd;break}
   const adv=.03+ex;ox=px+d.x*adv;oy=py+d.y*adv;oz=pz+d.z*adv;trav+=wd+adv;mul*=PEN_DMG;walls++}
+ let claimDmg=-1;
+ if(claim){const ch=claim.hit?ents.find(x=>x.name===claim.hit):null;   // هاست: هیتی که تیرانداز روی صفحه‌ی خودش دیده رو قبول می‌کنه (لگ شبکه باعث نمی‌شه تیر هدر بره)
+  if(ch&&ch!==e&&!ch.dead&&ch.team!==e.team){hit=ch;zone=(claim.zone==='head'||claim.zone==='legs')?claim.zone:'body';bh=false;claimDmg=Math.max(1,Math.min(200,claim.dmg|0));walls=claim.wb?1:0;if(claim.L>0)L=Math.min(100,+claim.L)}
+  else{hit=null;claimDmg=0;if(claim.L>0)L=Math.min(100,+claim.L)}}
  L=Math.min(L,100);const end={x:o0.x+d.x*L,y:o0.y+d.y*L,z:o0.z+d.z*L},o=o0;
+ if(NET.mode==='client'&&e.isP)FIRE_CLAIM={o:[+o0.x.toFixed(2),+o0.y.toFixed(2),+o0.z.toFixed(2)],L:+L.toFixed(2),hit:null};
  tracer(e.isP?muzzlePos():(botMuzzle(e)||{x:o.x,y:o.y-.15,z:o.z}),end);smokeShot(o0,end);
  {const mp=e.isP?muzzlePos():(botMuzzle(e)||{x:o.x,y:o.y-.15,z:o.z});mflash.position.set(mp.x,mp.y,mp.z);mflash.intensity=e.isP?9:3.5;mfT=.06}   // برای بازیکن: از سر لوله
  if(!e.isP&&SD.on&&P.dead&&SD.spec===e)VM.kick=Math.min(.21,VM.kick+.12);   // لگد گان موقع تماشا
@@ -2227,7 +2237,9 @@ function fire(e,d){if(e.isP)hap(10);let ox,oy,oz;{const o=eye(e);ox=o.x;oy=o.y;o
  if(hit&&!hit.isP)bloodHit(end,d,zone,hit);   // پاشش خون
  if(hit){const pp=e.isP&&(e.wp||0)===2,D={head:e.isP?[100]:[25],body:e.isP?[pp?28:34]:[12],legs:e.isP?[pp?14:18]:[6]};let base=D[zone][0];
   if(e.isP&&(e.wp||0)===0){const bc=hit.p.y+.98-.27*(hit.cr||0),zm=zone==='head'?AK_HEAD:zone==='legs'?AK_LEG:(end.y<bc+.1?AK_STOM:AK_CHEST);base=AK_DMG*zm*Math.pow(AK_RANGE,L/AK_RANGE_M)}   // AK بازیکن: فرمول CS2 (مسافت کل مسیر گلوله)
-  if(NET.mode!=='client')damage(hit,walls?Math.max(1,Math.round(base*mul*(e.team===1&&!e.isP?EN.dmg:1))):Math.round(base*(e.team===1&&!e.isP?EN.dmg:1)),e,zone,walls>0)}   // روی کلاینت فقط پیش‌بینی بصریه؛ دمیج رو هاست اعمال می‌کنه
+  {let dm=walls?Math.max(1,Math.round(base*mul*(e.team===1&&!e.isP?EN.dmg:1))):Math.round(base*(e.team===1&&!e.isP?EN.dmg:1));if(claimDmg>0)dm=claimDmg;
+   if(NET.mode==='client'){if(e.isP){if(FIRE_CLAIM){FIRE_CLAIM.hit=hit.name;FIRE_CLAIM.zone=zone;FIRE_CLAIM.dmg=dm;FIRE_CLAIM.wb=walls>0?1:0}$('cross').classList.add('hit');hm=.12;hap(14);if(zone==='head')sfx('hs',.85)}}
+   else damage(hit,dm,e,zone,walls>0)}}   // روی کلاینت فقط پیش‌بینی بصریه؛ دمیج رو هاست اعمال می‌کنه
  if(bh&&!hit&&NET.mode!=='client'){ballImpulse(d.x*8,Math.max(d.y*8,-1)+2.2,d.z*8);if(!sfx('f0',.5/(1+dist/8),1.1))beep(150,.04,.08)}   // ضربه‌ی گلوله به توپ: لگد به سمت مسیر گلوله
  if(NET.mode==='host')NET.send({t:'shot',by:e.name,o:[+o.x.toFixed(2),+o.y.toFixed(2),+o.z.toFixed(2)],d:[+d.x.toFixed(3),+d.y.toFixed(3),+d.z.toFixed(3)],end:[+end.x.toFixed(2),+end.y.toFixed(2),+end.z.toFixed(2)],hit:hit?hit.name:null,zone,wp:e.wp||0})}
 const _mv=new THREE.Vector3(),_me=new THREE.Euler(0,0,0,'YXZ');
@@ -2501,11 +2513,12 @@ function sdBeginRound(){
  if(NET.mode==='host'){   // آنلاین: شروع راند رو برای همه بفرست
   const o=SD.hasBomb?P:SD.carrier;
   const pos={};for(const e of ents){pos[e.name]=[+e.p.x.toFixed(2),+e.p.y.toFixed(2),+e.p.z.toFixed(2),+e.yaw.toFixed(3)];if(e.net)e.tg={x:e.p.x,y:e.p.y,z:e.p.z,yaw:e.yaw}}
-  NET.send({t:'sdr',round:SD.round,wins:SD.wins.slice(),target:SD.target,ow:o.name,pos})}}
+  NET.rn=(NET.rn|0)+1;NET.send({t:'sdr',round:SD.round,rn:NET.rn,wins:SD.wins.slice(),target:SD.target,ow:o.name,pos})}}
 function sdEndRound(w,why){if(SD.state==='over')return;SD.state='over';SD.wins[w]++;SD.overT=SD_OVER_T;SD.final=SD.wins[w]>=SD_WIN||(SD_MAX_ROUNDS>0&&SD.round>=SD_MAX_ROUNDS);P.pl=0;sdSndStop();
  sdMsg(w===0?'تیم تو برد':'دشمن برد',SD_OVER_T);sdBanner(w,why);beep(w===0?660:180,.08,.3);if(NET.mode==='host')NET.send({t:'sdend',w,wins:SD.wins.slice(),final:SD.final?1:0})}
-function sdFinish(){const win=SD.wins[0]>SD.wins[1];if(document.pointerLockElement)document.exitPointerLock();if(NET.mode==='host')NET.send({t:'sdfin',w:SD.wins.slice()});
- const st=endsMake(SD.wins);if(st)ENDS=st;leaveMatch();
+function sdFinish(){const win=SD.wins[0]>SD.wins[1];if(document.pointerLockElement)document.exitPointerLock();
+ const st=endsMake(SD.wins);if(NET.mode==='host')NET.send({t:'sdfin',w:SD.wins.slice(),rows:st?st.rows.map(r=>({n:r.name,k:r.k,d:r.d,h:r.h,pg:Math.round(r.pg||0)})):null});
+ if(st)ENDS=st;leaveMatch();
  if(st)endsShow();else setTimeout(()=>lbMsg((win?'بردی ':'باختی ')+SD.wins[0]+' : '+SD.wins[1]),50)}
 function sdCleanup(){SD.on=false;SD.state='idle';SD.frz=0;sdBannerHide();sdBombClear();sdClearMarkers();for(const id of['pbar','sdhint','flash'])$(id).style.display='none'}
 /* ---- بمب‌بر، پلنت، خنثی‌سازی، انفجار ---- */
@@ -2792,7 +2805,7 @@ document.addEventListener('click',e=>{if(!inLobby)return;const t=e.target,b=t.cl
    - هاست روم می‌سازه (کد ۵ کاراکتری) و مرجع اصلیه: بات‌ها، دمیج و امتیاز روی دستگاه هاست شبیه‌سازی می‌شن.
    - کلاینت‌ها حرکت خودشون رو محلی اجرا می‌کنن و ۲۰ بار در ثانیه می‌فرستن؛ اسنپ‌شات ۱۵ هرتزی هاست همه‌چیز رو می‌ره.
    - درخواست دوستی واقعی: هر بازیکن یه «حضوری» ثابت با اسم خودش داره؛ ادد کردن با اسم، مستقیم P2P می‌ره. */
-const NET_VER='v11';
+const NET_VER='v12';
 const PEER_OPTS={debug:0,config:{iceServers:[
  {urls:'stun:stun.l.google.com:19302'},
  {urls:'stun:stun.relay.metered.ca:80'},
@@ -2808,6 +2821,7 @@ const netSetName=n=>{NET.myName=n;try{localStorage.setItem('ms_myname',n)}catch(
 function netSaveReal(n){if(!NET.real.includes(n)){NET.real.push(n);try{localStorage.setItem('ms_rfriends',JSON.stringify(NET.real))}catch(e){}}}
 const rid=n=>'ms25u-'+((String(n).toLowerCase().replace(/[^a-z0-9]/g,''))||('h'+[...String(n)].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7).toString(36)));
 NET.send=m=>{if(NET.mode==='host')netBroadcast(m);else if(NET.hostConn&&NET.hostConn.open)try{NET.hostConn.send(m)}catch(e){}};
+NET.rn=0;NET.ping=0;NET.pings={};NET.pgT=0;
 function lbPkt(){return {t:'lobby',squad:NET.members.slice(),host:NET.myName,mode:LB.mode,rd:[...NET.rdy]}}
 function netBroadcast(m){for(const c of NET.conns.values())if(c.open)try{c.send(m)}catch(e){}}
 /* ---- حضور (Presence): هر بازیکن یه Peer با id ثابت از روی اسمش ---- */
@@ -2911,13 +2925,15 @@ function netRoomMsg(conn,m){
  else if(m.t==='ready'){if(conn._name&&!inMatch){if(m.v)NET.rdy.add(conn._name);else NET.rdy.delete(conn._name);lbRenderUI();netBroadcast(lbPkt())}}
  else if(m.t==='ack'){if(NET.acks&&conn._name)NET.acks.add(conn._name)}
  else if(m.t==='st'){const e=ents.find(x=>x.name===conn._name);
-  if(e){e.tg={x:m.x,y:m.y,z:m.z,yaw:m.yaw,vp:m.vp,cr:m.cr,on:m.on}}}
+  if(e&&m.rn===NET.rn&&!(e.ign>performance.now())){e.tg={x:m.x,y:m.y,z:m.z,yaw:m.yaw,vp:m.vp,cr:m.cr,on:m.on}}}
  else if(m.t==='fire'){const e=ents.find(x=>x.name===conn._name);
-  if(e&&!e.dead){e.wp=m.wp||0;fire(e,{x:m.d[0],y:m.d[1],z:m.d[2]})}}
+  if(e&&!e.dead){e.wp=m.wp||0;fire(e,{x:m.d[0],y:m.d[1],z:m.d[2]},(m.c&&typeof m.c==='object')?m.c:undefined)}}
  else if(m.t==='melee'){const e=ents.find(x=>x.name===conn._name),t=ents.find(x=>x.name===m.tg);
   if(e&&t&&!t.dead&&!e.dead)damage(t,m.back?100:(m.sk?65:40),e,'body')}
  else if(m.t==='sdplant'){const e=ents.find(x=>x.name===conn._name);
   if(e&&SD.on&&SD.state==='live'&&SD.carrier===e&&!e.dead&&Math.hypot(e.p.x-m.x,e.p.z-m.z)<6&&Math.abs(e.p.y-m.y)<3&&sdSiteAt(m.x,m.y,m.z)>=0)sdPlant(m.x,m.y,m.z,{yaw:m.yaw,isP:false,name:conn._name})}
+ else if(m.t==='pg'){conn._ping=+m.p||0;try{conn.send({t:'pn',ts:m.ts})}catch(e){}}
+ else if(m.t==='nd'){if(ents.find(x=>x.name===conn._name)){m.by=conn._name;netNadeIn(m);for(const[n,c]of NET.conns)if(n!==conn._name&&c.open)try{c.send(m)}catch(x){}}}
  else if(m.t==='clleave'){const e=ents.find(x=>x.name===conn._name);
   if(e){if(e.mesh)scene.remove(e.mesh);const i=ents.indexOf(e);if(i>=0)ents.splice(i,1)}lbMsg((conn._name||'')+' از بازی خارج شد','info')}}
 function netClientMsg(conn,m){
@@ -2929,7 +2945,7 @@ function netClientMsg(conn,m){
  NET.send({t:'ack'});NET.rdy.clear();
  if(inMatch&&NET.lastStartId===m.id)return;
  NET.lastStartId=m.id;
- try{if(inMatch)leaveMatchMP();startMatchMP(m.roster,m.mode)}
+ try{if(inMatch)leaveMatchMP();startMatchMP(m.roster,m.mode,m.pos,m.rn)}
  catch(err){console.error('[start]',err);lbMsg('خطا در شروع: '+err.message,'alert')}
  return}
  if(m.t==='tolobby'){if(inMatch)leaveMatchMP();return}
@@ -2962,11 +2978,13 @@ function netClientMsg(conn,m){
  if(m.t==='sdex'){if(SD.on)sdExplode();return}
  if(m.t==='sdend'){if(SD.on){sdEndRound(m.w,'');SD.wins=m.wins.slice();SD.final=!!m.final;
   if(m.w===1&&SD.bomb&&SD.bomb.g){scene.remove(SD.bomb.g);if(SD.led){scene.remove(SD.led);SD.led=null}}}return}
- if(m.t==='sdfin'){const win=m.w[0]>m.w[1];if(document.pointerLockElement)document.exitPointerLock();const st=inMatch?endsMake(m.w):null;if(st)ENDS=st;if(inMatch)leaveMatchMP();
+ if(m.t==='sdfin'){const win=m.w[0]>m.w[1];if(document.pointerLockElement)document.exitPointerLock();const st=(inMatch||m.rows)?endsMake(m.w,m.rows):null;if(st)ENDS=st;if(inMatch)leaveMatchMP();else if(st&&inLobby)lbRenderUI();
   if(st)endsShow();else setTimeout(()=>lbMsg((win?'بردی ':'باختی ')+m.w[0]+' : '+m.w[1]),50);return}
+ if(m.t==='pn'){const r=performance.now()-m.ts;NET.ping=NET.ping?NET.ping*.6+r*.4:r;return}
+ if(m.t==='nd'){netNadeIn(m);return}
  if(m.t==='snap')netApplySnap(m)}
 /* ---- مهمان آنلاین، حالت «گشتن و نابود کردن»: هاست همه‌ی منطق (راند، بات‌ها، بمب، دمیج) رو اجرا می‌کنه؛ مهمان فقط وضعیت رو نشون می‌ده ---- */
-function sdClientRound(m){
+function sdClientRound(m){NET.rn=m.rn|0;
  sdBombClear();bloodClear();SD.round=m.round;sdSideSwap();SD.state='live';SD.rt=SD_ROUND_T;SD.bt=0;SD.defT=0;SD.overT=0;SD.defE=null;SD.carrier=null;SD.defuser=null;SD.spec=null;SD.final=false;SD.target=m.target;SD.shake=0;SD.frz=SD_FREEZE_T;sdBannerHide();
  SD.wins=m.wins.slice();SD.hasBomb=(m.ow===NET.myName);SD.plT=0;
  P.wp=0;P.pw=undefined;P.pl=0;P.pld=-1;P.sl=0;P.dr=0;P.arm=0;P.wAmmo={0:30,2:12};clickL=clickR=false;pitch=0;
@@ -2988,29 +3006,36 @@ function netApplySnap(m){
    continue}
   e.tg={x,y,z,yaw,cr,vp};e.hp=hp;e.rt=rt;
   if(dead&&!e.dead){e.dead=true}}
- score[0]=m.s[0];score[1]=m.s[1];
+ score[0]=m.s[0];score[1]=m.s[1];if(m.pg)NET.pings=m.pg;
  if(m.sd&&SD.on){SD.rt=m.sd[0];SD.bt=m.sd[1];SD.overT=m.sd[2];if(SD.state==='live')SD.hasBomb=(m.sd[3]===NET.myName);
   for(const t of ents)if(!t.isP)t.defT=(t.name===m.sd[4])?m.sd[5]:0}
  if(BALL&&m.b){BALL.p.x=m.b[0];BALL.p.y=m.b[1];BALL.p.z=m.b[2];BALL.m.position.set(m.b[0],m.b[1],m.b[2])}}
-function netLerp(e,dt){const g=e.tg;if(!g)return;const k=Math.min(1,dt*10);
+function netLerp(e,dt){const g=e.tg;if(!g)return;const k=Math.min(1,dt*16);
+ if(Math.hypot(g.x-e.p.x,g.z-e.p.z)>4||Math.abs(g.y-e.p.y)>3){e.p.x=g.x;e.p.y=g.y;e.p.z=g.z;if(g.yaw!==undefined)e.yaw=g.yaw}   // اسپاون/ریسپاون: پرش مستقیم، نه دویدن از جای دور
  e.p.x+=(g.x-e.p.x)*k;e.p.y+=(g.y-e.p.y)*k;e.p.z+=(g.z-e.p.z)*k;
  let dy=g.yaw-e.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));e.yaw+=dy*k;
  if(g.vp!==undefined)e.vp=(e.vp||0)+(g.vp-(e.vp||0))*k;e.cr=g.cr||0;e.on=!!g.on;e.vx=0;e.vz=0}
+function netPingHud(){if(!inMatch)return;let el=$('pingd');if(!el){const h=$('hud');if(!h)return;el=document.createElement('div');el.id='pingd';h.appendChild(el)}
+ let v=0;if(NET.mode==='client')v=Math.round(NET.ping||0);else for(const c of NET.conns.values())v=Math.max(v,Math.round(c._ping||0));   // هاست: بدترین پینگ بین مهمان‌ها
+ const k=v>120?'bad':v>60?'mid':'ok';if(el._k!==k||el._v!==v){el._k=k;el._v=v;el.className=k;el.innerHTML=ICON.ping+'<span>'+v+' ms</span>'}el.style.display='flex'}
 NET.frame=dt=>{if(!NET.on)return;
  if(NET.mode==='host'&&inMatch){NET.snapT-=dt;
-  if(NET.snapT<=0){NET.snapT=.066;
+  if(NET.snapT<=0){NET.snapT=.04;{const pg={};pg[NET.myName]=0;for(const[n,c]of NET.conns)pg[n]=Math.round(c._ping||0);NET.pings=pg}
    netBroadcast({t:'snap',e:ents.map(e=>[e.name,+e.p.x.toFixed(2),+e.p.y.toFixed(2),+e.p.z.toFixed(2),+e.yaw.toFixed(2),e.dead?1:0,Math.round(e.hp),+(e.cr||0).toFixed(2),+Math.max(0,e.rt).toFixed(1),+((e.isP?pitch:e.vp)||0).toFixed(2)]),
-    s:[score[0],score[1]],b:BALL?[+BALL.p.x.toFixed(2),+BALL.p.y.toFixed(2),+BALL.p.z.toFixed(2)]:null,
+    s:[score[0],score[1]],pg:NET.pings,b:BALL?[+BALL.p.x.toFixed(2),+BALL.p.y.toFixed(2),+BALL.p.z.toFixed(2)]:null,
     sd:SD.on?[+SD.rt.toFixed(1),+SD.bt.toFixed(1),+(SD.overT||0).toFixed(1),SD.hasBomb?P.name:(SD.carrier&&ents.includes(SD.carrier)?SD.carrier.name:''),SD.defE?SD.defE.name:'',+(SD.defE?(SD.defE.defT||0):0).toFixed(2)]:0})}}
  else if(NET.mode==='client'&&inMatch&&P){NET.stT-=dt;
-  if(NET.stT<=0){NET.stT=.05;
-   NET.send({t:'st',x:+P.p.x.toFixed(2),y:+P.p.y.toFixed(2),z:+P.p.z.toFixed(2),yaw:+P.yaw.toFixed(2),vp:+pitch.toFixed(2),cr:+(P.cr||0).toFixed(2),on:P.on?1:0})}}}
-function startMatchMP(roster,mode){lobbyExit();bloodClear();
+  if(NET.stT<=0){NET.stT=.04;
+   NET.send({t:'st',x:+P.p.x.toFixed(2),y:+P.p.y.toFixed(2),z:+P.p.z.toFixed(2),yaw:+P.yaw.toFixed(2),vp:+pitch.toFixed(2),cr:+(P.cr||0).toFixed(2),on:P.on?1:0,rn:NET.rn})}
+  NET.pgT-=dt;if(NET.pgT<=0){NET.pgT=1;NET.send({t:'pg',ts:performance.now(),p:Math.round(NET.ping||0)})}}
+ netPingHud()}
+function startMatchMP(roster,mode,pos,rn){lobbyExit();bloodClear();
  NAMES_N[0]=NAMES_N[1]=0;score[0]=score[1]=0;
  for(const r of roster){
   if(r.name===NET.myName){P=addEnt(0,true,r.name);P.mesh.visible=false}
   else{const e=addEnt(r.team,false,r.name);e.net=true;e.tg={x:e.p.x,y:e.p.y,z:e.p.z,yaw:e.yaw};
    if(r.team===0)e.mesh.userData.ring.material.color.set(0x35d07f)}}
+ NET.rn=rn|0;if(pos)for(const e of ents){const q=pos[e.name];if(!q)continue;e.p.x=q[0];e.p.y=q[1];e.p.z=q[2];e.yaw=q[3];e.lx=q[0];e.lz=q[2];if(e.tg){e.tg.x=q[0];e.tg.y=q[1];e.tg.z=q[2];e.tg.yaw=q[3]}}   // موقعیت اولیه از هاست (نه اسپاون رندوم محلی)
  $('kf').innerHTML='';inMatch=true;$('hud').style.display='';showMenu();
  if(mode==='sd'){SD.on=true;SD.round=0;SD.wins=[0,0];SD.final=false;SD.state='idle';SD.carrier=null;SD.hasBomb=false}}   // مهمان: منتظر پیام شروع راند از هاست
 function leaveMatchMP(){resumeClear();sdCleanup();bloodClear();
@@ -3202,17 +3227,21 @@ function lbfPlace(w,x,y,z,cx,cz,i){   // ته مسیر راه‌رفتن دقی�
 function lbClearChars(){for(const m of LB3.meshes){scene.remove(m);if(m.userData&&m.userData.mx)m.userData.mx.stopAllAction()}LB3.meshes=[];LB3.mix=[];LB3.byName={};$('lbcards').innerHTML=''}
 /* ================= صحنه‌ی پایان بازی (مثل CS2): تیم برنده با انیمیشن لابی + بنر Victory/Defeat + کارت کیل‌ها ================= */
 let ENDS=null;
-function endsMake(w){const wt=w[0]>w[1]?0:1,rows=ents.filter(e=>e.team===wt).map(e=>({name:e.name,k:e.kl||0,d:e.ds||0})).sort((a,b)=>b.k-a.k||a.d-b.d).slice(0,5);
- return rows.length?{win:wt===0,sc:[w[0],w[1]],names:rows.map(r=>r.name),rows,tm:0}:null}
+function endsMake(w,rowsIn){const wt=w[0]>w[1]?0:1,pgOf=e=>e.isP?(NET.mode==='client'?Math.round(NET.ping||0):0):(e.net?Math.round(NET.mode==='host'?((NET.conns.get(e.name)||{})._ping||0):(NET.pings[e.name]||0)):0);
+ let rows=(rowsIn&&rowsIn.length)?rowsIn.map(r=>({name:String(r.n),k:r.k|0,d:r.d|0,h:r.h?1:0,pg:+r.pg||0})):ents.filter(e=>e.team===wt).map(e=>({name:e.name,k:e.kl||0,d:e.ds||0,h:(e.isP||e.net)?1:0,pg:pgOf(e)}));
+ if(!rows.length)return null;
+ const mv=rows.slice().sort((a,b)=>b.k-a.k||a.d-b.d)[0];   // MVP = بیشترین کیل؛ ولی بازیکن‌های واقعی همیشه اول می‌شینن تا وسط صحنه دیده بشن
+ rows=rows.sort((a,b)=>b.h-a.h||b.k-a.k||a.d-b.d).slice(0,5);
+ return{win:wt===0,sc:[w[0],w[1]],names:rows.map(r=>r.name),rows,mvp:mv.name,mvpK:mv.k,on:!!(NET.on||rowsIn),tm:0}}
 function endsShow(){if(!ENDS)return;const e=$('ends');e.className=ENDS.win?'win':'lose';$('etxt').textContent=ENDS.win?'VICTORY':'DEFEAT';
  $('esub').textContent=ENDS.sc[0]+' - '+ENDS.sc[1]+(ENDS.win?'  •  تیم تو برد':'  •  تیم تو باخت');
- $('emvp').textContent='MVP: '+ENDS.rows[0].name+'  ('+ENDS.rows[0].k+' کیل)';
+ $('emvp').textContent='MVP: '+ENDS.mvp+'  ('+ENDS.mvpK+' کیل)';
  $('lb').classList.add('ends');e.style.display='block';ENDS.tm=setTimeout(()=>endsClose(),18000)}
 function endsClose(quiet){if(!ENDS)return;clearTimeout(ENDS.tm);ENDS=null;$('ends').style.display='none';$('lb').classList.remove('ends');if(!quiet&&inLobby)lbRenderUI()}
 $('endsok').addEventListener('click',()=>endsClose());
 const lbNames=me=>ENDS?ENDS.names:[me,...LB.squad.filter(x=>x!==me)];
 function lbCard(n,i){
- if(ENDS){const r=ENDS.rows[i]||{k:0,d:0};return `<div class="pc"><div class="pcb" style="background:${avBg(n)}">${i===0?'<span class="crown">'+ICON.crown+'</span>':''}${ini(n)}</div><div class="pcn">${esc(n)}</div><div class="pck"><b>${r.k}</b><small>کیل</small><span>${r.d} دث</span></div></div>`}
+ if(ENDS){const r=ENDS.rows[i]||{k:0,d:0},isM=ENDS.mvp===n,pgv=Math.max(0,Math.round(r.pg||0)),pc=r.h?(ENDS.on?'<div class="pcp '+(pgv>120?'bad':pgv>60?'mid':'ok')+'">'+ICON.ping+'<span>'+pgv+' ms</span></div>':''):'<div class="pcp"><span>BOT</span></div>';return `<div class="pc"><div class="pcb" style="background:${avBg(n)}">${isM?'<span class="crown">'+ICON.crown+'</span>':''}${ini(n)}</div><div class="pcn">${esc(n)}</div><div class="pck"><b>${r.k}</b><small>کیل</small><span>${r.d} دث</span></div>${pc}</div>`}
  return `<div class="pc"><div class="pcb" style="background:${avBg(n)}">${i===0?'<span class="crown">'+ICON.crown+'</span>':''}${ini(n)}</div><div class="pcn">${esc(n)}${i===0?' <small style="opacity:.65">(لیدر)</small>':''}</div></div>`}
 /* کاراکتر لابی/ویکتوری نباید توی دیوار بره: از موقعیت، ۸ جهت رو چک می‌کنیم و اگه دیوار نزدیک‌تر از شعاع بود، به عقب هلش می‌دیم */
 function lbClear(x,z,y){const R0=.75;
@@ -3288,7 +3317,8 @@ function startMatch(){
  for(let i=0;i<5;i++)addEnt(1,false,pickN([...NAMES[1],...POOL.filter(x=>/^[A-Za-z]/.test(x))]));
  $('kf').innerHTML='';inMatch=true;$('hud').style.display='';
  if(isHost){
- const msg={t:'start',roster:ents.map(e=>({name:e.name,team:e.team})),mode:LB.mode,id:Date.now()};
+ const pos0={};for(const e of ents)pos0[e.name]=[+e.p.x.toFixed(2),+e.p.y.toFixed(2),+e.p.z.toFixed(2),+e.yaw.toFixed(3)];NET.rn=(NET.rn|0)+1;
+  const msg={t:'start',roster:ents.map(e=>({name:e.name,team:e.team})),mode:LB.mode,id:Date.now(),pos:pos0,rn:NET.rn};
  NET.startMsg=msg;NET.acks=new Set();NET.startTries=0;
  NET.send(msg);
  clearInterval(NET.startTimer);
@@ -3422,8 +3452,8 @@ function playerUpdate(dt){
    const rec=recoilAt(P.ri||0,ps),spd=Math.hypot(P.vx,P.vz)/6.5,mv=Math.max(0,(spd-.34)/.66),sp=(.0009+mv*.027+(P.on?0:.11)+(P.rtmp||0))*(P.cr>.5?.75:1)*(ps?.8:1);
    const ra=R()*6.2832,rr=Math.sqrt(R())*sp,ep=pitch+rec.p+Math.sin(ra)*rr,eyw=P.yaw-rec.y+Math.cos(ra)*rr,cpe=Math.cos(ep);   // +yaw = چپ؛ پس آفست راستِ الگو از yaw کم می‌شه
    const dx=-Math.sin(eyw)*cpe,dy=Math.sin(ep),dz=-Math.cos(eyw)*cpe,dn=Math.hypot(dx,dy,dz);
-  fire(P,{x:dx/dn,y:dy/dn,z:dz/dn});if(!ps)ejectShell();
-  if(NET.mode==='client')NET.send({t:'fire',d:[+ (dx/dn).toFixed(3),+(dy/dn).toFixed(3),+(dz/dn).toFixed(3)],wp:P.wp||0});
+  FIRE_CLAIM=null;fire(P,{x:dx/dn,y:dy/dn,z:dz/dn});if(!ps)ejectShell();
+  if(NET.mode==='client')NET.send({t:'fire',d:[+ (dx/dn).toFixed(3),+(dy/dn).toFixed(3),+(dz/dn).toFixed(3)],wp:P.wp||0,c:FIRE_CLAIM});
    P.rtmp=Math.min(.012,(P.rtmp||0)+(ps?.003:.0016));   // اینکوراسی شلیک پشت‌سرهم (کوچک؛ لگد اصلی از الگوئه)
    P.ri=Math.min(Math.floor(P.ri||0)+1,RECOIL_MAX);P.fireT=ps?.35:.22;   // تیر بعدی → خونه‌ی بعدیِ الگو
    if(P.ammo===0)reload()}
@@ -3548,7 +3578,8 @@ function simulate(dt){
  for(const e of ents){
   if(e.dead){e.rt-=dt;ragStep(e,dt);
    if(e.rt<=0&&NET.mode!=='client'){spawn(e,true);
-    if(NET.mode==='host')NET.send({t:'rsp',n:e.name,x:+e.p.x.toFixed(2),y:+e.p.y.toFixed(2),z:+e.p.z.toFixed(2),yaw:+e.yaw.toFixed(2)})}
+    if(NET.mode==='host'&&e.net){e.tg={x:e.p.x,y:e.p.y,z:e.p.z,yaw:e.yaw};e.ign=performance.now()+700}
+     if(NET.mode==='host')NET.send({t:'rsp',n:e.name,x:+e.p.x.toFixed(2),y:+e.p.y.toFixed(2),z:+e.p.z.toFixed(2),yaw:+e.yaw.toFixed(2)})}
    continue}
   if(e.isP){playerUpdate(dt);if(e.buyT>0)e.buyT-=dt}else if(e.net){netLerp(e,dt);continue}else botUpdate(e,dt);
   const was=e.on,vb=e.vy;phys(e,dt);
@@ -3881,6 +3912,11 @@ function nadeUpdate(dt){const w=P.wp||0;if(w<4)return;if(!P.gn)P.gn={4:0,5:0,6:0
  if(P.ntw>0){P.ntw-=dt;if(P.ntw<=0){P.ntw=0;nadeThrow(w,!!P.nsoft);P.nsw=.5}}
  else if(P.nsw>0){P.nsw-=dt;if(P.nsw<=0){P.nsw=0;const b=(P.pw!==undefined&&P.pw<4)?P.pw:0;setWeapon(b);if((P.wp||0)>=4)setWeapon(0)}}   // بعد از پرتاب برگرد سر اسلحه‌ی قبلی
  else if((cl||cr)&&!(P.dr>0)&&(P.gn[w]|0)>0){P.ntw=.38;P.nsoft=cr&&!cl;if(!nsPlay(w,'pin',.8))beep(520,.03,.05)}}
+/* آنلاین: پرتاب هر بازیکن برای بقیه هم ساخته می‌شه (فیزیک و انفجارش روی هر کلاینت اجرا می‌شه)؛ دمیج فقط روی هاست */
+function netNade(g){if(!NET.on||!NET.mode)return;NET.send({t:'nd',k:g.k,by:g.by,p:[+g.p.x.toFixed(2),+g.p.y.toFixed(2),+g.p.z.toFixed(2)],v:[+g.v.x.toFixed(2),+g.v.y.toFixed(2),+g.v.z.toFixed(2)],f:+g.t.toFixed(2)})}
+function netNadeIn(m){if(!inMatch||!P||!m||m.by===P.name||!Array.isArray(m.p)||!Array.isArray(m.v))return;const k=m.k|0;if(!NK[k])return;
+ const mesh=mkNade(k);mesh.position.set(m.p[0],m.p[1],m.p[2]);scene.add(mesh);
+ NADES.push({k,p:{x:m.p[0],y:m.p[1],z:m.p[2]},v:{x:m.v[0],y:m.v[1],z:m.v[2]},t:Math.max(.2,+m.f||NK[k].fuse),m:mesh,rest:false,by:m.by,rem:true})}
 function nadeThrow(k,soft){
  const cp=Math.cos(pitch),sn=Math.sin(pitch),yy=Math.sin(P.yaw),yc=Math.cos(P.yaw);
  let fx=-yy*cp,fy=sn+(soft?.14:.2),fz=-yc*cp;const fl=Math.hypot(fx,fy,fz);fx/=fl;fy/=fl;fz/=fl;
@@ -3889,7 +3925,7 @@ function nadeThrow(k,soft){
   if(t<L+.1){const u=Math.max(.05,t-.15);sx=o.x+dx/L*u;sy=o.y+dy/L*u;sz=o.z+dz/L*u}}
  const spd=soft?14:28,m=mkNade(k);   // سرعت پرتاب: کلیک چپ = پرتاب کامل، کلیک راست = پرتاب نرم
  m.position.set(sx,sy,sz);scene.add(m);
- NADES.push({k,p:{x:sx,y:sy,z:sz},v:{x:fx*spd+(P.vx||0)*.6,y:fy*spd,z:fz*spd+(P.vz||0)*.6},t:NK[k].fuse,m,rest:false});
+ const gg={k,p:{x:sx,y:sy,z:sz},v:{x:fx*spd+(P.vx||0)*.6,y:fy*spd,z:fz*spd+(P.vz||0)*.6},t:NK[k].fuse,m,rest:false,by:P.name};NADES.push(gg);netNade(gg);
  P.gn[k]--;beep(200,.04,.06)}
 /* فیزیک نارنجک */
 function nadePhys(g,dt){if(g.rest)return;
@@ -3912,7 +3948,7 @@ function nadesStep(dt){
   g.m.position.set(g.p.x,g.p.y,g.p.z);if(!g.rest){g.m.rotation.x+=dt*9;g.m.rotation.z+=dt*5}
   if(g.p.y<MAPMIN-30)g.t=0;
   if(g.t<=0){scene.remove(g.m);g.m.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose()}});NADES.splice(i,1);
-   if(g.k===4)heBoom(g.p);else if(g.k===5)smokePop(g.p);else if(g.k===7)molotovBoom(g.p);else flashBoom(g.p)}}
+   {const th=g.by?ents.find(x=>x.name===g.by):null;if(g.k===4)heBoom(g.p,th);else if(g.k===5)smokePop(g.p);else if(g.k===7)molotovBoom(g.p,th);else flashBoom(g.p)}}}
  for(let i=NFX.length-1;i>=0;i--){const f=NFX[i];f.t+=dt;const u=Math.min(1,f.t/f.d),sc=f.s0+(f.s1-f.s0)*(1-(1-u)*(1-u));
   f.m.scale.setScalar(sc);f.m.material.opacity=f.op*(1-u);if(f.rise)f.m.position.y=f.y0+f.rise*u;
   if(u>=1){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose();NFX.splice(i,1)}}
@@ -3949,21 +3985,21 @@ function smokePop(p){let y=p.y;const t=castRay(p.x,p.y+.1,p.z,0,-1,0,5,false);if
  SMK.push({x:p.x,y,z:p.z,age:0,life:18,sp,holes:[]});if(!nsPlay(5,'boom',nsVol(p))){beep(240,.2,.07);beep(150,.35,.05)}}
 /* مولوتف: بطری به هر سطحی بخوره می‌شکنه و ۷ ثانیه روی زمین آتیش می‌مونه (شعاع ~۳ متر)؛ دشمن توی آتیش هر ۰٫۴ ثانیه آسیب می‌بینه و بات‌ها فرار می‌کنن */
 let FIRE_TEX=null;
-function molotovBoom(p){let y=p.y;const t=castRay(p.x,p.y+.3,p.z,0,-1,0,6,false);if(t<6)y=p.y+.3-t;
+function molotovBoom(p,by){let y=p.y;const t=castRay(p.x,p.y+.3,p.z,0,-1,0,6,false);if(t<6)y=p.y+.3-t;
  if(!FIRE_TEX){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,2,32,32,30);
   gr.addColorStop(0,'rgba(255,236,150,1)');gr.addColorStop(.45,'rgba(255,130,30,.75)');gr.addColorStop(1,'rgba(255,60,0,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);FIRE_TEX=new THREE.CanvasTexture(c)}
  const sp=[];for(let i=0;i<18;i++){const m=new THREE.SpriteMaterial({map:FIRE_TEX,transparent:true,depthWrite:false,fog:false,opacity:0,blending:THREE.AdditiveBlending}),q=new THREE.Sprite(m),a=R()*6.28,rr=Math.sqrt(R())*2.6;
   q.userData={ox:Math.cos(a)*rr,oz:Math.sin(a)*rr,sc:1.1+R()*.9,ph:R()*6.28};q.position.set(p.x+q.userData.ox,y+.5,p.z+q.userData.oz);scene.add(q);sp.push(q)}
  const glow=new THREE.Mesh(new THREE.CircleGeometry(2.9,28),new THREE.MeshBasicMaterial({color:0xff6a10,transparent:true,opacity:.0,depthWrite:false,blending:THREE.AdditiveBlending}));
  glow.rotation.x=-Math.PI/2;glow.position.set(p.x,y+.06,p.z);scene.add(glow);
- FIRES.push({x:p.x,y,z:p.z,age:0,life:7,tk:0,sp,glow});if(!nsPlay(7,'boom',nsVol(p))){beep(1100,.05,.06);beep(320,.25,.05)}}
+ FIRES.push({x:p.x,y,z:p.z,age:0,life:7,tk:0,sp,glow,by:by&&by.name});if(!nsPlay(7,'boom',nsVol(p))){beep(1100,.05,.06);beep(320,.25,.05)}}
 function fireStep(dt){for(let i=FIRES.length-1;i>=0;i--){const f=FIRES[i];f.age+=dt;
   const fo=Math.min(1,f.age/.35)*(f.age>f.life-1?Math.max(0,f.life-f.age):1);
   for(const q of f.sp){const u=q.userData,w=.75+.25*Math.sin(f.age*9+u.ph),sc=u.sc*(.8+.3*Math.sin(f.age*7+u.ph*2))*(.6+.4*fo);
    q.position.set(f.x+u.ox,f.y+.45+.3*Math.abs(Math.sin(f.age*4+u.ph)),f.z+u.oz);q.scale.set(sc,sc*1.5,1);q.material.opacity=.8*fo*w}
   f.glow.material.opacity=.3*fo;
   f.tk-=dt;if(f.tk<=0&&f.age<f.life){f.tk=.4;
-   NADE_BY.wp=7;NADE_BY.name=(P&&P.name)||'تو';NADE_BY.team=(P&&P.team)||0;NADE_BY.p.x=f.x;NADE_BY.p.y=f.y;NADE_BY.p.z=f.z;
+   {const fb=f.by?ents.find(x=>x.name===f.by):null;NADE_BY.isP=!fb||!!fb.isP;NADE_BY.team=fb?fb.team:((P&&P.team)||0);NADE_BY.fbn=fb&&fb.name}NADE_BY.wp=7;NADE_BY.name=NADE_BY.fbn||(P&&P.name)||'تو';NADE_BY.p.x=f.x;NADE_BY.p.y=f.y;NADE_BY.p.z=f.z;
    for(const e of ents){if(e.dead||e.team===NADE_BY.team||e.net)continue;
     if(Math.abs(e.p.y-f.y)>1.6||Math.hypot(e.p.x-f.x,e.p.z-f.z)>3)continue;
     if(!e.isP){e.unst=Math.max(e.unst||0,1.2);e.rgt=0}   // بات از آتیش فرار می‌کنه
@@ -4036,7 +4072,7 @@ function smokeShot(a,b){if(!SMK.length)return;const dx=b.x-a.x,dy=b.y-a.y,dz=b.z
  for(const s of SMK){if(s.age<.5||s.age>s.life-1.5)continue;const h={ax:a.x,ay:a.y,az:a.z,dx,dy,dz,l2,age:0,life:5.5},r=3*Math.min(1,.3+s.age/1.2);
   if(segDist(s.x,s.y+1.5,s.z,h)>r)continue;s.holes.push(h);if(s.holes.length>40)s.holes.shift()}}
 /* HE */
-function heBoom(p){const c={x:p.x,y:p.y+.12,z:p.z};NADE_BY.wp=4;NADE_BY.name=(P&&P.name)||'تو';NADE_BY.team=(P&&P.team)||0;NADE_BY.p.x=c.x;NADE_BY.p.y=c.y;NADE_BY.p.z=c.z;
+function heBoom(p,by){const c={x:p.x,y:p.y+.12,z:p.z};NADE_BY.wp=4;NADE_BY.isP=!by||!!by.isP;NADE_BY.name=(by&&by.name)||(P&&P.name)||'تو';NADE_BY.team=by?by.team:((P&&P.team)||0);NADE_BY.p.x=c.x;NADE_BY.p.y=c.y;NADE_BY.p.z=c.z;
  if(NET.mode!=='client')for(const e of ents){if(e.dead||e.team===NADE_BY.team)continue;
   const ok=hy=>{const dx=e.p.x-c.x,dy=e.p.y+hy-c.y,dz=e.p.z-c.z,d=Math.hypot(dx,dy,dz);return d<.6||castRay(c.x,c.y,c.z,dx/d,dy/d,dz/d,d,false)>=d-.5},
    dd=Math.hypot(e.p.x-c.x,e.p.y+1-c.y,e.p.z-c.z);if(dd>10)continue;
