@@ -810,13 +810,13 @@ window.lpDl=function(f){dl=f;if(n<=2)set(5+f*40)};
  const showProg=()=>{const el=document.getElementById('load');if(!el||!el.dataset.b)return;let l=0,t=0;for(const k in PR){l+=PR[k][0];t+=PR[k][1]}
   if(t>0){el.textContent=el.dataset.b+'  \u2066('+(l/1048576).toFixed(1)+' / '+(t/1048576).toFixed(1)+' MB)\u2069';try{lpDl(l/t)}catch(e){}}};
  async function dlOnce(url){   // دانلود استریمی با نمایش پیشرفت + ددلاین «بدون داده»: اگه ۲۰ ثانیه هیچ بایتی نیومد، قطع و دوباره
-  const ac=new AbortController();let tm;const kick=()=>{clearTimeout(tm);tm=setTimeout(()=>ac.abort(),20000)};kick();
+  const ac=new AbortController();let tm;const kick=()=>{clearTimeout(tm);tm=setTimeout(()=>ac.abort(),60000)};kick();
   try{const r=await fetch(url,{signal:ac.signal});if(!r.ok)throw new Error(r.status+' '+url);
    const tot=+r.headers.get('content-length')||0;PR[url]=[0,tot];
    if(!r.body||!r.body.getReader){const b=await r.arrayBuffer();PR[url]=[b.byteLength,b.byteLength];showProg();return b}
    const rd=r.body.getReader(),parts=[];let ld=0;
    for(;;){const{done,value}=await rd.read();if(done)break;kick();parts.push(value);ld+=value.length;PR[url][0]=ld;if(!tot)PR[url][1]=ld;showProg()}
-   const out=new Uint8Array(ld);let o=0;for(const c of parts){out.set(c,o);o+=c.length}return out.buffer}
+   const out=new Uint8Array(ld);let o=0;for(const c of parts){out.set(c,o);o+=c.length}if(/\.glb(\?|$)/i.test(url)&&out.length>=12){const h=new TextDecoder().decode(out.slice(0,32));if(/^\s*</.test(h))throw new Error('404/HTML به جای مدل: '+url);if(h.startsWith('version https://git-lfs'))throw new Error('فایل Git LFS است، خود مدل آپلود نشده: '+url);}return out.buffer}
   finally{clearTimeout(tm)}}
  async function dlProg(url){let err;for(let i=0;i<3;i++){try{return await dlOnce(url)}catch(e){err=e;console.warn('[dl] تلاش '+(i+1)+' ناموفق:',url,e.message);await new Promise(r=>setTimeout(r,800))}}throw err}
  window.cachedBufDrop=function(url){return idb('readwrite',s=>s.delete(url))};   // دیکود شکست خورد → کش خراب پاک بشه
@@ -6765,7 +6765,7 @@ async function boot(){
    setLock:v=>{locked=v},setTp:v=>{tp=v},setPitch:v=>{pitch=v},tris:()=>NT,SD,sdSetSite};
   READY=true;st('آماده‌ایم!');lobbyEnter();
    try{resumeLoad()}catch(err){console.warn('[resume] بازیابی نشد:',err);try{leaveMatchMP()}catch(e2){}}
- }catch(err){console.error(err);st('خطا در لود '+err.message+' — فایل‌های GLB باید کنار HTML باشن و با سرور محلی باز بشه (نه file://)')}}
+ }catch(err){console.error(err);st('خطا در لود مپ: '+(err&&err.message?err.message:err)+' — مطمئن شو فایل de_dust2_-_cs_map.glb کنار index.html آپلود شده باشد')}}
 
 /* نقطه‌ی اسپاون هر تیم: خودکار از گراف ناوبری — دو سر دورترین فاصله‌ی قابل‌راه‌رفتن (مثل T-spawn و CT-spawn).
    اگه گراف گم شد، به مختصات ثابت قدیمی برمی‌گرده (x,z بعد از مرکزسازی مپ) */
