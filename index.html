@@ -816,13 +816,13 @@ window.lpDl=function(f){dl=f;if(n<=2)set(5+f*40)};
    if(!r.body||!r.body.getReader){const b=await r.arrayBuffer();PR[url]=[b.byteLength,b.byteLength];showProg();return b}
    const rd=r.body.getReader(),parts=[];let ld=0;
    for(;;){const{done,value}=await rd.read();if(done)break;kick();parts.push(value);ld+=value.length;PR[url][0]=ld;if(!tot)PR[url][1]=ld;showProg()}
-   const out=new Uint8Array(ld);let o=0;for(const c of parts){out.set(c,o);o+=c.length}if(/\.glb(\?|$)/i.test(url)&&out.length>=12){const h=new TextDecoder().decode(out.slice(0,32));if(/^\s*</.test(h))throw new Error('404/HTML به جای مدل: '+url);if(h.startsWith('version https://git-lfs'))throw new Error('فایل Git LFS است، خود مدل آپلود نشده: '+url);}return out.buffer}
+   const out=new Uint8Array(ld);let o=0;for(const c of parts){out.set(c,o);o+=c.length}if(/\.glb(\?|$)/i.test(url)){const h=new TextDecoder().decode(out.slice(0,Math.min(40,out.length)));if(/^\s*</.test(h))throw new Error('404/HTML به جای مدل');if(h.startsWith('version https://git-lfs'))throw new Error('فایل Git LFS است (تنظیمات Git LFS را در Vercel روشن کن)');if(out.length<12||!h.startsWith('glTF'))throw new Error('فایل GLB خراب یا ناقص است ('+out.length+' بایت)');}return out.buffer}
   finally{clearTimeout(tm)}}
  async function dlProg(url){let err;for(let i=0;i<3;i++){try{return await dlOnce(url)}catch(e){err=e;console.warn('[dl] تلاش '+(i+1)+' ناموفق:',url,e.message);await new Promise(r=>setTimeout(r,800))}}throw err}
  window.cachedBufDrop=function(url){return idb('readwrite',s=>s.delete(url))};   // دیکود شکست خورد → کش خراب پاک بشه
  window.cachedBuf=async function(url){
   const [rec,sg]=await Promise.all([idb('readonly',s=>s.get(url)),sig(url)]);
-  if(rec&&rec.buf&&(sg===null||rec.sig===sg)){console.log('[cache] از کش:',url);return rec.buf}
+  if(rec&&rec.buf&&(sg===null||rec.sig===sg)){const u8=new Uint8Array(rec.buf,0,Math.min(4,rec.buf.byteLength));const ok=!/\.glb(\?|$)/i.test(url)||(u8.length===4&&u8[0]===0x67&&u8[1]===0x6C&&u8[2]===0x54&&u8[3]===0x46);if(ok){console.log('[cache] از کش:',url);return rec.buf}try{await idb('readwrite',s=>s.delete(url))}catch(e){}}
   const buf=await dlProg(url);
   idb('readwrite',s=>s.put({buf,sig:sg||''},url));   // ذخیره در پس‌زمینه؛ اگه شکست بخوره مهم نیست
   return buf};
@@ -2469,7 +2469,7 @@ function vmUpdate(dt){
  $('tune').textContent=TUNE.on&&nd?NHTXT():TUNE.on&&pi?PTXT():TUNE.on&&aw?AWTXT():TUNE.on&&kn?`TUNE KNIFE  (←→ چپ/راست | ↑↓ جلو/عقب روی دسته | PgUp/PgDn بالا/پایین | I K J L جهت انگشت‌ها)\nKNIFE_FIST_OFF=[${KNIFE_FIST_OFF.join(', ')}]\nKNIFE_RH.d=[${KNIFE_RH.d.join(', ')}]`:TUNE.on?`TUNE${M4P.on?' [M4A4 — عددها رو توی M4P بذار]':''}  hand=${TUNE.h}  (G خاموش | T دست | ←→↑↓ PgUp/PgDn | I K J L جهت | U O رول)\nGRIP_L=[${GRIP_L.join(', ')}]\nGRIP_R=[${GRIP_R.join(', ')}]\nMAG_GRAB=[${MAG_GRAB.join(', ')}]  خشاب=${VM.magReal?'جدا (واقعی)':'جدا نشد (جعبه)'}\nld(L)=[${IDLE.ld.join(', ')}]  rd(R)=[${IDLE.rd.join(', ')}]\nROLL L=${ROLL.L} R=${ROLL.R}\nLC_IDLE ak=${LC_IDLE.ak} aw=${LC_IDLE.aw}  ( [ ] = انحنای انگشت‌های دست چپ)\nreach L=${(VM.reach.L||0).toFixed(2)} R=${(VM.reach.R||0).toFixed(2)} (>1 = بازو کوتاهه)`:''}
 
 /* ================= LOAD HELPERS ================= */
-const loadGLB=f=>new Promise((ok,bad)=>new THREE.GLTFLoader().load(f,g=>ok(g.scene),undefined,e=>bad(new Error(f))));
+const loadGLB=f=>new Promise((ok,bad)=>new THREE.GLTFLoader().load(f,g=>ok(g.scene),undefined,e=>{try{if(window.cachedBufDrop)cachedBufDrop(new URL(f,location.href).href)}catch(_){}const msg=(e&&e.message)?e.message:(typeof e==='string'?e:'خطای نامشخص');bad(new Error(f+' — '+msg))}));
 /* مدل‌های ثابت (بدون اسکلت) که Y-up ساخته شدن (مثل خروجی Meshy/Hunyuan/Tripo): کد دست/پا مش رو Z-up فرض می‌کنه.
    اینجا تبدیل‌ها توی رأس‌ها پخته می‌شن و مدل Z-up می‌شه؛ بعدش fitChar خودش راستش می‌کنه. مدل‌های Z-up یا اسکلت‌دار دست نمی‌خورن. */
 /* مدل اسکلت‌دارِ خوابیده (مثل char_sas.glb جدید: قد روی محور X، بازوها روی Z، ۵ مش با ۵ متریال): از روی استخوان‌ها جهت «بالا» و «جلو» رو پیدا می‌کنیم،
